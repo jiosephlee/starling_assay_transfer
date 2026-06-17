@@ -23,6 +23,16 @@ ROW_GROUP_SIZE="${ROW_GROUP_SIZE:-250000}"
 BUCKET_FILE_ROW_LIMIT="${BUCKET_FILE_ROW_LIMIT:-10000000}"
 PARQUET_COMPRESSION="${PARQUET_COMPRESSION:-zstd}"
 PROGRESS_EVERY_SECONDS="${PROGRESS_EVERY_SECONDS:-300}"
+EXTRA_ARGS=()
+if [[ "${REUSE_BUCKETED_INPUT:-0}" == "1" ]]; then
+  EXTRA_ARGS+=(--reuse-bucketed-input)
+fi
+if [[ "${REUSE_CANDIDATE_INDEX:-0}" == "1" ]]; then
+  EXTRA_ARGS+=(--reuse-candidate-index)
+fi
+if [[ "${RESUME_CHECKPOINTS:-0}" == "1" ]]; then
+  EXTRA_ARGS+=(--resume-checkpoints)
+fi
 
 "${PYTHON}" scripts/create_splits_from_compact_pairs.py \
   --input-dir "${INPUT_DIR}" \
@@ -37,4 +47,5 @@ PROGRESS_EVERY_SECONDS="${PROGRESS_EVERY_SECONDS:-300}"
   --progress-every-seconds "${PROGRESS_EVERY_SECONDS}" \
   --keep-bucketed-input \
   --overwrite \
+  "${EXTRA_ARGS[@]}" \
   "$@"
