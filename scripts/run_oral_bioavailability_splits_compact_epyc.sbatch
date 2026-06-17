@@ -36,7 +36,5 @@ PYTHON="${PYTHON:-python}"
   --parquet-compression zstd \
   --progress-every-seconds 300 \
   --keep-bucketed-input \
-  --reuse-bucketed-input \
-  --resume-checkpoints \
   --overwrite \
   "$@"

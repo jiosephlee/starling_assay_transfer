@@ -49,7 +49,6 @@ SCHEMA_VERSION = "generic_transfer_pair_splits_compact_v1"
 SPLIT_VERSION = "compact_pair_first_proportional_molecule_disjoint_v1"
 LABEL_TEXT = {0: "not_transfer", 1: "transfer"}
 PRESENCE_TEXT = {0: "null<>null", 1: "not_null<>null", 2: "not_null<>not_null"}
-UINT64_MAX = np.iinfo(np.uint64).max
 
 
 def format_duration(seconds: float | None) -> str:
@@ -599,199 +598,6 @@ def collect_stratum_counts(
     return counter_from_code_counts(code_counts, metadata_columns, similarity_buckets=similarity_buckets)
 
 
-def candidate_index_dir(args: argparse.Namespace) -> Path:
-    return args.output_dir / "_candidate_index"
-
-
-def candidate_index_records(args: argparse.Namespace) -> Path:
-    return candidate_index_dir(args) / "records"
-
-
-def vectorized_pair_priority(
-    seed: int,
-    codes: np.ndarray,
-    left: np.ndarray,
-    right: np.ndarray,
-) -> np.ndarray:
-    x = codes.astype(np.uint64, copy=False)
-    x = x ^ (left.astype(np.uint64, copy=False) * np.uint64(0x9E3779B185EBCA87))
-    x = x ^ (right.astype(np.uint64, copy=False) * np.uint64(0xC2B2AE3D27D4EB4F))
-    x = x ^ np.uint64(seed)
-    x = (x ^ (x >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
-    x = (x ^ (x >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
-    return x ^ (x >> np.uint64(31))
-
-
-def candidate_index_capacities(
-    args: argparse.Namespace,
-    source_strata: Counter[tuple[Any, ...]],
-) -> dict[tuple[Any, ...], int]:
-    source_allocation = largest_remainder_allocation(args.eval_pairs_per_split, source_strata)
-    capacities: dict[tuple[Any, ...], int] = {}
-    for stratum, count in source_strata.items():
-        if count <= 0:
-            continue
-        quota = max(1, source_allocation.get(stratum, 0))
-        base_capacity = candidate_pool_capacity(args, quota)
-        indexed_capacity = max(
-            base_capacity,
-            min(args.max_candidates_per_index_stratum, base_capacity * args.candidate_index_multiplier),
-        )
-        capacities[stratum] = min(int(count), int(indexed_capacity))
-    return capacities
-
-
-def ensure_candidate_index(
-    args: argparse.Namespace,
-    input_path: Path,
-    source_strata: Counter[tuple[Any, ...]],
-) -> Path:
-    index_dir = candidate_index_dir(args)
-    records_dir = candidate_index_records(args)
-    metadata_path = index_dir / "metadata.json"
-    if args.reuse_candidate_index:
-        if not records_dir.exists():
-            raise FileNotFoundError(f"--reuse-candidate-index requested but {records_dir} does not exist")
-        args._candidate_index_rows = parquet_row_count(records_dir)
-        print(
-            f"[{utc_now()}] reuse candidate index: path={records_dir} rows={args._candidate_index_rows:,}",
-            file=sys.stderr,
-            flush=True,
-        )
-        return records_dir
-    if args.resume_checkpoints and records_dir.exists() and metadata_path.exists():
-        args._candidate_index_rows = parquet_row_count(records_dir)
-        print(
-            f"[{utc_now()}] reuse checkpointed candidate index: "
-            f"path={records_dir} rows={args._candidate_index_rows:,}",
-            file=sys.stderr,
-            flush=True,
-        )
-        return records_dir
-    if index_dir.exists():
-        shutil.rmtree(index_dir)
-    records_dir.mkdir(parents=True, exist_ok=True)
-
-    capacities = candidate_index_capacities(args, source_strata)
-    code_to_capacity = {
-        code_from_stratum(stratum, args.similarity_buckets): capacity
-        for stratum, capacity in capacities.items()
-    }
-    if not code_to_capacity:
-        raise ValueError("cannot build candidate index with no source strata")
-    max_code = max(code_to_capacity)
-    capacity_by_code = np.zeros(max_code + 1, dtype=np.int32)
-    threshold_by_code = np.full(max_code + 1, UINT64_MAX, dtype=np.uint64)
-    for code, capacity in code_to_capacity.items():
-        capacity_by_code[code] = int(capacity)
-
-    heaps: dict[int, list[tuple[int, int, int, dict[str, Any]]]] = {code: [] for code in code_to_capacity}
-    columns = [field.name for field in compact_schema(args.metadata_columns)]
-    dataset = ds.dataset(input_path, format="parquet")
-    total_rows = parquet_row_count(input_path)
-    processed = 0
-    materialized = 0
-    indexed_rows = 0
-    progress = ProgressLogger("build candidate index", total_rows, args.progress_every_seconds)
-    for batch in dataset.to_batches(columns=columns, batch_size=args.batch_size):
-        codes = stratum_code_arrays(batch, args.metadata_columns, similarity_buckets=args.similarity_buckets)
-        valid_code = codes <= max_code
-        if valid_code.any():
-            left = batch.column("row_index_a").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
-            right = batch.column("row_index_b").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
-            priorities = vectorized_pair_priority(args.seed, codes, left, right)
-            candidate_mask = np.zeros(batch.num_rows, dtype=bool)
-            active = valid_code.copy()
-            active[valid_code] = capacity_by_code[codes[valid_code]] > 0
-            candidate_mask[active] = priorities[active] < threshold_by_code[codes[active]]
-        else:
-            priorities = np.array([], dtype=np.uint64)
-            candidate_mask = np.zeros(batch.num_rows, dtype=bool)
-
-        if candidate_mask.any():
-            candidate_codes = codes[candidate_mask]
-            candidate_priorities = priorities[candidate_mask]
-            candidate_rows = batch.filter(pa.array(candidate_mask)).to_pylist()
-            materialized += len(candidate_rows)
-            for row, code, priority in zip(candidate_rows, candidate_codes, candidate_priorities, strict=True):
-                code = int(code)
-                priority_int = int(priority)
-                heap = heaps[code]
-                capacity = int(capacity_by_code[code])
-                left_value, right_value = row_molecules(row)
-                entry = (-priority_int, left_value, right_value, row)
-                if len(heap) < capacity:
-                    heapq.heappush(heap, entry)
-                    indexed_rows += 1
-                    if len(heap) == capacity:
-                        threshold_by_code[code] = np.uint64(-heap[0][0])
-                elif priority_int < -heap[0][0]:
-                    heapq.heapreplace(heap, entry)
-                    threshold_by_code[code] = np.uint64(-heap[0][0])
-
-        processed += batch.num_rows
-        progress.update(
-            processed,
-            extra=(
-                f"indexed={indexed_rows:,} materialized={materialized:,} "
-                f"strata={len(code_to_capacity):,}"
-            ),
-        )
-
-    all_entries: list[tuple[int, int, dict[str, Any]]] = []
-    for code, heap in heaps.items():
-        all_entries.extend((code, -entry[0], entry[3]) for entry in heap)
-    all_entries.sort(key=lambda item: (item[0], item[1]))
-
-    writer: pq.ParquetWriter | None = None
-    part_id = 0
-    rows_written = 0
-    try:
-        for offset in range(0, len(all_entries), args.row_group_size):
-            rows = [entry[2] for entry in all_entries[offset : offset + args.row_group_size]]
-            table = pa.Table.from_pylist(rows, schema=compact_schema(args.metadata_columns))
-            if writer is None:
-                writer = pq.ParquetWriter(
-                    records_dir / f"part-{part_id:05d}.parquet",
-                    table.schema,
-                    compression=args.parquet_compression,
-                )
-            writer.write_table(table)
-            rows_written += table.num_rows
-            if rows_written and rows_written % args.bucket_file_row_limit == 0:
-                writer.close()
-                writer = None
-                part_id += 1
-        if writer is not None:
-            writer.close()
-            writer = None
-    finally:
-        if writer is not None:
-            writer.close()
-
-    args._candidate_index_rows = int(rows_written)
-    write_json(
-        metadata_path,
-        {
-            "created_at_utc": utc_now(),
-            "rows": int(rows_written),
-            "source_rows": int(total_rows),
-            "source_strata": len(source_strata),
-            "indexed_strata": len(code_to_capacity),
-            "candidate_index_multiplier": args.candidate_index_multiplier,
-            "max_candidates_per_index_stratum": args.max_candidates_per_index_stratum,
-            "capacity_sum": int(sum(code_to_capacity.values())),
-            "materialized_rows": int(materialized),
-            "priority": "vectorized_splitmix64(row_index_a,row_index_b,stratum_code,seed)",
-        },
-    )
-    progress.finish(
-        processed,
-        extra=f"indexed={rows_written:,} materialized={materialized:,} strata={len(code_to_capacity):,}",
-    )
-    return records_dir
-
-
 def candidate_pool_capacity(args: argparse.Namespace, quota: int) -> int:
     oversampled = max(args.min_candidates_per_stratum, quota * args.candidate_pool_multiplier)
     return max(quota, min(args.max_candidates_per_stratum, oversampled))
@@ -824,7 +630,7 @@ def collect_candidate_pools(
     }
     skipped = Counter()
     dataset = ds.dataset(input_path, format="parquet")
-    total_rows = parquet_row_count(input_path)
+    total_rows = int(getattr(args, "_bucketed_rows", 0)) or parquet_row_count(input_path)
     processed = 0
     progress = ProgressLogger(
         f"collect {split} candidate pools",
@@ -1337,7 +1143,6 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             source_strata,
             extra={"source": "bucketed_input"},
         )
-    candidate_input = ensure_candidate_index(args, bucketed_input, source_strata)
 
     selected_pairs: dict[tuple[int, int], str] = {}
     selected_rows_by_split: dict[str, list[dict[str, Any]]] = {split: [] for split in EVAL_SPLITS}
@@ -1376,7 +1181,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         else:
             available_strata = source_strata
         pairs, molecules, meta, rows = select_eval_split(
-            input_path=candidate_input,
+            input_path=bucketed_input,
             metadata_columns=args.metadata_columns,
             batch_size=args.batch_size,
             target_pairs=args.eval_pairs_per_split,
@@ -1444,10 +1249,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "molecule_overlap_allowed": False,
             "stratification_fields": ["transfer_label", "similarity_bucket", *args.metadata_columns],
             "metadata_stratification_mode": "presence_codes",
-            "candidate_pool": (
-                "stratum-indexed deterministic bounded reservoir, then per-split bounded pool "
-                "before greedy molecule reuse"
-            ),
+            "candidate_pool": "deterministic bounded reservoir per allocated stratum before greedy molecule reuse",
         },
         "metadata_columns": args.metadata_columns,
         "similarity_thresholds": [compact_float(value) for value in thresholds],
@@ -1469,12 +1271,6 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "row_groups_read": int(getattr(args, "_quantile_row_groups_read", 0)),
         },
         "source_strata": serializable_counter(source_strata, args.metadata_columns),
-        "candidate_index": {
-            "path": str(candidate_input),
-            "rows": int(getattr(args, "_candidate_index_rows", 0)),
-            "candidate_index_multiplier": args.candidate_index_multiplier,
-            "max_candidates_per_index_stratum": args.max_candidates_per_index_stratum,
-        },
         "selection": {
             split: {
                 **{
@@ -1540,18 +1336,6 @@ def parse_args() -> argparse.Namespace:
         default=5_000,
         help="Maximum oversampled candidate pool size per stratum; quota is always retained.",
     )
-    parser.add_argument(
-        "--candidate-index-multiplier",
-        type=int,
-        default=2,
-        help="Multiplier applied to per-stratum candidate-pool capacity when building the reusable candidate index.",
-    )
-    parser.add_argument(
-        "--max-candidates-per-index-stratum",
-        type=int,
-        default=10_000,
-        help="Maximum rows retained per stratum in the reusable candidate index.",
-    )
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--batch-size", type=int, default=250_000)
     parser.add_argument("--row-group-size", type=int, default=250_000)
@@ -1573,11 +1357,6 @@ def parse_args() -> argparse.Namespace:
         "--reuse-bucketed-input",
         action="store_true",
         help="Reuse output_dir/_bucketed_input and skip rebuilding similarity_bucket labels.",
-    )
-    parser.add_argument(
-        "--reuse-candidate-index",
-        action="store_true",
-        help="Reuse output_dir/_candidate_index/records and skip rebuilding the stratum candidate index.",
     )
     parser.add_argument(
         "--resume-checkpoints",
@@ -1602,10 +1381,6 @@ def parse_args() -> argparse.Namespace:
         parser.error("--candidate-pool-multiplier must be positive")
     if args.min_candidates_per_stratum < 1 or args.max_candidates_per_stratum < 1:
         parser.error("candidate pool sizes must be positive")
-    if args.candidate_index_multiplier < 1:
-        parser.error("--candidate-index-multiplier must be positive")
-    if args.max_candidates_per_index_stratum < 1:
-        parser.error("--max-candidates-per-index-stratum must be positive")
     if args.progress_every_seconds < 0:
         parser.error("--progress-every-seconds cannot be negative")
     return args
