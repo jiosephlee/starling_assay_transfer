@@ -1,0 +1,27 @@
+You are given two molecules and study context for each molecule. Decide whether oral bioavailability behavior should transfer between the molecules.
+
+## Molecule A
+- SMILES: {{ molecule_a.canonical_smiles }}
+{% for key, value in molecule_a.metadata.items() -%}
+{% if value is not none -%}
+- {{ key }}: {{ value }}
+{% else -%}
+- {{ key }}: not specified
+{% endif -%}
+{% endfor %}
+
+## Molecule B
+- SMILES: {{ molecule_b.canonical_smiles }}
+{% for key, value in molecule_b.metadata.items() -%}
+{% if value is not none -%}
+- {{ key }}: {{ value }}
+{% else -%}
+- {{ key }}: not specified
+{% endif -%}
+{% endfor %}
+
+Should oral bioavailability behavior transfer between Molecule A and Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:
