@@ -212,6 +212,93 @@ python scripts/create_splits_from_compact_pairs.py \
   --overwrite
 ```
 
+## Non-SLURM Pipeline Commands
+
+All pipeline stages can be run directly without SLURM. These commands are the
+preferred handoff interface on a server where CPUs are available.
+
+Preprocess the Starling oral-bioavailability dataset:
+
+```bash
+python scripts/preprocess_starling_oral_bioavailability.py \
+  --output-dir datasets/base/Oral_bioavailability_cleaned \
+  --overwrite
+```
+
+Optionally upload the cleaned dataset to HF:
+
+```bash
+python scripts/preprocess_starling_oral_bioavailability.py \
+  --output-dir datasets/base/Oral_bioavailability_cleaned \
+  --repo-id jiosephlee/Oral_bioavailability_cleaned \
+  --overwrite
+```
+
+Enumerate all compact transfer pairs locally. Tune `--workers` to available CPU
+cores:
+
+```bash
+python scripts/create_transfer_pairs_compact_parquet.py \
+  --input datasets/base/Oral_bioavailability_cleaned \
+  --output-dir datasets/pairs_compact/oral_bioavailability_pairs_full \
+  --enumerate-all \
+  --workers 64 \
+  --tasks-per-worker 4 \
+  --row-group-size 250000 \
+  --parquet-compression zstd \
+  --progress-every 0 \
+  --overwrite
+```
+
+Create compact splits locally using the fixed thresholds:
+
+```bash
+bash scripts/run_oral_bioavailability_splits_compact_local.sh
+```
+
+Equivalent explicit command:
+
+```bash
+python scripts/create_splits_from_compact_pairs.py \
+  --input-dir datasets/pairs_compact/oral_bioavailability_pairs_full \
+  --output-dir datasets/pairs_split_compact/oral_bioavailability_pair_splits \
+  --eval-pairs-per-split 30000 \
+  --similarity-buckets 6 \
+  --similarity-thresholds 0.10 0.20 0.40 0.60 0.80 \
+  --batch-size 250000 \
+  --row-group-size 250000 \
+  --bucket-file-row-limit 10000000 \
+  --parquet-compression zstd \
+  --progress-every-seconds 300 \
+  --keep-bucketed-input \
+  --overwrite
+```
+
+Resume compact split generation from a completed fixed-threshold bucket:
+
+```bash
+python scripts/create_splits_from_compact_pairs.py \
+  --input-dir datasets/pairs_compact/oral_bioavailability_pairs_full \
+  --output-dir datasets/pairs_split_compact/oral_bioavailability_pair_splits \
+  --eval-pairs-per-split 30000 \
+  --similarity-buckets 6 \
+  --similarity-thresholds 0.10 0.20 0.40 0.60 0.80 \
+  --reuse-bucketed-input \
+  --resume-checkpoints \
+  --keep-bucketed-input \
+  --overwrite
+```
+
+Downstream local scripts exist, but check compatibility before running them
+because the newest split output is compact Parquet:
+
+```bash
+python scripts/materialize_full_pairs_from_splits.py --help
+python scripts/create_hf_parquets_from_splits.py --help
+python scripts/tokenize_hf_for_trl.py --help
+python scripts/upload_hf_dataset.py --help
+```
+
 ## What The Split Script Does
 
 1. Builds `_bucketed_input/` by copying compact pairs and replacing
