@@ -320,6 +320,38 @@ def stratum_from_code(code: int, metadata_columns: list[str], similarity_buckets
     return (label, bucket, *presence)
 
 
+def code_from_stratum(stratum: tuple[Any, ...], metadata_columns: list[str], similarity_buckets: int) -> int:
+    label, bucket, *presence = stratum
+    code = int(label)
+    multiplier = 2
+    code += multiplier * int(bucket)
+    multiplier *= similarity_buckets
+    for value in presence[: len(metadata_columns)]:
+        code += multiplier * int(value)
+        multiplier *= 3
+    return code
+
+
+def vectorized_pair_priorities(
+    left: np.ndarray,
+    right: np.ndarray,
+    codes: np.ndarray,
+    seed: int,
+    split: str,
+    phase: str,
+) -> np.ndarray:
+    """Deterministic uint64 pair priorities using a vectorized SplitMix64 finalizer."""
+    phase_seed = np.uint64(stable_priority(seed, split, phase) & ((1 << 64) - 1))
+    values = left.astype(np.uint64, copy=False) * np.uint64(0x9E3779B185EBCA87)
+    values ^= right.astype(np.uint64, copy=False) * np.uint64(0xC2B2AE3D27D4EB4F)
+    values ^= codes.astype(np.uint64, copy=False) * np.uint64(0x165667B19E3779F9)
+    values ^= phase_seed
+    values += np.uint64(0x9E3779B97F4A7C15)
+    values = (values ^ (values >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
+    values = (values ^ (values >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
+    return values ^ (values >> np.uint64(31))
+
+
 def counter_from_code_counts(
     code_counts: Counter[int],
     metadata_columns: list[str],
@@ -610,11 +642,24 @@ def collect_candidate_pools(
         for stratum, quota in allocation.items()
         if quota > 0
     }
-    heaps: dict[tuple[Any, ...], list[tuple[int, int, int, dict[str, Any]]]] = {
-        stratum: [] for stratum in capacities
+    stratum_by_code = {
+        code_from_stratum(stratum, metadata_columns, args.similarity_buckets): stratum
+        for stratum in capacities
     }
+    capacities_by_code = {
+        code_from_stratum(stratum, metadata_columns, args.similarity_buckets): capacity
+        for stratum, capacity in capacities.items()
+    }
+    allocated_codes = np.fromiter(sorted(stratum_by_code), dtype=np.int64)
+    heaps: dict[int, list[tuple[int, int, int, dict[str, Any]]]] = {code: [] for code in stratum_by_code}
     skipped = Counter()
     dataset = ds.dataset(input_path, format="parquet")
+    schema_columns = [field.name for field in compact_schema(metadata_columns)]
+    excluded_array = (
+        np.fromiter(excluded_molecules, dtype=np.uint32)
+        if excluded_molecules
+        else np.array([], dtype=np.uint32)
+    )
     total_rows = int(getattr(args, "_bucketed_rows", 0)) or parquet_row_count(input_path)
     processed = 0
     progress = ProgressLogger(
@@ -623,29 +668,77 @@ def collect_candidate_pools(
         args.progress_every_seconds,
     )
     for batch in dataset.to_batches(columns=columns, batch_size=batch_size):
-        for row in batch.to_pylist():
-            left, right = row_molecules(row)
-            if left in excluded_molecules or right in excluded_molecules:
-                skipped["touches_excluded_molecule"] += 1
-                continue
-            stratum = stratum_for_row(row, metadata_columns)
-            capacity = capacities.get(stratum)
-            if capacity is None:
-                skipped["unallocated_stratum"] += 1
-                continue
-            priority = stable_priority(seed, split, "candidate_pool", repr(stratum), left, right)
-            entry = (-priority, left, right, row)
-            heap = heaps[stratum]
-            if len(heap) < capacity:
-                heapq.heappush(heap, entry)
-            elif priority < -heap[0][0]:
-                heapq.heapreplace(heap, entry)
+        left_array = batch.column("row_index_a").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
+        right_array = batch.column("row_index_b").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
+        codes = stratum_code_arrays(batch, metadata_columns, similarity_buckets=args.similarity_buckets)
+
+        if excluded_array.size:
+            touches_excluded = np.isin(left_array, excluded_array, assume_unique=False) | np.isin(
+                right_array,
+                excluded_array,
+                assume_unique=False,
+            )
+            skipped["touches_excluded_molecule"] += int(touches_excluded.sum())
+        else:
+            touches_excluded = np.zeros(batch.num_rows, dtype=bool)
+
+        allocated_mask = np.isin(codes, allocated_codes, assume_unique=False)
+        skipped["unallocated_stratum"] += int((~touches_excluded & ~allocated_mask).sum())
+        keep_mask = ~touches_excluded & allocated_mask
+        if keep_mask.any():
+            kept_positions = np.flatnonzero(keep_mask)
+            kept_left = left_array[kept_positions]
+            kept_right = right_array[kept_positions]
+            kept_codes = codes[kept_positions]
+            priorities = vectorized_pair_priorities(
+                kept_left,
+                kept_right,
+                kept_codes,
+                seed,
+                split,
+                "candidate_pool",
+            )
+            arrays_by_column = {
+                name: batch.column(name).to_numpy(zero_copy_only=False)
+                for name in schema_columns
+            }
+            for code in np.unique(kept_codes):
+                code_int = int(code)
+                heap = heaps[code_int]
+                capacity = capacities_by_code[code_int]
+                code_positions = np.flatnonzero(kept_codes == code)
+                if len(heap) >= capacity:
+                    worst_priority = np.uint64(-heap[0][0])
+                    code_positions = code_positions[priorities[code_positions] < worst_priority]
+                    if code_positions.size == 0:
+                        continue
+                if code_positions.size > capacity:
+                    local_priorities = priorities[code_positions]
+                    chosen = np.argpartition(local_priorities, capacity - 1)[:capacity]
+                    code_positions = code_positions[chosen]
+                for kept_pos in code_positions:
+                    priority = int(priorities[kept_pos])
+                    original_pos = int(kept_positions[kept_pos])
+                    left = int(kept_left[kept_pos])
+                    right = int(kept_right[kept_pos])
+                    row = {
+                        name: arrays_by_column[name][original_pos].item()
+                        if hasattr(arrays_by_column[name][original_pos], "item")
+                        else arrays_by_column[name][original_pos]
+                        for name in schema_columns
+                    }
+                    entry = (-priority, left, right, row)
+                    if len(heap) < capacity:
+                        heapq.heappush(heap, entry)
+                    elif priority < -heap[0][0]:
+                        heapq.heapreplace(heap, entry)
         processed += batch.num_rows
         pooled_rows = sum(len(heap) for heap in heaps.values())
         progress.update(processed, extra=f"pooled={pooled_rows:,} allocated_strata={len(capacities):,}")
 
     pools: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
-    for stratum, heap in heaps.items():
+    for code, heap in heaps.items():
+        stratum = stratum_by_code[code]
         rows = [entry[3] for entry in heap]
         rows.sort(
             key=lambda row: stable_priority(
@@ -834,11 +927,20 @@ class SplitWriters:
 
 
 class TableSplitWriters:
-    def __init__(self, output_dir: Path, metadata_columns: list[str], compression: str) -> None:
+    def __init__(
+        self,
+        output_dir: Path,
+        metadata_columns: list[str],
+        compression: str,
+        file_row_limit: int,
+    ) -> None:
         self.output_dir = output_dir
         self.schema = output_schema(metadata_columns)
         self.compression = compression
+        self.file_row_limit = file_row_limit
         self.part_ids: Counter[str] = Counter()
+        self.rows_in_part: Counter[str] = Counter()
+        self.writers: dict[str, pq.ParquetWriter] = {}
         for split in SPLITS:
             split_dir = output_dir / split
             if split_dir.exists():
@@ -851,9 +953,38 @@ class TableSplitWriters:
         if "split" not in table.column_names:
             table = table.append_column("split", pa.array([split] * table.num_rows, type=pa.string()))
         table = table.select([field.name for field in self.schema])
-        path = self.output_dir / split / f"part-{self.part_ids[split]:05d}.parquet"
-        pq.write_table(table, path, compression=self.compression)
-        self.part_ids[split] += 1
+        offset = 0
+        while offset < table.num_rows:
+            writer = self.writers.get(split)
+            if writer is None:
+                path = self.output_dir / split / f"part-{self.part_ids[split]:05d}.parquet"
+                writer = pq.ParquetWriter(
+                    path,
+                    self.schema,
+                    compression=self.compression,
+                    use_dictionary=False,
+                    write_statistics=True,
+                )
+                self.writers[split] = writer
+                self.rows_in_part[split] = 0
+            remaining = table.num_rows - offset
+            space = max(self.file_row_limit - self.rows_in_part[split], 1)
+            take = min(remaining, space)
+            writer.write_table(table.slice(offset, take))
+            offset += take
+            self.rows_in_part[split] += take
+            if self.rows_in_part[split] >= self.file_row_limit:
+                writer.close()
+                del self.writers[split]
+                self.part_ids[split] += 1
+                self.rows_in_part[split] = 0
+
+    def close(self) -> None:
+        for split, writer in list(self.writers.items()):
+            writer.close()
+            del self.writers[split]
+            self.part_ids[split] += 1
+            self.rows_in_part[split] = 0
 
 
 def pair_code_arrays(left: np.ndarray, right: np.ndarray, multiplier: int) -> np.ndarray:
@@ -919,9 +1050,10 @@ def write_split_outputs(
     progress_every_seconds: float,
     similarity_buckets: int,
     pair_code_multiplier: int,
+    file_row_limit: int,
     total_rows: int | None = None,
 ) -> dict[str, Any]:
-    writers = TableSplitWriters(output_dir, metadata_columns, compression)
+    writers = TableSplitWriters(output_dir, metadata_columns, compression, file_row_limit)
     stats: dict[str, Any] = {
         "rows_by_split": Counter(),
         "transfer_label_counts": {split: Counter() for split in SPLITS},
@@ -1011,6 +1143,7 @@ def write_split_outputs(
             f"thrown_out={stats['thrown_out_pairs']['eval_molecule_overlap']:,}"
         ),
     )
+    writers.close()
     return stats
 
 
@@ -1172,6 +1305,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         progress_every_seconds=args.progress_every_seconds,
         similarity_buckets=args.similarity_buckets,
         pair_code_multiplier=pair_code_multiplier,
+        file_row_limit=args.bucket_file_row_limit,
         total_rows=getattr(args, "_bucketed_rows", None),
     )
     validation = validate(stats)
