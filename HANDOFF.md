@@ -73,6 +73,103 @@ datasets/pairs_split_compact/oral_bioavailability_pair_splits/
 
 The next clean run should overwrite/rebuild that output using fixed thresholds.
 
+## Rebuild Everything From HF
+
+You can recreate the full pipeline from Hugging Face sources without copying any
+generated local Parquet artifacts. This is slower, but it is reproducible from
+the code in this repo.
+
+Install the runtime dependencies first. Exact package management is
+environment-specific, but the pipeline expects:
+
+```text
+python
+pyarrow
+numpy
+rdkit
+huggingface_hub
+datasets
+jinja2
+transformers
+```
+
+Step 1: rebuild the cleaned numeric Starling oral-bioavailability dataset from
+the two HF inputs:
+
+```bash
+python scripts/preprocess_starling_oral_bioavailability.py \
+  --source-repo starling-labs/Oral_Bioavailability \
+  --source-file data/train-00000-of-00001.parquet \
+  --clean-repo Kiria-Nozan/Starling-bioavailability-clean \
+  --clean-file data/molecule_records.jsonl.gz \
+  --output-dir datasets/base/Oral_bioavailability_cleaned \
+  --overwrite
+```
+
+Expected cleaned output from the original run:
+
+```text
+rows_written: 82,496
+```
+
+Step 2: enumerate all compact transfer pairs from the cleaned dataset. This is
+the expensive all-pairs step.
+
+```bash
+python scripts/create_transfer_pairs_compact_parquet.py \
+  --input datasets/base/Oral_bioavailability_cleaned \
+  --output-dir datasets/pairs_compact/oral_bioavailability_pairs_full \
+  --enumerate-all \
+  --workers 64 \
+  --tasks-per-worker 4 \
+  --row-group-size 250000 \
+  --parquet-compression zstd \
+  --progress-every 0 \
+  --overwrite
+```
+
+Adjust `--workers` to the CPU count on the new server. This script parallelizes
+the enumeration by left-index ranges, so it can use many CPU workers. Expected
+compact pair output from the original run:
+
+```text
+candidate_pairs_seen: 3,402,753,760
+pairs_written:        2,455,662,084
+records shards:       256
+disk size:            about 21G
+```
+
+Step 3: create fixed-threshold compact splits. This uses the local runner:
+
+```bash
+bash scripts/run_oral_bioavailability_splits_compact_local.sh
+```
+
+The runner defaults to:
+
+```text
+similarity buckets:     6
+similarity thresholds:  0.10 0.20 0.40 0.60 0.80
+validation pairs:       30,000
+test pairs:             30,000
+train policy:           all remaining pairs not touching validation/test molecules
+```
+
+Step 4: continue to full pair materialization / HF rendering / tokenization only
+after verifying the compact split output. The current downstream scripts are:
+
+```bash
+python scripts/materialize_full_pairs_from_splits.py --help
+python scripts/create_hf_parquets_from_splits.py --help
+python scripts/tokenize_hf_for_trl.py --help
+```
+
+Important caveat: the newest split output is compact Parquet. Before running the
+full materialization/HF steps, quickly verify that the downstream materializer
+expects this compact Parquet split format. If not, adapt the materializer to
+read `train/`, `validation/`, and `test/` Parquet directories from the compact
+split output and join row indices back to the cleaned base dataset.
+
 ## Run Command
 
 From the repo root:
