@@ -320,6 +320,16 @@ def stratum_from_code(code: int, metadata_columns: list[str], similarity_buckets
     return (label, bucket, *presence)
 
 
+def code_from_stratum(stratum: tuple[Any, ...], similarity_buckets: int) -> int:
+    label, bucket, *presence = (int(value) for value in stratum)
+    code = label + 2 * bucket
+    multiplier = 2 * similarity_buckets
+    for value in presence:
+        code += multiplier * value
+        multiplier *= 3
+    return int(code)
+
+
 def counter_from_code_counts(
     code_counts: Counter[int],
     metadata_columns: list[str],
@@ -610,6 +620,11 @@ def collect_candidate_pools(
         for stratum, quota in allocation.items()
         if quota > 0
     }
+    code_to_stratum = {
+        code_from_stratum(stratum, args.similarity_buckets): stratum
+        for stratum in capacities
+    }
+    allocated_codes = np.fromiter(code_to_stratum, dtype=np.int64)
     heaps: dict[tuple[Any, ...], list[tuple[int, int, int, dict[str, Any]]]] = {
         stratum: [] for stratum in capacities
     }
@@ -622,26 +637,55 @@ def collect_candidate_pools(
         total_rows,
         args.progress_every_seconds,
     )
+    if not capacities:
+        progress.finish(0, extra="pooled=0 allocated_strata=0")
+        return {stratum: [] for stratum in allocation}, skipped
+
+    excluded_array = (
+        np.fromiter(excluded_molecules, dtype=np.uint32)
+        if excluded_molecules
+        else np.array([], dtype=np.uint32)
+    )
+    pooled_rows = 0
     for batch in dataset.to_batches(columns=columns, batch_size=batch_size):
-        for row in batch.to_pylist():
+        codes = stratum_code_arrays(batch, metadata_columns, similarity_buckets=args.similarity_buckets)
+        left_array = batch.column("row_index_a").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
+        right_array = batch.column("row_index_b").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
+        if excluded_array.size:
+            touches_excluded = np.isin(left_array, excluded_array, assume_unique=False) | np.isin(
+                right_array,
+                excluded_array,
+                assume_unique=False,
+            )
+        else:
+            touches_excluded = np.zeros(batch.num_rows, dtype=bool)
+        eligible = ~touches_excluded
+        allocated = np.isin(codes, allocated_codes, assume_unique=False)
+        candidate_mask = eligible & allocated
+
+        skipped["touches_excluded_molecule"] += int(touches_excluded.sum())
+        skipped["unallocated_stratum"] += int((eligible & ~allocated).sum())
+
+        if candidate_mask.any():
+            candidate_codes = codes[candidate_mask]
+            candidate_rows = batch.filter(pa.array(candidate_mask)).to_pylist()
+        else:
+            candidate_codes = np.array([], dtype=np.int64)
+            candidate_rows = []
+
+        for row, code in zip(candidate_rows, candidate_codes, strict=True):
             left, right = row_molecules(row)
-            if left in excluded_molecules or right in excluded_molecules:
-                skipped["touches_excluded_molecule"] += 1
-                continue
-            stratum = stratum_for_row(row, metadata_columns)
-            capacity = capacities.get(stratum)
-            if capacity is None:
-                skipped["unallocated_stratum"] += 1
-                continue
+            stratum = code_to_stratum[int(code)]
+            capacity = capacities[stratum]
             priority = stable_priority(seed, split, "candidate_pool", repr(stratum), left, right)
             entry = (-priority, left, right, row)
             heap = heaps[stratum]
             if len(heap) < capacity:
                 heapq.heappush(heap, entry)
+                pooled_rows += 1
             elif priority < -heap[0][0]:
                 heapq.heapreplace(heap, entry)
         processed += batch.num_rows
-        pooled_rows = sum(len(heap) for heap in heaps.values())
         progress.update(processed, extra=f"pooled={pooled_rows:,} allocated_strata={len(capacities):,}")
 
     pools: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
