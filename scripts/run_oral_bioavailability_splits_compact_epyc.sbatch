@@ -3,9 +3,9 @@
 #SBATCH --partition=genoa-std-mem
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=48
-#SBATCH --mem=192G
-#SBATCH --time=16:00:00
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=256G
+#SBATCH --time=24:00:00
 #SBATCH --output=/vast/projects/myatskar/design-documents/joseph/starling_assay_transfer/datasets/logs/ob_splits_compact_%j.out
 #SBATCH --error=/vast/projects/myatskar/design-documents/joseph/starling_assay_transfer/datasets/logs/ob_splits_compact_%j.err
 

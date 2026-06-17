@@ -320,16 +320,14 @@ def stratum_from_code(code: int, metadata_columns: list[str], similarity_buckets
     return (label, bucket, *presence)
 
 
-def code_from_stratum(stratum: tuple[Any, ...], metadata_columns: list[str], similarity_buckets: int) -> int:
-    label, bucket, *presence = stratum
-    code = int(label)
-    multiplier = 2
-    code += multiplier * int(bucket)
-    multiplier *= similarity_buckets
-    for value in presence[: len(metadata_columns)]:
-        code += multiplier * int(value)
+def code_from_stratum(stratum: tuple[Any, ...], similarity_buckets: int) -> int:
+    label, bucket, *presence = (int(value) for value in stratum)
+    code = label + 2 * bucket
+    multiplier = 2 * similarity_buckets
+    for value in presence:
+        code += multiplier * value
         multiplier *= 3
-    return code
+    return int(code)
 
 
 def vectorized_pair_priorities(
@@ -643,11 +641,11 @@ def collect_candidate_pools(
         if quota > 0
     }
     stratum_by_code = {
-        code_from_stratum(stratum, metadata_columns, args.similarity_buckets): stratum
+        code_from_stratum(stratum, args.similarity_buckets): stratum
         for stratum in capacities
     }
     capacities_by_code = {
-        code_from_stratum(stratum, metadata_columns, args.similarity_buckets): capacity
+        code_from_stratum(stratum, args.similarity_buckets): capacity
         for stratum, capacity in capacities.items()
     }
     allocated_codes = np.fromiter(sorted(stratum_by_code), dtype=np.int64)
@@ -667,6 +665,10 @@ def collect_candidate_pools(
         total_rows,
         args.progress_every_seconds,
     )
+    if not capacities:
+        progress.finish(0, extra="pooled=0 allocated_strata=0")
+        return {stratum: [] for stratum in allocation}, skipped
+
     for batch in dataset.to_batches(columns=columns, batch_size=batch_size):
         left_array = batch.column("row_index_a").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
         right_array = batch.column("row_index_b").to_numpy(zero_copy_only=False).astype(np.uint32, copy=False)
