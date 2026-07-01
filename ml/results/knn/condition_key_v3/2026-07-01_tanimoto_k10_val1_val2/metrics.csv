@@ -1,0 +1,4 @@
+split,method,phase,k,candidate_fraction,top_n,vote_weighting,tie_policy,n_candidates,retrieval_cache,scorer,macro_f1,accuracy,transfer_precision,transfer_recall,n_queries
+validation_1,tanimoto_knn,tune_grid,10,1.0,,score,positive,48177,candidates_a0d3a2641dddcdd2d97e78eda914ef412a920b67d1c70927de49bfcbdceb5ee8.npz,tanimoto_knn,0.6082868057596238,0.6532258064516129,0.7321428571428571,0.75,248
+validation_1,tanimoto_knn,tune_selected,10,1.0,,score,positive,48177,candidates_a0d3a2641dddcdd2d97e78eda914ef412a920b67d1c70927de49bfcbdceb5ee8.npz,tanimoto_knn,0.6082868057596238,0.6532258064516129,0.7321428571428571,0.75,248
+validation_2,tanimoto_knn,frozen_eval,10,1.0,,score,positive,48177,candidates_ffd044d6b71f5b011202457f8981e4bdb1347201eeeb9e8e6660ba4ac257ae48.npz,tanimoto_knn,0.5765160724605911,0.66,0.711340206185567,0.8263473053892215,250

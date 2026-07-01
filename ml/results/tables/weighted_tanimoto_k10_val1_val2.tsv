@@ -1,0 +1,6 @@
+Task	Baseline	Record Val 1		Record Val 2		Assay Val		Assay Test	
+		macro f-1	accuracy	macro f-1	accuracy	macro f-1	accuracy	macro f-1	accuracy
+Record KNN	Weighted Tanimoto k=10	0.6083	0.6532	0.5765	0.6600				
+Record KNN	Majority	0.3981	0.6613	0.4005	0.6680				
+Assay transfer	Weighted Tanimoto threshold >= 0.1293					0.5144	0.5857	0.5095	0.5844
+Assay transfer	Majority					0.4037	0.6770	0.4038	0.6774

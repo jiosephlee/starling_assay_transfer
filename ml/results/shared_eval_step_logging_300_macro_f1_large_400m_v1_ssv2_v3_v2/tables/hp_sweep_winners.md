@@ -1,0 +1,3 @@
+| lane | universe | run_name | lr | effective_batch_size | per_device_batch_size | status | best_transfer_precision | best_transfer_recall | best_macro_f1 | best_accuracy | returncode | log |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| source_value | same_species_v2 | hp_srcval_same_species_v2_lr1e-4_bs32768_ga4_s300_step_logging_300_macro_f1_large_400m_v1_ssv2_v3_v2 | 1e-4 | 32768 | 8192 | ok | 0.655685 | 0.785604 | 0.764794 | 0.787125 | 0 | ml/artifacts/hp_sweeps/shared_eval_step_logging_300_macro_f1_large_400m_v1_ssv2_v3_v2/same_species_v2/hp_srcval_same_species_v2_lr1e-4_bs32768_ga4_s300_step_logging_300_macro_f1_large_400m_v1_ssv2_v3_v2.log |

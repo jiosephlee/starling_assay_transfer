@@ -1,0 +1,38 @@
+paths:
+  dataset: shared_eval_same_species_v2_v3_v2
+  base_parquet: datasets/base/Oral_bioavailability_cleaned_v3/train.parquet
+  splits_dir: datasets/pairs_split_full/oral_bioavailability_same_species_v2_shared_eval_full_v3_v2
+  embeddings_dir: ml/artifacts/embeddings_shared_eval_filtered_source_value
+  memmap_dir: ml/artifacts/memmap_shared_eval_same_species_v2_source_value_v3_v2
+  output_dir: ml/artifacts/runs/shared_eval_same_species_v2_final
+
+embedding:
+  metadata_fields:
+    - molecule_name
+    - species_or_population
+    - dose
+    - oral_exposure_mode
+    - qualifying_conditions
+    - comparator
+    - extra_details
+
+model:
+  use_source_value: true
+
+loss:
+  kind: bce
+  pos_weight: 1.85
+
+train:
+  num_train_epochs: 3
+  max_steps: 0
+  eval_steps: 100
+  logging_steps: 2
+  gradient_accumulation_steps: 1
+  train_eval_samples: 0
+  metric_set: simple_transfer
+  eval_subset_metrics: true
+  wandb_simple_validation_only: true
+  report_to: wandb
+  wandb_project: oral_bioavailability_transfer
+  run_name: shared_eval_same_species_v2_final

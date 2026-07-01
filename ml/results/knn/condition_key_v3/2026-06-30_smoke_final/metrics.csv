@@ -1,0 +1,9 @@
+split,method,phase,k,macro_f1,accuracy,transfer_precision,transfer_recall,n_queries,candidate_fraction
+val_1,tanimoto_knn,tune_grid,1,0.0,0.0,0.0,0.0,2,
+val_1,tanimoto_knn,tune_selected,1,0.0,0.0,0.0,0.0,2,
+val_2,tanimoto_knn,frozen_eval,1,0.3333333333333333,0.5,0.0,0.0,2,
+test,tanimoto_knn,frozen_eval,1,1.0,1.0,1.0,1.0,2,
+val_1,starling_rerank_knn,tune_grid,1,1.0,1.0,1.0,1.0,2,0.001
+val_1,starling_rerank_knn,tune_selected,1,1.0,1.0,1.0,1.0,2,0.001
+val_2,starling_rerank_knn,frozen_eval,1,1.0,1.0,1.0,1.0,2,0.001
+test,starling_rerank_knn,frozen_eval,1,1.0,1.0,1.0,1.0,2,0.001

@@ -1,0 +1,14 @@
+# Evaluate the same_species_v2 source-value model on the TIANANG dataset.
+# Model architecture + 7 metadata fields come from Config defaults (== the ssv2 default.yaml model),
+# so the trained ssv2 head loads directly. Only the data paths point at tianang, and a fresh
+# embeddings/memmap dir is used (tianang molecules encoded with the ssv2 7-field set, incl molecule_name).
+paths:
+  dataset: tianang
+  base_parquet: datasets/base/Oral_bioavailability_tianang/train.parquet
+  splits_dir: datasets/pairs_split_full/oral_bioavailability_tianang_pairs_splits_full
+  embeddings_dir: ml/artifacts/embeddings_tianang_ssv2
+  memmap_dir: ml/artifacts/memmap_tianang_ssv2
+  output_dir: ml/artifacts/runs/tianang_ssv2eval
+
+model:
+  use_source_value: true   # the ssv2 checkpoint was trained with the source-value scalar

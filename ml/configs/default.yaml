@@ -1,0 +1,65 @@
+# Default configuration for the starling transfer-classification model.
+# Mirrors starling_ml/config.py:Config. Any subset of keys may be overridden;
+# CLI scripts also accept `--set paths.output_dir=...` style overrides.
+
+paths:
+  dataset: same_species_v2
+  base_parquet: datasets/base/Oral_bioavailability_cleaned_v2/train.parquet
+  splits_dir: datasets/pairs_split_full/oral_bioavailability_pair_splits_same_species_v2_full
+  embeddings_dir: ml/artifacts/embeddings_same_species_v2
+  memmap_dir: ml/artifacts/memmap_same_species_v2
+  output_dir: ml/artifacts/runs/same_species_v2
+
+embedding:
+  molformer_model: ibm-research/MoLFormer-XL-both-10pct
+  text_encoder_model: sentence-transformers/all-MiniLM-L6-v2
+  metadata_fields:
+    - molecule_name
+    - species_or_population
+    - dose
+    - oral_exposure_mode
+    - qualifying_conditions
+    - comparator
+    - extra_details
+  mol_emb_dim: 768
+  text_emb_dim: 384
+  smiles_batch_size: 256
+  text_batch_size: 1024
+
+model:        # Full 768-d molecule branch + deep SwiGLU head.
+  mol_hidden: 1024
+  mol_out: 768
+  meta_field_proj: 64
+  d_model: 1024
+  d_ff: 4096
+  n_blocks: 32
+  dropout: 0.1
+  layerscale_init: 0.0      # LayerScale on residual branches (deep-stack stability); <=0 disables
+
+loss:
+  kind: bce          # bce | focal
+  pos_weight: 1.85
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  label_smoothing: 0.0
+
+train:
+  per_device_batch_size: 65536   # batch-sweep winner (global 524288 on 8 GPUs); lr 3e-4
+  gradient_accumulation_steps: 1
+  learning_rate: 3.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  max_grad_norm: 1.0
+  lr_scheduler_type: cosine
+  max_steps: 20000
+  eval_steps: 100
+  logging_steps: 2
+  dataloader_num_workers: 8
+  bf16: true
+  tf32: true
+  torch_compile: true
+  seed: 0
+  train_eval_samples: 30000
+  report_to: wandb              # none | tensorboard | wandb
+  wandb_project: starling_assay_transfer_same_species_v2
+  run_name: ""                  # empty -> Trainer default (output_dir)

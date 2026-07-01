@@ -1,0 +1,8 @@
+{
+  "tanimoto_knn": {
+    "candidate_fraction": 1.0,
+    "k": 10,
+    "tie_policy": "positive",
+    "vote_weighting": "score"
+  }
+}

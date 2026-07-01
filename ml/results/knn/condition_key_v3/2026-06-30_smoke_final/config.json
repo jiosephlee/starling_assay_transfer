@@ -1,0 +1,53 @@
+{
+  "embedding": {
+    "metadata_fields": [
+      "molecule_name",
+      "species_or_population",
+      "dose",
+      "oral_exposure_mode",
+      "qualifying_conditions",
+      "comparator",
+      "extra_details"
+    ]
+  },
+  "knn": {
+    "base_parquet": "/data1/joseph/starling_assay_transfer/datasets/base/Oral_bioavailability_cleaned_v3/train.parquet",
+    "batch_size": 65536,
+    "candidate_fractions": [
+      0.01,
+      0.025,
+      0.05,
+      0.1,
+      0.25
+    ],
+    "checkpoint": "/data1/joseph/starling_assay_transfer/ml/artifacts/runs/shared_eval_step_logging_300_macro_f1_large_400m_v1/final_srcval_condition_key_lr1e-4_ebs32768_ga1_step_logging_3000_macro_f1_large_400m_v1/best_val_macro_f1",
+    "dataset_dir": "/data1/joseph/starling_assay_transfer/datasets/starling_eval/condition_key_v3_record_eval",
+    "embeddings_dir": "/data1/joseph/starling_assay_transfer/ml/artifacts/embeddings_shared_eval_filtered_source_value",
+    "k_values": [
+      1,
+      3,
+      5,
+      10,
+      25
+    ],
+    "methods": [
+      "tanimoto_knn",
+      "starling_rerank_knn"
+    ],
+    "output_root": "/data1/joseph/starling_assay_transfer/ml/results/knn/condition_key_v3",
+    "seed": 20260630,
+    "source_splits_dir": "/data1/joseph/starling_assay_transfer/datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2",
+    "val_1_frac": 0.5
+  },
+  "model": {
+    "use_source_value": true
+  },
+  "paths": {
+    "base_parquet": "/data1/joseph/starling_assay_transfer/datasets/base/Oral_bioavailability_cleaned_v3/train.parquet",
+    "dataset": "knn_condition_key_v3",
+    "embeddings_dir": "/data1/joseph/starling_assay_transfer/ml/artifacts/embeddings_shared_eval_filtered_source_value",
+    "output_dir": "/data1/joseph/starling_assay_transfer/ml/artifacts/runs/knn_condition_key_v3",
+    "source_splits_dir": "/data1/joseph/starling_assay_transfer/datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2",
+    "splits_dir": "/data1/joseph/starling_assay_transfer/datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2"
+  }
+}

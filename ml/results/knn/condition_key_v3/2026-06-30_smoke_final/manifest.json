@@ -1,0 +1,152 @@
+{
+  "base_parquet": "/data1/joseph/starling_assay_transfer/datasets/base/Oral_bioavailability_cleaned_v3/train.parquet",
+  "embedding_rows": 49164,
+  "embeddings_dir": "/data1/joseph/starling_assay_transfer/ml/artifacts/embeddings_shared_eval_filtered_source_value",
+  "record_split_pair_rows": {
+    "val_1": 12249,
+    "val_2": 11743
+  },
+  "record_split_query_counts": {
+    "val_1": 2467,
+    "val_2": 2466
+  },
+  "source_splits_dir": "/data1/joseph/starling_assay_transfer/datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2",
+  "stratification_report": {
+    "bioavailability_report_type_missing": {
+      "val_1": {
+        "False": 2467
+      },
+      "val_2": {
+        "False": 2466
+      }
+    },
+    "comparator_missing": {
+      "val_1": {
+        "False": 744,
+        "True": 1723
+      },
+      "val_2": {
+        "False": 743,
+        "True": 1723
+      }
+    },
+    "directions": {
+      "val_1": {
+        "a_to_b": 314,
+        "a_to_b|b_to_a": 780,
+        "b_to_a": 1373
+      },
+      "val_2": {
+        "a_to_b": 282,
+        "a_to_b|b_to_a": 770,
+        "b_to_a": 1414
+      }
+    },
+    "dose_missing": {
+      "val_1": {
+        "False": 912,
+        "True": 1555
+      },
+      "val_2": {
+        "False": 912,
+        "True": 1554
+      }
+    },
+    "eval_subsets": {
+      "val_1": {
+        "a_seen_only": 1293,
+        "a_seen_only|both_seen": 265,
+        "a_seen_only|no_overlap": 235,
+        "both_seen": 357,
+        "no_overlap": 317
+      },
+      "val_2": {
+        "a_seen_only": 1328,
+        "a_seen_only|both_seen": 280,
+        "a_seen_only|no_overlap": 222,
+        "both_seen": 338,
+        "no_overlap": 298
+      }
+    },
+    "extra_details_missing": {
+      "val_1": {
+        "False": 1667,
+        "True": 800
+      },
+      "val_2": {
+        "False": 1666,
+        "True": 800
+      }
+    },
+    "missing_count_bucket": {
+      "val_1": {
+        "missing_0_2": 689,
+        "missing_3_5": 1778
+      },
+      "val_2": {
+        "missing_0_2": 690,
+        "missing_3_5": 1776
+      }
+    },
+    "molecule_name_missing": {
+      "val_1": {
+        "False": 2467
+      },
+      "val_2": {
+        "False": 2466
+      }
+    },
+    "ob_bin": {
+      "val_1": {
+        "ob_ge20": 1642,
+        "ob_lt20": 825
+      },
+      "val_2": {
+        "ob_ge20": 1641,
+        "ob_lt20": 825
+      }
+    },
+    "oral_exposure_mode_missing": {
+      "val_1": {
+        "False": 718,
+        "True": 1749
+      },
+      "val_2": {
+        "False": 717,
+        "True": 1749
+      }
+    },
+    "pair_row_count": {
+      "val_1": 12249,
+      "val_2": 11743
+    },
+    "qualifying_conditions_missing": {
+      "val_1": {
+        "False": 11,
+        "True": 2456
+      },
+      "val_2": {
+        "False": 12,
+        "True": 2454
+      }
+    },
+    "species_or_population_missing": {
+      "val_1": {
+        "False": 2467
+      },
+      "val_2": {
+        "False": 2466
+      }
+    },
+    "support_text_missing": {
+      "val_1": {
+        "False": 2467
+      },
+      "val_2": {
+        "False": 2466
+      }
+    }
+  },
+  "validation_pair_rows": 23992,
+  "validation_query_records": 4933
+}

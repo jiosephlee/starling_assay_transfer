@@ -1,0 +1,4 @@
+# Generated ML artifacts (embeddings, memmaps, checkpoints, logs)
+artifacts/
+**/__pycache__/
+*.pyc

@@ -1,0 +1,63 @@
+# Configuration for the Tianang/Starling HF oral bioavailability transfer benchmark.
+
+paths:
+  dataset: tianang
+  base_parquet: datasets/base/Oral_bioavailability_tianang/train.parquet
+  splits_dir: datasets/pairs_split_full/oral_bioavailability_tianang_pairs_splits_full
+  embeddings_dir: ml/artifacts/embeddings_tianang
+  memmap_dir: ml/artifacts/memmap_tianang
+  output_dir: ml/artifacts/runs/tianang
+
+embedding:
+  molformer_model: ibm-research/MoLFormer-XL-both-10pct
+  text_encoder_model: sentence-transformers/all-MiniLM-L6-v2
+  metadata_fields:
+    - species_or_population
+    - dose
+    - oral_exposure_mode
+    - qualifying_conditions
+    - comparator
+    - extra_details
+  mol_emb_dim: 768
+  text_emb_dim: 384
+  smiles_batch_size: 256
+  text_batch_size: 1024
+
+model:
+  mol_hidden: 1024
+  mol_out: 768
+  meta_field_proj: 64
+  d_model: 1024
+  d_ff: 4096
+  n_blocks: 32
+  dropout: 0.1
+  layerscale_init: 0.0
+
+loss:
+  kind: bce
+  pos_weight: 1.85
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  label_smoothing: 0.0
+
+train:
+  per_device_batch_size: 16384
+  gradient_accumulation_steps: 1
+  learning_rate: 3.0e-4
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  max_grad_norm: 1.0
+  lr_scheduler_type: cosine
+  num_train_epochs: 10
+  max_steps: 0
+  eval_steps: 50
+  logging_steps: 2
+  dataloader_num_workers: 8
+  bf16: true
+  tf32: true
+  torch_compile: true
+  seed: 0
+  train_eval_samples: 30000
+  report_to: wandb
+  wandb_project: assay_transfer_starling
+  run_name: tianang

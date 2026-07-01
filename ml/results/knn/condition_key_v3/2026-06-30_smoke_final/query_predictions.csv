@@ -1,0 +1,13 @@
+split,method,k,candidate_fraction,query_record_id,query_row_index,label,prediction,prob_ge20,ob_bin,directions,eval_subsets
+val_1,tanimoto_knn,1,,10014,10014,1,0,0.0,ob_ge20,b_to_a,a_seen_only
+val_1,tanimoto_knn,1,,10030,10030,1,0,0.0,ob_ge20,a_to_b|b_to_a,no_overlap
+val_2,tanimoto_knn,1,,10085,10085,1,0,0.0,ob_ge20,b_to_a,a_seen_only
+val_2,tanimoto_knn,1,,10162,10162,0,0,0.0,ob_lt20,b_to_a,a_seen_only
+test,tanimoto_knn,1,,10027,10027,1,1,1.0,ob_ge20,a_to_b|b_to_a,no_overlap
+test,tanimoto_knn,1,,10033,10033,1,1,1.0,ob_ge20,a_to_b|b_to_a,a_seen_only|no_overlap
+val_1,starling_rerank_knn,1,0.001,10014,10014,1,1,1.0,ob_ge20,b_to_a,a_seen_only
+val_1,starling_rerank_knn,1,0.001,10030,10030,1,1,1.0,ob_ge20,a_to_b|b_to_a,no_overlap
+val_2,starling_rerank_knn,1,0.001,10085,10085,1,1,1.0,ob_ge20,b_to_a,a_seen_only
+val_2,starling_rerank_knn,1,0.001,10162,10162,0,0,0.0,ob_lt20,b_to_a,a_seen_only
+test,starling_rerank_knn,1,0.001,10027,10027,1,1,1.0,ob_ge20,a_to_b|b_to_a,no_overlap
+test,starling_rerank_knn,1,0.001,10033,10033,1,1,1.0,ob_ge20,a_to_b|b_to_a,a_seen_only|no_overlap

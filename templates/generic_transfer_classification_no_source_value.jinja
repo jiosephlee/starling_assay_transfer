@@ -1,0 +1,33 @@
+You are comparing two molecules for oral bioavailability.
+
+Oral bioavailability (F, %) is the fraction of an orally administered dose reaching systemic circulation unchanged (0-100%), governed by intestinal absorption (solubility, permeability) and first-pass gut/hepatic metabolism; it is species- and dose-dependent.
+
+Classify the pair based on the expected absolute oral bioavailability difference:
+- (A) transfer: the values should be within 10 percentage points.
+- (B) not transfer: the values should be at least 30 percentage points apart.
+
+Molecule A
+- SMILES: {{ molecule_a.canonical_smiles }}
+- name: {{ molecule_a.metadata.molecule_name if molecule_a.metadata.molecule_name is not none else "not specified" }}
+- species or population: {{ molecule_a.metadata.species_or_population if molecule_a.metadata.species_or_population is not none else "not specified" }}
+- dose: {{ molecule_a.metadata.dose if molecule_a.metadata.dose is not none else "not specified" }}
+- oral exposure mode: {{ molecule_a.metadata.oral_exposure_mode if molecule_a.metadata.oral_exposure_mode is not none else "not specified" }}
+- qualifying conditions: {{ molecule_a.metadata.qualifying_conditions if molecule_a.metadata.qualifying_conditions is not none else "not specified" }}
+- comparator: {{ molecule_a.metadata.comparator if molecule_a.metadata.comparator is not none else "not specified" }}
+- extra details: {{ molecule_a.metadata.extra_details if molecule_a.metadata.extra_details is not none else "not specified" }}
+
+Molecule B
+- SMILES: {{ molecule_b.canonical_smiles }}
+- name: {{ molecule_b.metadata.molecule_name if molecule_b.metadata.molecule_name is not none else "not specified" }}
+- species or population: {{ molecule_b.metadata.species_or_population if molecule_b.metadata.species_or_population is not none else "not specified" }}
+- dose: {{ molecule_b.metadata.dose if molecule_b.metadata.dose is not none else "not specified" }}
+- oral exposure mode: {{ molecule_b.metadata.oral_exposure_mode if molecule_b.metadata.oral_exposure_mode is not none else "not specified" }}
+- qualifying conditions: {{ molecule_b.metadata.qualifying_conditions if molecule_b.metadata.qualifying_conditions is not none else "not specified" }}
+- comparator: {{ molecule_b.metadata.comparator if molecule_b.metadata.comparator is not none else "not specified" }}
+- extra details: {{ molecule_b.metadata.extra_details if molecule_b.metadata.extra_details is not none else "not specified" }}
+
+Should oral bioavailability transfer between Molecule A and Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

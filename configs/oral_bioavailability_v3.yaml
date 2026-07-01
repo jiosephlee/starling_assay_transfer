@@ -1,0 +1,79 @@
+base:
+  input: datasets/base/Oral_bioavailability_cleaned
+  output_dir: datasets/base/Oral_bioavailability_cleaned_v3
+  tdc_dir: tdc/official_tianang
+  tdc_task: Bioavailability_Ma
+  tdc_splits: [train, valid, test]
+  reference_dir: datasets/exclusions/tdc_bioavailability_ma_v3
+  smiles_column: smiles
+  value_column: oral_bioavailability_value
+
+pairs:
+  output_root: datasets/pairs_compact
+  modes:
+    condition_key:
+      output_dir: oral_bioavailability_pairs_condition_key_v3
+      same_metadata_columns: [condition_key_repro]
+    same_species_v2:
+      output_dir: oral_bioavailability_pairs_same_species_v2_v3
+      same_metadata_columns: [species_or_population_normalized]
+    no_constraints:
+      output_dir: oral_bioavailability_pairs_no_constraints_v3
+      same_metadata_columns: []
+  metadata_columns:
+    - bioavailability_report_type
+    - species_or_population
+    - dose
+    - oral_exposure_mode
+    - qualifying_conditions
+    - comparator
+    - extra_details
+  enumerate_all: true
+  similarity_buckets: 5
+  similarity_thresholds: [0.2, 0.4, 0.6, 0.8]
+  transfer_threshold: 10.0
+  not_transfer_threshold: 30.0
+  seed: 13
+  workers: 32
+  tasks_per_worker: 4
+  progress_every: 1000000
+
+splits:
+  output_root: datasets/pairs_split_full
+  universes: [condition_key, same_species_v2]
+  eval_directions_per_subset: 7000
+  candidate_pool_multiplier: 500
+  preferred_no_train_molecules: 2000
+  shared_eval_compatibility_column: species_or_population_normalized
+  disjoint_eval_molecules: true
+  arrow_cpu_count: 256
+  eval_subsets:
+    no_overlap: double_unseen
+    a_seen_only: query_unseen
+    both_seen: both_seen
+  train_direction_modes: [bidirectional, unidirectional]
+
+hf:
+  output_root: datasets/pairs_split_hf
+  variants:
+    source_value:
+      train_direction_mode: bidirectional
+      template: templates/generic_transfer_classification.jinja
+    no_source_value:
+      train_direction_mode: unidirectional
+      template: templates/generic_transfer_classification_no_source_value.jinja
+
+ml:
+  wandb_projects:
+    hp_sweep: oral_bioavailability_transfer_hp_sweep
+    full_run: oral_bioavailability_transfer
+  hp_grid:
+    learning_rates: [1e-4, 2e-4, 4e-4]
+    effective_batch_sizes: [8192, 16384, 32768]
+  sweep:
+    max_steps: 300
+    eval_steps: 50
+    select_metric: eval_val_no_overlap_macro_f1
+  full:
+    tdc_eval_steps: 250
+    tdc_task: Bioavailability_Ma

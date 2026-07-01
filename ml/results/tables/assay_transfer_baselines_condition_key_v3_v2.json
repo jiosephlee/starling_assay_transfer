@@ -1,0 +1,36 @@
+{
+  "dataset": "oral_bioavailability_condition_key_shared_eval_full_v3_v2",
+  "majority": {
+    "test": {
+      "accuracy": 0.677418008845865,
+      "macro_f1": 0.40384567548070943
+    },
+    "validation": {
+      "accuracy": 0.6769756585528509,
+      "macro_f1": 0.4036884227270468
+    }
+  },
+  "majority_label": 0,
+  "n": {
+    "test": 23966,
+    "train": 2362996,
+    "validation": 23992
+  },
+  "selected_on": "validation",
+  "selected_threshold": 0.12934783101081848,
+  "threshold_rule": "predict transfer_label=1 when weighted_tanimoto >= threshold",
+  "train_label_counts": {
+    "0": 1623322,
+    "1": 739674
+  },
+  "weighted_tanimoto_threshold": {
+    "test": {
+      "accuracy": 0.5843695234916131,
+      "macro_f1": 0.5095432541631728
+    },
+    "validation": {
+      "accuracy": 0.5856952317439147,
+      "macro_f1": 0.5143818554073337
+    }
+  }
+}
