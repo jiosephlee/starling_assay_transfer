@@ -4,7 +4,12 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-datasets/
+# Ignore large generated data under datasets/, but keep the small seed inputs
+# needed to run the KNN eval callback (record splits, cleaned base, exclusions).
+datasets/*
+!datasets/base/
+!datasets/starling_eval/
+!datasets/exclusions/
 *.log
 *.out
 *.err

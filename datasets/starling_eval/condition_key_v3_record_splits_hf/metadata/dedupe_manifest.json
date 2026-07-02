@@ -1,0 +1,9 @@
+{
+  "created_at_utc": "2026-07-01T02:43:42.357906+00:00",
+  "dedupe_key": "exact smiles string",
+  "duplicate_smiles_groups": 5898,
+  "input_rows": 49164,
+  "label_policy": "median oral_bioavailability_value per smiles, then >= 20.0",
+  "schema_version": "oral_bioavailability_smiles_dedupe_v1",
+  "unique_smiles": 12976
+}

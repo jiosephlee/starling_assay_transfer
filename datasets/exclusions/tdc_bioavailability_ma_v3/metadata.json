@@ -1,0 +1,14 @@
+{
+  "counts_by_split": {
+    "test": 128,
+    "train": 448,
+    "valid": 64
+  },
+  "created_at_utc": "2026-06-29T18:48:23.381082+00:00",
+  "invalid_smiles_rows": 0,
+  "rows": 640,
+  "schema_version": "tdc_bioavailability_ma_smiles_reference_v1",
+  "unique_canonical_smiles": 640,
+  "unique_raw_smiles": 640,
+  "valid_smiles_rows": 640
+}

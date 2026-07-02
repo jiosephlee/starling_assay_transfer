@@ -1,0 +1,63 @@
+{
+  "added_or_replaced_columns": [
+    "species_or_population_normalized",
+    "condition_key_repro"
+  ],
+  "base_smiles_stats": {
+    "canonical_match_rows": 33332,
+    "invalid_or_missing_canonical_smiles": 0,
+    "matched_unique_canonical_smiles": 584,
+    "matched_unique_raw_smiles": 584,
+    "raw_match_rows": 33332
+  },
+  "columns": [
+    "pmid",
+    "support_text",
+    "molecule_name",
+    "oral_bioavailability_value",
+    "bioavailability_report_type",
+    "species_or_population",
+    "dose",
+    "oral_exposure_mode",
+    "qualifying_conditions",
+    "comparator",
+    "extra_details",
+    "smiles",
+    "species_or_population_normalized",
+    "condition_key_repro"
+  ],
+  "created_at_utc": "2026-06-29T18:48:34.056462+00:00",
+  "input": "datasets/base/Oral_bioavailability_cleaned",
+  "output_dir": "datasets/base/Oral_bioavailability_cleaned_v3",
+  "output_file": "train.parquet",
+  "parquet": {
+    "compression": "zstd"
+  },
+  "removal_policy": "remove base rows when stripped raw base SMILES or RDKit canonical base SMILES matches stripped raw or RDKit canonical TDC Bioavailability_Ma train/valid/test SMILES",
+  "rows_input": 82496,
+  "rows_removed": 33332,
+  "rows_written": 49164,
+  "schema_version": "starling_oral_bioavailability_numeric_v3",
+  "smiles_column": "smiles",
+  "tdc_reference_dir": "datasets/exclusions/tdc_bioavailability_ma_v3",
+  "tdc_reference_metadata": {
+    "counts_by_split": {
+      "test": 128,
+      "train": 448,
+      "valid": 64
+    },
+    "created_at_utc": "2026-06-29T18:48:23.381082+00:00",
+    "invalid_smiles_rows": 0,
+    "rows": 640,
+    "schema_version": "tdc_bioavailability_ma_smiles_reference_v1",
+    "unique_canonical_smiles": 640,
+    "unique_raw_smiles": 640,
+    "valid_smiles_rows": 640
+  },
+  "tdc_splits": [
+    "train",
+    "valid",
+    "test"
+  ],
+  "tdc_task": "Bioavailability_Ma"
+}

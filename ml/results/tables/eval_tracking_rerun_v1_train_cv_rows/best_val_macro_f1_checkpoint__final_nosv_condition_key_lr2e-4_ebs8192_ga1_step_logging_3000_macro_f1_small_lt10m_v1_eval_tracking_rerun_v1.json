@@ -1,0 +1,8 @@
+{
+  "label": "best_val_macro_f1_checkpoint",
+  "lane": "no_source_value",
+  "model": "small_lt10m_v1",
+  "train_cv5_accuracy": "0.696639",
+  "train_cv5_macro_f1": "0.678501",
+  "universe": "condition_key"
+}

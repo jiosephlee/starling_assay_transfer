@@ -364,6 +364,12 @@ def source_pair_sample_fraction(args: argparse.Namespace, split: str) -> float |
     return None
 
 
+def train_sampling_key(row: dict[str, Any], strategy: str, base_id: str) -> tuple[str, ...]:
+    if strategy == "label_stratified":
+        return ("train_label", str(row.get("transfer_label")), base_id)
+    return ("train", base_id)
+
+
 def keep_sampled_row(
     row: dict[str, Any],
     split: str,
@@ -372,6 +378,7 @@ def keep_sampled_row(
     *,
     train_source_pair_sample_fraction: float | None = None,
     dedupe_opposite_directions: bool = False,
+    train_sampling_strategy: str = "random",
 ) -> bool:
     if split == "train" and (
         train_source_pair_sample_fraction is not None or dedupe_opposite_directions
@@ -380,7 +387,10 @@ def keep_sampled_row(
         source_fraction = 1.0 if train_source_pair_sample_fraction is None else train_source_pair_sample_fraction
         if source_fraction < 1.0:
             threshold = int(source_fraction * SAMPLE_DENOMINATOR)
-            priority = stable_priority(seed, "source_pair", source_pair_id) % SAMPLE_DENOMINATOR
+            priority = stable_priority(
+                seed,
+                *train_sampling_key(row, train_sampling_strategy, source_pair_id),
+            ) % SAMPLE_DENOMINATOR
             if priority >= threshold:
                 return False
         if dedupe_opposite_directions:
@@ -393,6 +403,11 @@ def keep_sampled_row(
         return True
     threshold = int(fraction * SAMPLE_DENOMINATOR)
     pair_id = str(row.get("pair_id"))
+    if split == "train":
+        return stable_priority(
+            seed,
+            *train_sampling_key(row, train_sampling_strategy, pair_id),
+        ) % SAMPLE_DENOMINATOR < threshold
     return stable_priority(seed, split, pair_id) % SAMPLE_DENOMINATOR < threshold
 
 
@@ -418,6 +433,7 @@ def iter_split_rows(args: argparse.Namespace, split: str) -> Iterator[dict[str, 
                 args.sample_seed,
                 train_source_pair_sample_fraction=source_fraction,
                 dedupe_opposite_directions=args.dedupe_opposite_directions,
+                train_sampling_strategy=args.train_sampling_strategy,
             ):
                 continue
             yield row
@@ -444,6 +460,7 @@ def render_parquet_file_worker(
     train_sample_fraction: float,
     train_source_pair_sample_fraction: float | None,
     dedupe_opposite_directions: bool,
+    train_sampling_strategy: str,
     sample_seed: int,
     batch_size: int,
     parquet_row_group_size: int,
@@ -475,6 +492,7 @@ def render_parquet_file_worker(
                     sample_seed,
                     train_source_pair_sample_fraction=source_fraction,
                     dedupe_opposite_directions=dedupe,
+                    train_sampling_strategy=train_sampling_strategy,
                 ):
                     continue
                 row = hf_row(source_row, template, variant)
@@ -531,6 +549,7 @@ def build_parallel_parquet(args: argparse.Namespace, template: Template) -> tupl
                         train_sample_fraction=args.train_sample_fraction,
                         train_source_pair_sample_fraction=args.train_source_pair_sample_fraction,
                         dedupe_opposite_directions=args.dedupe_opposite_directions,
+                        train_sampling_strategy=args.train_sampling_strategy,
                         sample_seed=args.sample_seed,
                         batch_size=args.batch_size,
                         parquet_row_group_size=args.parquet_row_group_size,
@@ -700,6 +719,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "train_sample_fraction": args.train_sample_fraction,
             "train_source_pair_sample_fraction": args.train_source_pair_sample_fraction,
             "dedupe_opposite_directions": args.dedupe_opposite_directions,
+            "train_sampling_strategy": args.train_sampling_strategy,
             "effective_train_directional_row_fraction": (
                 None
                 if args.train_source_pair_sample_fraction is None
@@ -711,7 +731,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "policy": (
                 "deterministic stable hash by source_pair_id with at most one direction per source pair"
                 if args.train_source_pair_sample_fraction is not None or args.dedupe_opposite_directions
-                else "deterministic stable hash by split and pair_id; validation/test always full"
+                else (
+                    "deterministic stable hash by train transfer_label and pair_id; "
+                    "validation/test always full"
+                    if args.train_sampling_strategy == "label_stratified"
+                    else "deterministic stable hash by split and pair_id; validation/test always full"
+                )
             ),
         },
         "parquet": {
@@ -738,6 +763,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS))
     parser.add_argument("--max-rows-per-split", type=int, default=None)
     parser.add_argument("--train-sample-fraction", type=float, default=1.0)
+    parser.add_argument("--train-sampling-strategy", choices=("random", "label_stratified"), default="random")
     parser.add_argument("--train-source-pair-sample-fraction", type=float, default=None)
     parser.add_argument("--dedupe-opposite-directions", action="store_true")
     parser.add_argument("--sample-seed", type=int, default=13)

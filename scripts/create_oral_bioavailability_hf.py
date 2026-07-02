@@ -60,6 +60,7 @@ def build_one(args: argparse.Namespace, universe: str, variant: str) -> dict:
         splits=args.splits,
         max_rows_per_split=args.max_rows_per_split,
         train_sample_fraction=args.train_sample_fraction,
+        train_sampling_strategy=args.train_sampling_strategy,
         train_source_pair_sample_fraction=args.train_source_pair_sample_fraction,
         dedupe_opposite_directions=args.dedupe_opposite_directions,
         sample_seed=args.sample_seed,
@@ -92,6 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--splits", nargs="+", choices=hf_render.SPLITS, default=list(hf_render.SPLITS))
     parser.add_argument("--max-rows-per-split", type=int, default=None)
     parser.add_argument("--train-sample-fraction", type=float, default=1.0)
+    parser.add_argument("--train-sampling-strategy", choices=("random", "label_stratified"), default="random")
     parser.add_argument("--train-source-pair-sample-fraction", type=float, default=None)
     parser.add_argument("--dedupe-opposite-directions", action="store_true")
     parser.add_argument("--validate-unidirectional-train", action="store_true")
