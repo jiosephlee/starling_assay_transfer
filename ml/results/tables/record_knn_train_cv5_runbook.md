@@ -40,12 +40,6 @@ The manager skips any row JSON that already exists, so the preserved six rows ca
 From the repo root:
 
 ```sh
-PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python tmp/record_knn_train_cv_work/train_cv.py
-```
-
-Preferred stable command:
-
-```sh
 PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python ml/scripts/run_record_knn_train_cv5.py
 ```
 
@@ -62,6 +56,31 @@ To use a smaller GPU set:
 PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python \
   ml/scripts/run_record_knn_train_cv5.py --gpu-ids 0,1
 ```
+
+## Non-Compute Commands
+
+List all 24 tasks and show which row JSONs already exist:
+
+```sh
+PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python \
+  ml/scripts/run_record_knn_train_cv5.py --dry-run
+```
+
+Validate existing row JSONs against the expected task identities and metric schema:
+
+```sh
+PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python \
+  ml/scripts/run_record_knn_train_cv5.py --validate-rows
+```
+
+Once all 24 row JSONs exist, write the CV-only TSVs and append the CV columns without launching workers:
+
+```sh
+PYTHONPATH=ml /data1/joseph/miniconda3/envs/openrlhf/bin/python \
+  ml/scripts/run_record_knn_train_cv5.py --finalize-only
+```
+
+`--finalize-only` also validates the row JSONs before writing any TSVs.
 
 ## Fresh Rerun
 
@@ -101,12 +120,6 @@ find ml/results/tables/eval_tracking_rerun_v1_train_cv_rows -type f | wc -l
 ```
 
 Check active workers:
-
-```sh
-pgrep -af 'record_knn_train_cv_work/train_cv.py'
-```
-
-For the stable runner:
 
 ```sh
 pgrep -af 'run_record_knn_train_cv5.py'

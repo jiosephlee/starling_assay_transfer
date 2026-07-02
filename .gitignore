@@ -19,6 +19,7 @@ wandb/
 # Large data / artifacts (all files >100MB live here) — keep out of git
 ml/artifacts/
 tmp/
+archive/
 .codex_tmp/
 
 .DS_Store

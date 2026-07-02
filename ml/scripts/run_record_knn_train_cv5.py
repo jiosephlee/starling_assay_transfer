@@ -62,6 +62,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--row-dir", type=Path, default=ROW_DIR)
     parser.add_argument("--log-dir", type=Path, default=LOG_DIR)
     parser.add_argument("--run-glob", default=RUN_GLOB)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--finalize-only", action="store_true")
+    parser.add_argument("--validate-rows", action="store_true")
     return parser.parse_args()
 
 
@@ -228,12 +231,21 @@ def tasks(run_glob: str) -> list[Task]:
     return [Task(label, ckpt, manifest) for label, ckpt in specs for manifest in final_manifests(run_glob)]
 
 
+def validate_task_count(all_tasks: list[Task]) -> None:
+    if len(all_tasks) != 24:
+        raise RuntimeError(f"expected 24 tasks, found {len(all_tasks)}")
+
+
 def task_stem(task: Task) -> str:
     return f"{task.label}__{task.manifest.parent.name}"
 
 
 def row_path(task: Task, row_dir: Path) -> Path:
     return row_dir / f"{task_stem(task)}.json"
+
+
+def task_done(task: Task, row_dir: Path) -> bool:
+    return row_path(task, row_dir).exists()
 
 
 def log_path(task: Task, log_dir: Path) -> Path:
@@ -258,7 +270,7 @@ def add_pythonpath(path: str, current: str) -> str:
 
 
 def run_queue(all_tasks: list[Task], args: argparse.Namespace) -> None:
-    pending = [task for task in all_tasks if not row_path(task, args.row_dir).exists()]
+    pending = [task for task in all_tasks if not task_done(task, args.row_dir)]
     active: dict[str, tuple[Task, subprocess.Popen]] = {}
     while pending or active:
         start_available(pending, active, args)
@@ -292,6 +304,67 @@ def reap_finished(active: dict[str, tuple[Task, subprocess.Popen]], log_dir: Pat
         if code != 0:
             raise RuntimeError(f"task failed gpu={gpu} code={code}: {log_path(task, log_dir)}")
         print(f"[manager] done gpu={gpu} {task_stem(task)}", flush=True)
+
+
+def dry_run(all_tasks: list[Task], row_dir: Path) -> None:
+    completed = sum(task_done(task, row_dir) for task in all_tasks)
+    print(f"tasks\t{len(all_tasks)}")
+    print(f"completed\t{completed}")
+    print(f"missing\t{len(all_tasks) - completed}")
+    for task in all_tasks:
+        print_task_status(task, row_dir)
+
+
+def validate_rows(all_tasks: list[Task], row_dir: Path) -> None:
+    task_by_path = {row_path(task, row_dir): task for task in all_tasks}
+    row_files = sorted(row_dir.glob("*.json"))
+    orphan_files = [path for path in row_files if path not in task_by_path]
+    for path in row_files:
+        if path in task_by_path:
+            validate_row_file(path, task_by_path[path])
+    if orphan_files:
+        names = ", ".join(path.name for path in orphan_files)
+        raise RuntimeError(f"found row files without matching tasks: {names}")
+    print(f"validated\t{len(row_files)}")
+    print(f"missing\t{len(all_tasks) - len(row_files)}")
+
+
+def validate_row_file(path: Path, task: Task) -> None:
+    payload = json.loads(path.read_text())
+    missing = [field for field in required_row_fields() if field not in payload]
+    if missing:
+        raise RuntimeError(f"{path} missing fields: {missing}")
+    validate_row_identity(path, payload, task)
+    for field in METRIC_FIELDS:
+        validate_metric_value(path, payload[field], field)
+
+
+def required_row_fields() -> list[str]:
+    return ["label", *output_fields()]
+
+
+def validate_row_identity(path: Path, payload: dict, task: Task) -> None:
+    universe, lane, model = run_parts(task.manifest.parent)
+    expected = {"label": task.label, "universe": universe, "lane": lane, "model": model}
+    mismatches = {key: (payload[key], value) for key, value in expected.items() if payload[key] != value}
+    if mismatches:
+        raise RuntimeError(f"{path} identity mismatches: {mismatches}")
+
+
+def validate_metric_value(path: Path, value: object, field: str) -> None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{path} has nonnumeric {field}: {value!r}") from exc
+    if not 0.0 <= parsed <= 1.0:
+        raise RuntimeError(f"{path} has out-of-range {field}: {value!r}")
+
+
+def print_task_status(task: Task, row_dir: Path) -> None:
+    universe, lane, model = run_parts(task.manifest.parent)
+    status = "done" if task_done(task, row_dir) else "todo"
+    parts = [status, task.label, universe, lane, model, str(task.manifest)]
+    print("\t".join(parts))
 
 
 def collect_rows(label: str, row_dir: Path) -> list[dict]:
@@ -362,8 +435,17 @@ def finalize_tables(row_dir: Path) -> None:
 
 def manager_main(args: argparse.Namespace) -> None:
     all_tasks = tasks(args.run_glob)
-    if len(all_tasks) != 24:
-        raise RuntimeError(f"expected 24 tasks, found {len(all_tasks)}")
+    validate_task_count(all_tasks)
+    if args.dry_run:
+        dry_run(all_tasks, args.row_dir)
+        return
+    if args.validate_rows:
+        validate_rows(all_tasks, args.row_dir)
+        return
+    if args.finalize_only:
+        validate_rows(all_tasks, args.row_dir)
+        finalize_tables(args.row_dir)
+        return
     run_queue(all_tasks, args)
     finalize_tables(args.row_dir)
 
