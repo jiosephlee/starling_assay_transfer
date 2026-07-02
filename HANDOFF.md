@@ -72,6 +72,31 @@ running `train.py`.
    ```
    The callback reads `datasets/starling_eval/condition_key_v3_record_splits_hf`.
 
+## SLURM
+
+Ready-to-adapt sbatch templates are in `slurm/`. They wrap the current
+entrypoints; **edit the cluster-specific bits** (`--partition`, `--account`,
+`--gres`, env activation, paths) for the target cluster before submitting.
+
+| Template | Job type | Purpose | Starting resources |
+|---|---|---|---|
+| `slurm/pipeline_cpu.sbatch` | CPU | Regenerate datasets from the TDC seed (base → pairs → record splits). Pair enumeration is CPU-bound. | 64 CPUs, 256G, 24h |
+| `slurm/precompute_embeddings_gpu.sbatch` | GPU | Frozen MolFormer + MiniLM embeddings for the ~82K base molecules (run once). | 1 GPU, 64G, 2h |
+| `slurm/train_gpu.sbatch` | GPU | Train the model — **this runs the record-KNN eval callback**. Multi-GPU via torchrun. | 2 GPUs, 128G, 24h |
+
+CPU resource specs come from the original Genoa/EPYC runs (64 CPUs, 128–256G).
+GPU specs are conservative defaults — tune to your node type. Typical order:
+
+```bash
+sbatch slurm/pipeline_cpu.sbatch                  # 1. build data (once)
+sbatch slurm/precompute_embeddings_gpu.sbatch     # 2. embeddings (once)
+sbatch slurm/train_gpu.sbatch                     # 3. train + KNN callback
+```
+
+Override the config without editing the file, e.g.
+`CONFIG=ml/configs/shared_eval_condition_key.yaml sbatch slurm/train_gpu.sbatch`.
+Each template writes logs to `logs/<job>_%j.out|err` (gitignored).
+
 ## Run the record-KNN eval standalone (needs a trained checkpoint)
 
 ```bash
