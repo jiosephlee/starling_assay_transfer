@@ -1,0 +1,147 @@
+version: metric_thresholds_v1
+status: provisional_apriori
+
+scope:
+  lookup_key: metric_type
+  condition_key_profile_specific: false
+  realized_bucket_specific: false
+  bucket_overrides_allowed: false
+
+comparison:
+  transfer_boundary: inclusive
+  not_transfer_boundary: inclusive
+  middle_band: drop_for_binary
+  compare_after_canonical_unit_conversion: true
+  interval_and_censoring_aware: true
+
+metric_types:
+  bounded_percentage:
+    domain: [0.0, 100.0]
+    canonical_scale: percentage_points
+    transform: identity
+    distance: absolute
+    transfer_max: 10.0
+    not_transfer_min: 30.0
+
+  bounded_fraction:
+    domain: [0.0, 1.0]
+    canonical_scale: fraction
+    transform: identity
+    distance: absolute
+    transfer_max: 0.10
+    not_transfer_min: 0.30
+
+  apparent_permeability:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  effective_permeability:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  solubility:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  intrinsic_clearance:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  hepatic_clearance:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  half_life:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  vmax:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  km:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.301029995664
+    not_transfer_min: 0.698970004336
+    display_transfer_fold: 2.0
+    display_not_transfer_fold: 5.0
+
+  dimensionless_ratio:
+    domain: positive
+    transform: log10
+    distance: absolute
+    transfer_max: 0.176091259056
+    not_transfer_min: 0.477121254720
+    display_transfer_fold: 1.5
+    display_not_transfer_fold: 3.0
+
+  binary_category:
+    transform: canonical_category
+    distance: equality
+    transfer_when: same_reliable_class
+    not_transfer_when: opposite_reliable_class
+    drop_when: unknown_inconclusive_or_weakly_qualified
+
+  ordinal_category:
+    transform: canonical_ordered_bin
+    distance: bin_separation
+    transfer_max_bins: 0
+    not_transfer_min_bins: 2
+    middle_band: adjacent_bin
+
+sensitivity_variants:
+  bounded_percentage:
+    - {transfer_max: 5.0, not_transfer_min: 20.0}
+    - {transfer_max: 10.0, not_transfer_min: 30.0}
+    - {transfer_max: 15.0, not_transfer_min: 40.0}
+  bounded_fraction:
+    - {transfer_max: 0.05, not_transfer_min: 0.20}
+    - {transfer_max: 0.10, not_transfer_min: 0.30}
+    - {transfer_max: 0.15, not_transfer_min: 0.40}
+  positive_log_metrics:
+    - {transfer_fold: 1.5, not_transfer_fold: 3.0}
+    - {transfer_fold: 2.0, not_transfer_fold: 5.0}
+    - {transfer_fold: 3.0, not_transfer_fold: 10.0}
+
+selection_policy:
+  primary_values_are_fixed_before_model_training: true
+  model_test_performance_may_select_thresholds: false
+  sensitivity_variants_create_new_dataset_versions: true
+  future_context_specific_exception_requires_new_metric_subtype: true

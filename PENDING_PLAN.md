@@ -1,5 +1,9 @@
 # Pending Plan: KNN Unification After Dataset Repair
 
+> Superseded for active planning by `docs/assay_transfer_design.md`.
+> KNN evaluation is no longer tracked during training or used for checkpoint selection;
+> retrieval evaluation may remain a standalone post-training workflow.
+
 ## Summary
 
 Refactor KNN around the canonical record dataset

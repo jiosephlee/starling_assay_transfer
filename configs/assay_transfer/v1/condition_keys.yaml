@@ -1,0 +1,234 @@
+version: condition_keys_v1
+status: draft_requires_coverage_audit
+
+invariants:
+  always_match_canonical_endpoint_key: true
+  cross_endpoint_pairs_allowed: false
+  unknown_matches_unknown: false
+  raw_free_text_in_join_key: false
+  threshold_attached_to_condition_bucket: false
+  threshold_lookup_key: metric_type
+
+profiles:
+  same_endpoint:
+    description: Broadest valid comparison universe.
+    join_fields: [canonical_endpoint_key]
+    missing_policy: exclude
+
+  same_species_same_endpoint:
+    description: Explicit exact species and canonical endpoint must match.
+    join_fields: [canonical_endpoint_key, species_exact]
+    eligibility:
+      required_non_null: [species_exact]
+    missing_policy: exclude
+
+  most_specific:
+    description: Endpoint-specific conservative comparison setting.
+    schema_reference_field: most_specific_schema
+    schema_source: configs/assay_transfer/v1/endpoints.yaml
+    missing_policy: exclude
+
+most_specific_schemas:
+  q2_in_vivo_extent_v1:
+    applies_to:
+      - q2.fraction_absorbed.percent
+      - q2.intestinal_absorption.percent
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - administration_route
+      - anatomical_site
+      - formulation_class
+
+  q2_papp_v1:
+    applies_to: [q2.apparent_permeability]
+    join_fields:
+      - canonical_endpoint_key
+      - assay_system_family
+      - cell_line
+      - transport_direction
+      - medium_class
+      - ph_bucket
+      - modifier_class
+
+  q2_peff_v1:
+    applies_to: [q2.effective_permeability]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - anatomical_site
+      - medium_class
+      - modifier_class
+
+  q2_efflux_ratio_v1:
+    applies_to: [q2.efflux_ratio]
+    join_fields:
+      - canonical_endpoint_key
+      - assay_system_family
+      - cell_line
+      - ratio_direction_definition
+      - medium_class
+      - ph_bucket
+      - modifier_class
+
+  q2_solubility_v1:
+    applies_to:
+      - q2.solubility.equilibrium
+      - q2.solubility.kinetic
+    join_fields:
+      - canonical_endpoint_key
+      - solubility_method
+      - medium_class
+      - ph_bucket
+      - temperature_bucket
+      - molecular_form
+
+  q2_dissolution_v1:
+    applies_to: [q2.dissolution.percent]
+    join_fields:
+      - canonical_endpoint_key
+      - medium_class
+      - ph_bucket
+      - formulation_class
+      - apparatus_or_method
+      - timepoint_or_profile
+
+  q2_gi_stability_v1:
+    applies_to: [q2.gi_stability.percent_remaining]
+    join_fields:
+      - canonical_endpoint_key
+      - medium_class
+      - ph_bucket
+      - temperature_bucket
+      - timepoint_or_profile
+
+  q3_transporter_status_v1:
+    applies_to: [q3.transporter_substrate_status]
+    join_fields:
+      - canonical_endpoint_key
+      - transporter_or_enzyme_normalized
+      - assay_system_family
+      - cell_line_or_tissue
+      - transport_direction
+      - modifier_class
+
+  q3_papp_v1:
+    applies_to: [q3.apparent_permeability]
+    join_fields:
+      - canonical_endpoint_key
+      - assay_system_family
+      - cell_line_or_tissue
+      - intestinal_site_normalized
+      - transport_direction
+      - modifier_class
+
+  q3_efflux_ratio_v1:
+    applies_to: [q3.efflux_ratio]
+    join_fields:
+      - canonical_endpoint_key
+      - transporter_or_enzyme_normalized
+      - assay_system_family
+      - cell_line_or_tissue
+      - ratio_direction_definition
+      - modifier_class
+
+  q3_intestinal_metabolism_v1:
+    applies_to:
+      - q3.intestinal_metabolism.vmax
+      - q3.intestinal_metabolism.km
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - intestinal_site_normalized
+      - transporter_or_enzyme_normalized
+      - normalization_basis
+      - cofactor_class
+
+  q3_gut_wall_escape_v1:
+    applies_to:
+      - q3.gut_wall_escape.fraction
+      - q3.gut_wall_escape.percent
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - intestinal_site_normalized
+      - administration_route
+      - scaling_method
+
+  q4_clint_v1:
+    applies_to: [q4.intrinsic_clearance]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - normalization_basis
+      - cofactor_class
+      - unbound_status
+
+  q4_hepatic_clearance_v1:
+    applies_to: [q4.hepatic_clearance]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - normalization_basis
+      - scaling_method
+
+  q4_extraction_ratio_v1:
+    applies_to: [q4.extraction_ratio]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - scaling_method
+
+  q4_half_life_v1:
+    applies_to: [q4.metabolic_half_life]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - cofactor_class
+
+  q4_stability_percent_v1:
+    applies_to: [q4.metabolic_stability.percent_remaining]
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - cofactor_class
+      - timepoint_or_profile
+
+  q4_enzyme_kinetics_v1:
+    applies_to:
+      - q4.cyp_metabolism.vmax
+      - q4.cyp_metabolism.km
+      - q4.ugt_metabolism.vmax
+      - q4.ugt_metabolism.km
+    join_fields:
+      - canonical_endpoint_key
+      - species_exact
+      - assay_system_family
+      - enzyme_or_pathway_normalized
+      - normalization_basis
+      - cofactor_class
+      - modifier_class
+
+normalization_contract:
+  join_only_on_canonical_columns: true
+  canonical_join_columns_replace_model_metadata: false
+  retrieval_model_metadata_uses_original_values: true
+  missing_required_field: exclude_record_from_profile
+  two_missing_values_are_equal: false
+  continuous_values_require_versioned_buckets: true
+  preserve_raw_values_for_audit: true
+  required_reports:
+    - record_coverage_by_schema
+    - molecule_coverage_by_schema
+    - realized_bucket_sizes
+    - missingness_by_join_field
+    - species_exact_coverage

@@ -1,0 +1,55 @@
+version: label_policy_v1
+status: provisional
+
+threshold_lookup:
+  source: configs/assay_transfer/v1/metric_thresholds.yaml
+  key: metric_type
+  allow_condition_key_override: false
+  allow_realized_bucket_override: false
+
+binary_record_outcome:
+  transfer: distance_lte_transfer_max
+  not_transfer: distance_gte_not_transfer_min
+  middle: omit_from_binary_aggregation
+
+query_context_aggregation:
+  context_definition: flat_tuple_of_normalized_fields_outside_shared_condition_key
+  within_context: mean_of_decisive_binary_outcomes
+  across_contexts: uniform_macro_mean
+  hierarchical_prefix_weighting: false
+  observation_frequency_weighting: false
+
+soft_target:
+  enabled: true
+  field: transfer_probability
+
+hard_consensus_target:
+  enabled: true
+  transfer_min_probability: 0.80
+  not_transfer_max_probability: 0.20
+  middle: drop
+
+minimum_evidence:
+  min_eligible_records: 2
+  min_decisive_records: 2
+  min_decisive_contexts: 1
+  min_decisive_record_coverage: 0.25
+  min_decisive_context_coverage: 0.25
+
+continuous_target:
+  primary: context_balanced_expected_distance
+  within_context: mean_record_distance
+  across_contexts: uniform_macro_mean
+  include_binary_middle_band: true
+  baselines:
+    - context_balanced_median_distance
+    - distance_to_context_balanced_mean_value
+    - context_balanced_q90_distance
+
+artifacts:
+  store_per_context_summaries: true
+  store_eligible_and_decisive_counts: true
+  store_record_and_context_coverage: true
+  store_metric_type: true
+  store_metric_threshold_version: true
+  store_condition_key_profile_and_version: true

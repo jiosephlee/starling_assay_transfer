@@ -356,9 +356,14 @@ class RecordKnnEvalCallback(TrainerCallback):
     def _should_run(self, step: int) -> bool:
         if step <= 0:
             return False
-        if step % max(1, int(self.cfg.train.record_knn_eval_steps)) != 0:
+        if not self._is_scheduled_step(step):
             return False
         return self.last_eval_step != step
+
+    def _is_scheduled_step(self, step: int) -> bool:
+        if step % max(1, int(self.cfg.train.record_knn_eval_steps)) == 0:
+            return True
+        return step in {int(value) for value in self.cfg.train.record_knn_eval_extra_steps}
 
     def on_train_begin(self, args, state, control, **kwargs):
         if state.is_world_process_zero:
@@ -383,20 +388,37 @@ class RecordKnnEvalCallback(TrainerCallback):
         step = int(state.global_step)
         if not self._should_run(step):
             return
-        payload = None
+        self._run_eval(args, state, control, metrics=metrics, **kwargs)
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if self.trainer is None:
+            return
+        step = int(state.global_step)
+        if step not in {int(value) for value in self.cfg.train.record_knn_eval_extra_steps}:
+            return
+        if not self._should_run(step):
+            return
+        self._run_eval(args, state, control, metrics=None, **kwargs)
+
+    def _run_eval(self, args, state, control, metrics=None, **kwargs):
+        step = int(state.global_step)
         if state.is_world_process_zero:
             payload = self._evaluate_splits()
-            if metrics is not None:
-                metrics.update(payload)
-            self._log_wandb(args, step, payload)
-            self.best_cb.trainer = self.trainer
-            self.best_cb.on_evaluate(args, state, control, metrics=payload, **kwargs)
-            print(
-                f"[record-knn] validation_1 macro_f1={payload['record_knn_validation_1_macro_f1']:.4f} "
-                f"@ step {step}"
-            )
+            self._handle_payload(args, state, control, payload, metrics, **kwargs)
         self.last_eval_step = step
         _dist_barrier_if_needed()
+
+    def _handle_payload(self, args, state, control, payload: dict[str, float | int], metrics=None, **kwargs) -> None:
+        step = int(state.global_step)
+        if metrics is not None:
+            metrics.update(payload)
+        self._log_wandb(args, step, payload)
+        self.best_cb.trainer = self.trainer
+        self.best_cb.on_evaluate(args, state, control, metrics=payload, **kwargs)
+        print(
+            f"[record-knn] validation_1 macro_f1={payload['record_knn_validation_1_macro_f1']:.4f} "
+            f"@ step {step}"
+        )
 
     def _evaluate_splits(self) -> dict[str, float | int]:
         from .record_knn_eval import evaluate_record_knn, record_knn_result_dict

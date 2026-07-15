@@ -156,6 +156,7 @@ class TrainConfig:
     record_knn_final_splits: list[str] = field(default_factory=lambda: ["validation_1", "validation_2"])
     record_knn_eval_cache_dir: str = "ml/artifacts/record_knn_eval_cache/condition_key_v3_record_splits_hf"
     record_knn_eval_steps: int = 500
+    record_knn_eval_extra_steps: list[int] = field(default_factory=list)
     record_knn_eval_top_fraction: float = 0.10
     record_knn_eval_k: int = 10
     record_knn_eval_batch_size: int = 4096

@@ -1,0 +1,27 @@
+release_version: assay_transfer_v1
+status: design_scaffold
+architecture_document: docs/assay_transfer_design.md
+
+configs:
+  endpoints: configs/assay_transfer/v1/endpoints.yaml
+  species: configs/assay_transfer/v1/species.yaml
+  condition_keys: configs/assay_transfer/v1/condition_keys.yaml
+  metric_thresholds: configs/assay_transfer/v1/metric_thresholds.yaml
+  label_policy: configs/assay_transfer/v1/label_policy.yaml
+
+invariants:
+  split_before_pair_construction: true
+  query_metadata_available_at_inference: false
+  cross_endpoint_pairs_allowed: false
+  threshold_scope: metric_type
+  condition_bucket_threshold_overrides_allowed: false
+  unknown_matches_unknown: false
+
+implementation:
+  consumed_by_pipeline: false
+  required_before_materialization:
+    - config_schema_validation
+    - endpoint_alias_inventory
+    - unit_normalization_coverage
+    - condition_key_coverage
+    - species_normalization_audit

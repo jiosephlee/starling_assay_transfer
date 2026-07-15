@@ -855,10 +855,11 @@ def final_overrides(
 ) -> list[str]:
     effective = winner.get("effective_batch_size") or winner["per_device_batch_size"]
     batch = spec.batch_plan(effective, n_devices=n_devices, gradient_accumulation_steps=1)
+    steps_per_epoch = final_steps_per_epoch(lane, universe, batch)
     return [
         *lane_overrides(lane, universe),
         *preset.overrides,
-        *final_training_overrides(),
+        *final_training_overrides(steps_per_epoch),
         f"train.run_name={run_name}",
         f"train.learning_rate={winner['lr']}",
         f"train.per_device_batch_size={batch.per_device_batch_size}",
@@ -866,12 +867,25 @@ def final_overrides(
     ]
 
 
-def final_training_overrides() -> list[str]:
+def final_steps_per_epoch(lane: Lane, universe: Universe, batch: spec.BatchPlan) -> int:
+    meta = read_json_if_exists(Path(lane_memmap_dir(lane, universe)) / "train" / "meta.json")
+    count = int(meta.get("count") or 0)
+    if count <= 0:
+        raise RuntimeError(f"missing train count for {lane.key}/{universe.key}")
+    return max(1, math.ceil(count / int(batch.effective_batch_size)))
+
+
+def final_duration_overrides(steps_per_epoch: int) -> list[str]:
+    if steps_per_epoch > 3000:
+        return ["train.num_train_epochs=1", "train.max_steps=0"]
+    return ["train.num_train_epochs=0", "train.max_steps=3000"]
+
+
+def final_training_overrides(steps_per_epoch: int) -> list[str]:
     return [
         "train.gradient_accumulation_steps=1",
-        "train.num_train_epochs=0",
-        "train.max_steps=3000",
-        "train.eval_steps=50",
+        *final_duration_overrides(steps_per_epoch),
+        "train.eval_steps=100",
         "train.logging_steps=1",
         "train.train_eval_samples=0",
         "train.eval_subset_metrics=true",
@@ -896,6 +910,7 @@ def record_knn_training_overrides() -> list[str]:
         'train.record_knn_final_splits=["validation_1","validation_2"]',
         f"train.record_knn_eval_cache_dir={RECORD_KNN_CACHE_DIR}",
         "train.record_knn_eval_steps=500",
+        "train.record_knn_eval_extra_steps=[250]",
         f"train.record_knn_eval_top_fraction={RECORD_KNN_TOP_FRACTION}",
         f"train.record_knn_eval_k={RECORD_KNN_K}",
         "train.record_knn_eval_batch_size=4096",

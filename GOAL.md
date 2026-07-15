@@ -1,5 +1,10 @@
 # Goal of this project
 
+> Current direction: the canonical multi-endpoint design and work plan are maintained in
+> `docs/assay_transfer_design.md`. It supersedes the KNN-during-training and
+> direct query-value wording below. The learned output is a directional assay-transfer
+> similarity score; query assay values are used only to construct training labels.
+
 The goal of this project is to create a tool that receives as input
 
 (str) Assay/Phenotype/Property Description
@@ -62,5 +67,3 @@ We'll take our oral_bioavailabilty_cleaned_v3 dataset and predict the "train" sp
 This could be expensive so we'll do this every 250 training steps whereas the other metrics are tracked every 50 training steps.
 
 Then we'll save two checkpoints for each condition at the best val (one for macro f-1, and one for best knn downstream macro f-1 on TDC train). Then we'll take the best val checkpoint and evaluate once on the assay transfer test set and once on TDC oral bioavailability val.
-
-

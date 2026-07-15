@@ -1,0 +1,280 @@
+version: endpoint_assignments_v1
+status: draft_requires_alias_and_unit_audit
+
+source_collections:
+  q2:
+    domain: fa_intestinal_absorption
+    raw_endpoint_column: endpoint_category
+    raw_value_column: reported_value
+    raw_unit_column: reported_units
+  q3:
+    domain: fg_gut_wall_escape
+    raw_endpoint_column: gut_wall_process
+    raw_value_column: measured_value
+    raw_unit_column: embedded_in_measured_value
+  q4:
+    domain: fh_hepatic_escape
+    raw_endpoint_column: metric_type
+    raw_value_column: reported_value
+    raw_unit_column: reported_units
+
+canonical_endpoints:
+  q2.fraction_absorbed.percent:
+    source_collection: q2
+    raw_families: [fraction_absorbed]
+    measurement_subtype: bounded_extent_percent
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    most_specific_schema: q2_in_vivo_extent_v1
+    rollout_tier: 1
+
+  q2.intestinal_absorption.percent:
+    source_collection: q2
+    raw_families: [intestinal_absorption, human_intestinal_absorption]
+    measurement_subtype: bounded_extent_percent
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    most_specific_schema: q2_in_vivo_extent_v1
+    rollout_tier: 1
+
+  q2.apparent_permeability:
+    source_collection: q2
+    raw_families: [caco2_mdck_pampa_permeability]
+    measurement_subtype: papp
+    canonical_unit: cm_per_second
+    metric_type: apparent_permeability
+    direction_must_match: true
+    most_specific_schema: q2_papp_v1
+    rollout_tier: 1
+
+  q2.effective_permeability:
+    source_collection: q2
+    raw_families: [intestinal_effective_permeability]
+    measurement_subtype: peff
+    canonical_unit: cm_per_second
+    metric_type: effective_permeability
+    most_specific_schema: q2_peff_v1
+    rollout_tier: 1
+
+  q2.efflux_ratio:
+    source_collection: q2
+    raw_families: [caco2_mdck_pampa_permeability]
+    measurement_subtype: efflux_ratio
+    canonical_unit: dimensionless
+    metric_type: dimensionless_ratio
+    direction_definition_must_match: true
+    most_specific_schema: q2_efflux_ratio_v1
+    rollout_tier: 1
+
+  q2.solubility.equilibrium:
+    source_collection: q2
+    raw_families: [solubility]
+    measurement_subtype: equilibrium_solubility
+    canonical_unit: mol_per_liter
+    metric_type: solubility
+    most_specific_schema: q2_solubility_v1
+    rollout_tier: 1
+
+  q2.solubility.kinetic:
+    source_collection: q2
+    raw_families: [solubility]
+    measurement_subtype: kinetic_solubility
+    canonical_unit: mol_per_liter
+    metric_type: solubility
+    most_specific_schema: q2_solubility_v1
+    rollout_tier: 1
+
+  q2.dissolution.percent:
+    source_collection: q2
+    raw_families: [dissolution]
+    measurement_subtype: percent_dissolved
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    profile_definition_must_match: true
+    most_specific_schema: q2_dissolution_v1
+    rollout_tier: 2
+
+  q2.gi_stability.percent_remaining:
+    source_collection: q2
+    raw_families: [gi_stability]
+    measurement_subtype: percent_parent_remaining
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    profile_definition_must_match: true
+    most_specific_schema: q2_gi_stability_v1
+    rollout_tier: 2
+
+  q3.transporter_substrate_status:
+    source_collection: q3
+    raw_families: [efflux_or_secretory_transport, uptake_or_absorptive_transport]
+    measurement_subtype: substrate_status
+    canonical_unit: categorical
+    metric_type: binary_category
+    transporter_must_match: true
+    most_specific_schema: q3_transporter_status_v1
+    rollout_tier: 1
+
+  q3.apparent_permeability:
+    source_collection: q3
+    raw_families: [bidirectional_permeability]
+    measurement_subtype: papp
+    canonical_unit: cm_per_second
+    metric_type: apparent_permeability
+    direction_must_match: true
+    most_specific_schema: q3_papp_v1
+    rollout_tier: 1
+
+  q3.efflux_ratio:
+    source_collection: q3
+    raw_families: [efflux_or_secretory_transport, bidirectional_permeability]
+    measurement_subtype: efflux_ratio
+    canonical_unit: dimensionless
+    metric_type: dimensionless_ratio
+    direction_definition_must_match: true
+    most_specific_schema: q3_efflux_ratio_v1
+    rollout_tier: 1
+
+  q3.intestinal_metabolism.vmax:
+    source_collection: q3
+    raw_families: [intestinal_metabolism]
+    measurement_subtype: vmax
+    canonical_unit: endpoint_specific_rate_basis
+    normalization_basis_must_match: true
+    metric_type: vmax
+    most_specific_schema: q3_intestinal_metabolism_v1
+    rollout_tier: 2
+
+  q3.intestinal_metabolism.km:
+    source_collection: q3
+    raw_families: [intestinal_metabolism]
+    measurement_subtype: km
+    canonical_unit: molar_concentration
+    metric_type: km
+    most_specific_schema: q3_intestinal_metabolism_v1
+    rollout_tier: 2
+
+  q3.gut_wall_escape.fraction:
+    source_collection: q3
+    raw_families: [gut_wall_extraction_or_first_pass]
+    measurement_subtype: fg_fraction
+    canonical_unit: fraction
+    metric_type: bounded_fraction
+    most_specific_schema: q3_gut_wall_escape_v1
+    rollout_tier: 1
+
+  q3.gut_wall_escape.percent:
+    source_collection: q3
+    raw_families: [gut_wall_extraction_or_first_pass]
+    measurement_subtype: fg_percent
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    most_specific_schema: q3_gut_wall_escape_v1
+    rollout_tier: 1
+
+  q4.intrinsic_clearance:
+    source_collection: q4
+    raw_families: [intrinsic_clearance]
+    measurement_subtype: clint
+    canonical_unit: endpoint_specific_clearance_basis
+    normalization_basis_must_match: true
+    metric_type: intrinsic_clearance
+    most_specific_schema: q4_clint_v1
+    rollout_tier: 1
+
+  q4.hepatic_clearance:
+    source_collection: q4
+    raw_families: [hepatic_clearance]
+    measurement_subtype: hepatic_clearance
+    canonical_unit: endpoint_specific_clearance_basis
+    normalization_basis_must_match: true
+    metric_type: hepatic_clearance
+    most_specific_schema: q4_hepatic_clearance_v1
+    rollout_tier: 1
+
+  q4.extraction_ratio:
+    source_collection: q4
+    raw_families: [extraction_ratio]
+    measurement_subtype: hepatic_extraction_fraction
+    canonical_unit: fraction
+    metric_type: bounded_fraction
+    most_specific_schema: q4_extraction_ratio_v1
+    rollout_tier: 1
+
+  q4.metabolic_half_life:
+    source_collection: q4
+    raw_families: [metabolic_half_life]
+    measurement_subtype: half_life
+    canonical_unit: minute
+    metric_type: half_life
+    most_specific_schema: q4_half_life_v1
+    rollout_tier: 1
+
+  q4.metabolic_stability.percent_remaining:
+    source_collection: q4
+    raw_families:
+      - microsomal_stability
+      - hepatocyte_stability
+      - s9_stability
+      - parent_drug_metabolic_stability
+    measurement_subtype: percent_parent_remaining
+    canonical_unit: percent
+    metric_type: bounded_percentage
+    profile_definition_must_match: true
+    most_specific_schema: q4_stability_percent_v1
+    rollout_tier: 2
+
+  q4.cyp_metabolism.vmax:
+    source_collection: q4
+    raw_families: [cyp_metabolism]
+    measurement_subtype: vmax
+    canonical_unit: endpoint_specific_rate_basis
+    normalization_basis_must_match: true
+    metric_type: vmax
+    most_specific_schema: q4_enzyme_kinetics_v1
+    rollout_tier: 2
+
+  q4.cyp_metabolism.km:
+    source_collection: q4
+    raw_families: [cyp_metabolism]
+    measurement_subtype: km
+    canonical_unit: molar_concentration
+    metric_type: km
+    most_specific_schema: q4_enzyme_kinetics_v1
+    rollout_tier: 2
+
+  q4.ugt_metabolism.vmax:
+    source_collection: q4
+    raw_families: [ugt_metabolism]
+    measurement_subtype: vmax
+    canonical_unit: endpoint_specific_rate_basis
+    normalization_basis_must_match: true
+    metric_type: vmax
+    most_specific_schema: q4_enzyme_kinetics_v1
+    rollout_tier: 2
+
+  q4.ugt_metabolism.km:
+    source_collection: q4
+    raw_families: [ugt_metabolism]
+    measurement_subtype: km
+    canonical_unit: molar_concentration
+    metric_type: km
+    most_specific_schema: q4_enzyme_kinetics_v1
+    rollout_tier: 2
+
+normalization_requirements:
+  split_mixed_raw_families_before_assignment: true
+  unit_and_basis_are_part_of_endpoint_identity: true
+  direction_is_part_of_endpoint_identity_when_applicable: true
+  raw_category_alone_is_not_sufficient: true
+  unresolved_measurement_subtype: quarantine
+  unresolved_unit_or_basis: quarantine
+
+canonical_endpoint_key_contract:
+  base_field: canonical_endpoint_id
+  required_identity_dimensions:
+    - measurement_subtype
+    - canonical_unit
+    - normalization_basis_when_applicable
+    - direction_when_applicable
+    - timepoint_or_profile_when_endpoint_defining
+  output_field: canonical_endpoint_key

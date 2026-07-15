@@ -1,9 +1,0 @@
-{
-  "starling_rerank_knn": {
-    "candidate_fraction": 0.001,
-    "k": 1
-  },
-  "tanimoto_knn": {
-    "k": 1
-  }
-}

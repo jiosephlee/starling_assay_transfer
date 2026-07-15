@@ -1,5 +1,11 @@
 # Starling Assay Transfer Scripts
 
+The canonical dataset and model architecture for generalizing beyond oral
+bioavailability is maintained in
+[`docs/assay_transfer_design.md`](docs/assay_transfer_design.md). The earlier
+[`docs/ASSAY_TRANSFER_GENERALIZATION_PLAN.md`](docs/ASSAY_TRANSFER_GENERALIZATION_PLAN.md)
+is retained as the exploratory analysis record.
+
 This workspace contains a generic molecular-transfer data pipeline plus one
 Starling-specific preprocessing adapter.
 

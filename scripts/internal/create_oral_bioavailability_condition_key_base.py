@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add a reproducible Tianang-style condition key to Oral Bioavailability v2."""
+"""Add a reproducible Tianang-style condition key to the exact-species oral base."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ if str(SCRIPT_DIR) not in sys.path:
 from common_transfer import parquet_files_from_input, utc_now, write_json  # noqa: E402
 
 
-DEFAULT_INPUT = "datasets/base/Oral_bioavailability_cleaned_v2"
-DEFAULT_OUTPUT_DIR = Path("datasets/base/Oral_bioavailability_cleaned_v2_condition_key")
+DEFAULT_INPUT = "datasets/base/Oral_bioavailability_cleaned_v4"
+DEFAULT_OUTPUT_DIR = Path("datasets/base/Oral_bioavailability_cleaned_v4_condition_key")
 KEY_COLUMN = "condition_key_repro"
 KEY_FIELDS = (
     "species_or_population",
@@ -31,7 +31,7 @@ KEY_FIELDS = (
     "qualifying_conditions",
     "comparator",
 )
-NORMALIZED_SPECIES_COLUMN = "species_or_population_normalized"
+NORMALIZED_SPECIES_COLUMN = "species_exact"
 UNSPECIFIED_TOKEN = "not specified"
 NULL_VALUES = {
     "",
@@ -60,7 +60,10 @@ def normalize_key_part(value: Any, *, allow_unspecified: bool) -> str | None:
 
 
 def condition_key(row: dict[str, Any]) -> str | None:
-    species = normalize_key_part(row.get("species_or_population"), allow_unspecified=False)
+    species = normalize_key_part(
+        row.get(NORMALIZED_SPECIES_COLUMN),
+        allow_unspecified=False,
+    )
     if species is None:
         return None
     return " | ".join(
@@ -100,7 +103,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     pq.write_table(table, args.output_dir / "train.parquet", compression=args.compression)
 
     metadata = {
-        "schema_version": "starling_oral_bioavailability_numeric_v2_condition_key_v1",
+        "schema_version": "starling_oral_bioavailability_numeric_v4_condition_key_v1",
         "created_at_utc": utc_now(),
         "input": args.input,
         "output_dir": str(args.output_dir),
@@ -111,7 +114,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "condition_key_fields": list(KEY_FIELDS),
         "condition_key_policy": (
             "lowercase, strip, collapse whitespace, and normalize dash variants; "
-            "species_or_population is required and null/null-like values produce a null condition key; "
+            "species_exact is required and null/null-like values produce a null condition key; "
             f"missing/null-like non-species condition fields are encoded as {UNSPECIFIED_TOKEN!r}; "
             "source columns are otherwise unchanged"
         ),

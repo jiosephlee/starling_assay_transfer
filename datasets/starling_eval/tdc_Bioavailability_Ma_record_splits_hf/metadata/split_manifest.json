@@ -1,0 +1,11 @@
+{
+  "source": "TDC official_tianang",
+  "task": "Bioavailability_Ma",
+  "config": "full_metadata",
+  "splits": {
+    "train": 448,
+    "validation_1": 64
+  },
+  "base_parquet": "datasets/base/tdc_Bioavailability_Ma/base.parquet",
+  "note": "no metadata / no source value; all metadata fields missing"
+}

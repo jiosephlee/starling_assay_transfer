@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build Oral Bioavailability v3 base data.
+"""Build Oral Bioavailability v4 base data.
 
-v3 starts from the cleaned Starling oral-bioavailability base, adds the v2
-normalized species/population column and reproducible condition key, then removes
-only molecules from TDC Bioavailability_Ma train/valid/test by raw or RDKit
-canonical SMILES match.
+v4 adds the shared explicit-only ``species_exact`` field and a reproducible
+condition key, then removes only molecules from TDC Bioavailability_Ma
+train/valid/test by raw or RDKit canonical SMILES match.
 """
 
 from __future__ import annotations
@@ -30,8 +29,9 @@ if str(INTERNAL_DIR) not in sys.path:
 
 from common_transfer import parquet_files_from_input, utc_now, write_json  # noqa: E402
 from species_normalization import (  # noqa: E402
-    NORMALIZED_COLUMN,
-    normalized_species_or_population,
+    SPECIES_EXACT_COLUMN,
+    SPECIES_OUTPUT_COLUMNS,
+    species_resolution,
 )
 from create_oral_bioavailability_condition_key_base import (  # noqa: E402
     KEY_COLUMN,
@@ -40,9 +40,9 @@ from create_oral_bioavailability_condition_key_base import (  # noqa: E402
 
 
 DEFAULT_INPUT = "datasets/base/Oral_bioavailability_cleaned"
-DEFAULT_OUTPUT_DIR = Path("datasets/base/Oral_bioavailability_cleaned_v3")
+DEFAULT_OUTPUT_DIR = Path("datasets/base/Oral_bioavailability_cleaned_v4")
 DEFAULT_TDC_DIR = Path("tdc/official_tianang")
-DEFAULT_REFERENCE_DIR = Path("datasets/exclusions/tdc_bioavailability_ma_v3")
+DEFAULT_REFERENCE_DIR = Path("datasets/exclusions/tdc_bioavailability_ma_v4")
 DEFAULT_TDC_SPLITS = ("train", "valid", "test")
 
 CHEM: Any = None
@@ -129,15 +129,18 @@ def load_base_table(args: argparse.Namespace) -> pa.Table:
 
 def add_repro_columns(table: pa.Table) -> pa.Table:
     rows = table.to_pylist()
-    species = [normalized_species_or_population(row.get("species_or_population")) for row in rows]
+    species_values = [species_resolution(row.get("species_or_population")) for row in rows]
     keys = [
-        condition_key({**row, NORMALIZED_COLUMN: species_value})
-        for row, species_value in zip(rows, species, strict=True)
+        condition_key({**row, SPECIES_EXACT_COLUMN: species_exact})
+        for row, species_exact in zip(rows, species_values, strict=True)
     ]
-    for column in (NORMALIZED_COLUMN, KEY_COLUMN):
+    for column in (*SPECIES_OUTPUT_COLUMNS, KEY_COLUMN):
         if column in table.column_names:
             table = table.drop([column])
-    table = table.append_column(NORMALIZED_COLUMN, pa.array(species, type=pa.string()))
+    table = table.append_column(
+        SPECIES_EXACT_COLUMN,
+        pa.array(species_values, type=pa.string()),
+    )
     table = table.append_column(KEY_COLUMN, pa.array(keys, type=pa.string()))
     return table
 
@@ -183,17 +186,15 @@ def write_reference_artifacts(reference_dir: Path, rows: list[dict[str, Any]]) -
     return metadata
 
 
-def build(args: argparse.Namespace) -> dict[str, Any]:
-    prepare_dir(args.output_dir, args.overwrite)
-    prepare_dir(args.reference_dir, args.overwrite)
-
-    tdc_rows = iter_tdc_rows(args)
-    reference_metadata = write_reference_artifacts(args.reference_dir, tdc_rows)
-    table = add_repro_columns(load_base_table(args))
-
+def _match_base_to_tdc(
+    table: pa.Table, tdc_rows: list[dict[str, Any]], smiles_column: str
+) -> dict[str, Any]:
     tdc_raw = normalized_set([row["raw_smiles"] for row in tdc_rows])
     tdc_canonical = normalized_set([row["canonical_smiles"] for row in tdc_rows])
-    base_raw = [None if value is None else str(value).strip() for value in table[args.smiles_column].to_pylist()]
+    base_raw = [
+        None if value is None else str(value).strip()
+        for value in table[smiles_column].to_pylist()
+    ]
     base_canonical = [canonical_smiles(value) for value in base_raw]
     raw_matches = [value in tdc_raw or value in tdc_canonical if value else False for value in base_raw]
     canonical_matches = [
@@ -201,20 +202,66 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         for value in base_canonical
     ]
     remove_mask = [raw or can for raw, can in zip(raw_matches, canonical_matches, strict=True)]
-    filtered = table.filter(pc.invert(pa.array(remove_mask, type=pa.bool_())))
+    return {
+        "base_raw": base_raw,
+        "base_canonical": base_canonical,
+        "raw_matches": raw_matches,
+        "canonical_matches": canonical_matches,
+        "remove_mask": remove_mask,
+    }
 
-    pq.write_table(filtered, args.output_dir / "train.parquet", compression=args.compression)
-    matched_raw_values = sorted({raw for raw, remove in zip(base_raw, remove_mask, strict=True) if remove and raw})
-    matched_canonical_values = sorted(
-        {can for can, remove in zip(base_canonical, remove_mask, strict=True) if remove and can}
+
+def _write_match_lists(reference_dir: Path, matches: dict[str, Any]) -> tuple[list[str], list[str]]:
+    remove_mask = matches["remove_mask"]
+    matched_raw_values = sorted(
+        {raw for raw, remove in zip(matches["base_raw"], remove_mask, strict=True) if remove and raw}
     )
-    (args.reference_dir / "matched_base_raw_smiles.txt").write_text("\n".join(matched_raw_values) + "\n")
-    (args.reference_dir / "matched_base_canonical_smiles.txt").write_text(
+    matched_canonical_values = sorted(
+        {
+            can
+            for can, remove in zip(matches["base_canonical"], remove_mask, strict=True)
+            if remove and can
+        }
+    )
+    (reference_dir / "matched_base_raw_smiles.txt").write_text("\n".join(matched_raw_values) + "\n")
+    (reference_dir / "matched_base_canonical_smiles.txt").write_text(
         "\n".join(matched_canonical_values) + "\n"
     )
+    return matched_raw_values, matched_canonical_values
 
-    metadata = {
-        "schema_version": "starling_oral_bioavailability_numeric_v3",
+
+def _skipped_exclusion_metadata(args: argparse.Namespace, table: pa.Table) -> dict[str, Any]:
+    return {
+        "schema_version": "starling_assay_transfer_numeric_v4",
+        "created_at_utc": utc_now(),
+        "input": args.input,
+        "output_dir": str(args.output_dir),
+        "output_file": "train.parquet",
+        "tdc_exclusion": "skipped",
+        "smiles_column": args.smiles_column,
+        "rows_input": table.num_rows,
+        "rows_removed": 0,
+        "rows_written": table.num_rows,
+        "species_normalization_version": "species_v1",
+        "added_or_replaced_columns": [*SPECIES_OUTPUT_COLUMNS, KEY_COLUMN],
+        "columns": table.column_names,
+        "parquet": {"compression": args.compression},
+    }
+
+
+def _excluded_metadata(
+    args: argparse.Namespace,
+    table: pa.Table,
+    filtered: pa.Table,
+    matches: dict[str, Any],
+    matched_values: tuple[list[str], list[str]],
+    reference_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    matched_raw_values, matched_canonical_values = matched_values
+    remove_mask = matches["remove_mask"]
+
+    return {
+        "schema_version": "starling_oral_bioavailability_numeric_v4",
         "created_at_utc": utc_now(),
         "input": args.input,
         "output_dir": str(args.output_dir),
@@ -227,21 +274,45 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "rows_input": table.num_rows,
         "rows_removed": int(sum(remove_mask)),
         "rows_written": filtered.num_rows,
-        "added_or_replaced_columns": [NORMALIZED_COLUMN, KEY_COLUMN],
+        "species_normalization_version": "species_v1",
+        "added_or_replaced_columns": [*SPECIES_OUTPUT_COLUMNS, KEY_COLUMN],
         "removal_policy": (
             "remove base rows when stripped raw base SMILES or RDKit canonical base SMILES "
             "matches stripped raw or RDKit canonical TDC Bioavailability_Ma train/valid/test SMILES"
         ),
         "base_smiles_stats": {
-            "invalid_or_missing_canonical_smiles": sum(1 for value in base_canonical if value is None),
-            "raw_match_rows": int(sum(raw_matches)),
-            "canonical_match_rows": int(sum(canonical_matches)),
+            "invalid_or_missing_canonical_smiles": sum(
+                1 for value in matches["base_canonical"] if value is None
+            ),
+            "raw_match_rows": int(sum(matches["raw_matches"])),
+            "canonical_match_rows": int(sum(matches["canonical_matches"])),
             "matched_unique_raw_smiles": len(matched_raw_values),
             "matched_unique_canonical_smiles": len(matched_canonical_values),
         },
         "columns": filtered.column_names,
         "parquet": {"compression": args.compression},
     }
+
+
+def build(args: argparse.Namespace) -> dict[str, Any]:
+    prepare_dir(args.output_dir, args.overwrite)
+    table = add_repro_columns(load_base_table(args))
+    if args.skip_tdc_exclusion:
+        pq.write_table(table, args.output_dir / "train.parquet", compression=args.compression)
+        metadata = _skipped_exclusion_metadata(args, table)
+        write_json(args.output_dir / "dataset_info.json", metadata)
+        return metadata
+
+    prepare_dir(args.reference_dir, args.overwrite)
+    tdc_rows = iter_tdc_rows(args)
+    reference_metadata = write_reference_artifacts(args.reference_dir, tdc_rows)
+    matches = _match_base_to_tdc(table, tdc_rows, args.smiles_column)
+    filtered = table.filter(pc.invert(pa.array(matches["remove_mask"], type=pa.bool_())))
+    pq.write_table(filtered, args.output_dir / "train.parquet", compression=args.compression)
+    matched_values = _write_match_lists(args.reference_dir, matches)
+    metadata = _excluded_metadata(
+        args, table, filtered, matches, matched_values, reference_metadata
+    )
     write_json(args.output_dir / "dataset_info.json", metadata)
     return metadata
 
@@ -255,6 +326,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tdc-splits", nargs="+", default=list(DEFAULT_TDC_SPLITS))
     parser.add_argument("--reference-dir", type=Path, default=DEFAULT_REFERENCE_DIR)
     parser.add_argument("--smiles-column", default="smiles")
+    parser.add_argument(
+        "--skip-tdc-exclusion",
+        action="store_true",
+        help="Skip TDC leakage removal (for non-oral properties with no TDC analog).",
+    )
     parser.add_argument("--compression", default="zstd")
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument("--max-tdc-rows", type=int, default=None)
@@ -264,20 +340,17 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     metadata = build(parse_args())
-    print(
-        json.dumps(
-            {
-                "output_dir": metadata["output_dir"],
-                "rows_input": metadata["rows_input"],
-                "rows_removed": metadata["rows_removed"],
-                "rows_written": metadata["rows_written"],
-                "tdc_unique_raw_smiles": metadata["tdc_reference_metadata"]["unique_raw_smiles"],
-                "tdc_unique_canonical_smiles": metadata["tdc_reference_metadata"]["unique_canonical_smiles"],
-            },
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    summary = {
+        "output_dir": metadata["output_dir"],
+        "rows_input": metadata["rows_input"],
+        "rows_removed": metadata["rows_removed"],
+        "rows_written": metadata["rows_written"],
+    }
+    reference = metadata.get("tdc_reference_metadata")
+    if reference is not None:
+        summary["tdc_unique_raw_smiles"] = reference["unique_raw_smiles"]
+        summary["tdc_unique_canonical_smiles"] = reference["unique_canonical_smiles"]
+    print(json.dumps(summary, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

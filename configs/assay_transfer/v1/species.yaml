@@ -1,0 +1,143 @@
+version: species_v1
+status: implemented_partial_integration
+
+output_columns:
+  species_exact:
+    description: >-
+      Exact normalized species explicitly present in an approved source field;
+      null when absent, generic, or ambiguous.
+    nullable: true
+
+usage_contract:
+  condition_key_and_label_construction_only: true
+  replace_raw_source_field: false
+  model_facing_retrieval_metadata_uses_raw_source_field: true
+  query_metadata_available_at_inference: false
+
+source_fields:
+  oral_bioavailability:
+    explicit_species_column: species_or_population
+    explicit_text_columns: []
+    excluded_text_columns: [support_text, extra_details]
+  q1:
+    explicit_species_column: null
+    explicit_text_columns: [study_context]
+    excluded_text_columns: [support_text, extra_details]
+  q2:
+    explicit_species_column: null
+    explicit_text_columns: [biological_context, assay_system]
+    excluded_text_columns: [support_text, extra_details]
+  q3:
+    explicit_species_column: null
+    explicit_text_columns: [intestinal_site, assay_system]
+    excluded_text_columns: [support_text, extra_details]
+  q4:
+    explicit_species_column: species
+    explicit_text_columns: [assay_system]
+    excluded_text_columns: [support_text, extra_details]
+
+exact_aliases:
+  human:
+    - human
+    - humans
+    - Homo sapiens
+  rat:
+    - rat
+    - rats
+    - Rattus norvegicus
+    - Wistar
+    - Sprague-Dawley
+    - Sprague Dawley
+    - F344
+    - Han Wistar
+  mouse:
+    - mouse
+    - mice
+    - murine
+    - Mus musculus
+    - BALB/c
+    - C57BL/6
+    - CD-1
+    - ICR
+  guinea_pig: [guinea pig, guinea-pig, guinea pigs]
+  hamster: [hamster, hamsters]
+  degu: [Octodon degus, degu]
+  woodchuck: [woodchuck, woodchucks]
+  dog: [dog, dogs, canine, canines, beagle, beagles, greyhound, greyhounds, Hunden, Hunde]
+  cynomolgus_monkey:
+    - cynomolgus monkey
+    - cynomolgus monkeys
+    - cynomologus monkey
+    - cynomologus monkeys
+    - cynomologous monkey
+    - cynomologous monkeys
+    - cynomolgous monkey
+    - cynomolgous monkeys
+    - cynmolgous monkey
+    - cynomolgus
+    - cyno
+  rhesus_macaque: [rhesus monkey, rhesus macaque, rhesus]
+  common_marmoset: [common marmoset, marmoset, marmosets]
+  african_green_monkey: [African green monkey, African green monkeys]
+  squirrel_monkey: [squirrel monkey, squirrel monkeys]
+  baboon: [baboon, baboons]
+  chimpanzee: [chimpanzee, chimpanzees]
+  rabbit: [rabbit, rabbits]
+  pig:
+    - pig
+    - pigs
+    - porcine
+    - swine
+    - minipig
+    - minipigs
+    - mini-pig
+    - microminipig
+    - microminipigs
+    - piglet
+    - piglets
+  cat: [cat, cats, feline]
+  horse: [horse, horses, equine, pony, ponies, foal, foals]
+  donkey: [donkey, donkeys]
+  sheep: [sheep, ovine, ewe, ewes, lamb, lambs]
+  goat: [goat, goats]
+  cow: [cow, cows, cattle, bovine, calf, calves]
+  chicken: [chicken, chickens, avian chicken, broiler, broilers, chick, chicks, hen, hens]
+  turkey: [turkey, turkeys, broiler turkey, broiler turkeys]
+  duck: [duck, ducks]
+  mallard: [mallard duck, mallard ducks, mallard, mallards]
+  pigeon: [pigeon, pigeons]
+  goose: [goose, geese]
+  quail: [quail, quails]
+  cockatiel: [cockatiel, cockatiels, Nymphicus hollandicus]
+  parrot: [parrot, parrots, Hispaniolan Amazon parrot, Hispaniolan Amazon parrots]
+  red_wattlebird: [red wattlebird, red wattlebirds]
+  rainbow_trout: [rainbow trout, Oncorhynchus mykiss]
+  atlantic_salmon: [Atlantic salmon, Salmo salar]
+  channel_catfish: [channel catfish, Ictalurus punctatus]
+  olive_flounder: [olive flounder, Paralichthys olivaceus]
+  turbot: [turbot, turbots]
+  silver_crucian_carp: [silver crucian carp, allogynogenetic silver crucian carp]
+  yellowtail_kingfish: [kingfish, yellowtail kingfish, Seriola lalandi]
+  atlantic_halibut: [Atlantic halibut, halibut, Hippoglossus hippoglossus]
+  carp: [carp, carps]
+  tilapia: [tilapia, tilapias]
+  cod: [cod, cods]
+  korean_catfish: [Korean catfish]
+  ferret: [ferret, ferrets]
+  camel: [camel, camels]
+  alpaca: [alpaca, alpacas]
+  llama: [llama, llamas]
+  koala: [koala, koalas]
+  possum: [possum, possums]
+  bat: [bat, bats]
+  fall_armyworm: [Spodoptera frugiperda]
+
+resolution:
+  dedicated_species_column_precedence: true
+  require_one_exact_match: true
+  multiple_exact_species: null
+  generic_animal_value: null
+  population_vocabulary_inference: false
+  cell_line_origin_inference: false
+  unapproved_free_text_inference: false
+  unknown_never_matches_unknown: true
