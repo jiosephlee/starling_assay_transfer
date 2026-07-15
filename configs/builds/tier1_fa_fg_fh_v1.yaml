@@ -1,0 +1,33 @@
+# Tier-1 composed build: the clean, unit-light endpoints of q2/q3/q4 under one shared
+# encoder. Composition unions records; the pairs stage keeps every pair within a single
+# canonical endpoint (dataset_system_design.md section 5.1). Policy versions are bound
+# from configs/assay_transfer/v1 (see release.yaml); only enabled endpoints (see
+# pipeline/endpoints.py ENABLED_CANONICALIZERS) are materialized, the rest quarantine.
+build: tier1_fa_fg_fh_v1
+version: v1
+
+sources:
+  - q2   # intestinal_absorption: fraction_absorbed / intestinal_absorption (percent)
+  - q3   # gut_wall: gut_wall_escape (percent)
+  - q4   # hepatic: extraction_ratio (fraction), metabolic_half_life (log10 minutes)
+
+policy:
+  release: configs/assay_transfer/v1/release.yaml
+
+split:
+  strategy: molecule_disjoint
+  seed: 17
+  train_frac: 0.8
+  val_frac: 0.1
+  test_frac: 0.1
+
+pairs:
+  profiles:
+    - same_endpoint
+    - same_species_same_endpoint
+    - most_specific
+  seed: 17
+  max_queries: 64
+
+hf:
+  template: templates/assay_transfer_classification.jinja

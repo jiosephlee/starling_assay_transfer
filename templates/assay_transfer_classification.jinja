@@ -1,0 +1,20 @@
+You are assessing whether a measured assay result transfers to a new molecule.
+
+Reference measurement (retrieved):
+  structure (SMILES): {{ row.retrieved_smiles }}
+  endpoint: {{ row.canonical_endpoint_id }}
+  value: {{ row.retrieved_value_native }} [{{ row.metric_type }}]
+  context:
+{%- set _skip = ['retrieved_smiles', 'retrieved_value', 'retrieved_value_native', 'retrieved_row_index', 'retrieved_pmid', 'retrieved_extraction_id', 'retrieved_source_id', 'retrieved_canonical_endpoint_id', 'retrieved_canonical_endpoint_key', 'retrieved_metric_type', 'retrieved_property_value', 'retrieved_property_value_native'] %}
+{%- for k, v in row.items() %}
+{%- if k.startswith('retrieved_') and v and k not in _skip %}
+    {{ k[10:] }}: {{ v }}
+{%- endif %}
+{%- endfor %}
+
+Transfer setting (K): {{ row.k_profile }}{% if row.setting_key %} [{{ row.setting_key }}]{% endif %}
+
+Query molecule structure (SMILES): {{ row.query_smiles }}
+
+Question: does the reference measurement transfer to the query molecule under this setting?
+Answer:
