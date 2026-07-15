@@ -116,10 +116,11 @@ individual `r_B`, `Z_B`, or `y_B` as a query-side input.
 
 ## 4. Dataset scope
 
-Canonical source files live under:
+Canonical source files live under the stage-first source layout (one folder per source,
+named for its dominant domain; the `q1`-`q4` tag is retained as each record's `source_id`):
 
 ```text
-datasets/starling_assays/datasets/
+datasets/sources/{oral_bioavailability,intestinal_absorption,gut_wall,hepatic}/extractions.parquet
 ```
 
 The current mapping and snapshot are:

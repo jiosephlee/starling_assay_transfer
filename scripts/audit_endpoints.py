@@ -33,7 +33,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 DEFAULT_ENDPOINTS = _REPO_ROOT / "configs" / "assay_transfer" / "v1" / "endpoints.yaml"
-DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "starling_assays" / "datasets"
+DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "sources"
 
 _NUMBER_RE = re.compile(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
 
@@ -108,7 +108,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     sources = endpoints_cfg.get("source_collections", {})
     report: dict[str, Any] = {"endpoints_config": str(args.endpoints), "sources": {}}
     for source, spec in sources.items():
-        parquet = args.source_dir / source / "extractions.parquet"
+        parquet = args.source_dir / spec.get("directory", source) / "extractions.parquet"
         if not parquet.exists():
             report["sources"][source] = {"error": f"missing parquet {parquet}"}
             continue

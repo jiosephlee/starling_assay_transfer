@@ -36,7 +36,7 @@ if str(_REPO_ROOT) not in sys.path:
 from pipeline.stages import materialize, pairs, prepare, render_hf, split  # noqa: E402
 
 STAGES = ("prepare", "split", "pairs", "materialize", "render_hf")
-DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "starling_assays" / "datasets"
+DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "sources"
 
 
 def _stages_to_run(args: argparse.Namespace) -> list[str]:

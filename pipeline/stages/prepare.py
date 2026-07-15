@@ -44,7 +44,7 @@ from pipeline.normalize.assay_species_normalization import (  # noqa: E402
 )
 from pipeline.normalize.conditions import CONDITION_COLUMNS, normalize_conditions  # noqa: E402
 
-DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "starling_assays" / "datasets"
+DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "sources"
 
 # Columns never carried into base as retrieval metadata (ids, provenance, leakage text,
 # and the raw value/unit/endpoint columns, which are re-expressed canonically).
@@ -133,14 +133,17 @@ def _records_table(records: list[dict[str, Any]], metadata_cols: list[str]) -> p
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
-    parquet = args.input or (args.source_dir / args.source / "extractions.parquet")
+    resolver = load_endpoint_resolver()
+    cols = resolver.source_columns(args.source)
+    # Source folder is the semantic `directory` (dataset_system_design.md 2.1); fall back to
+    # the source id for sources without a declared directory.
+    directory = cols.get("directory", args.source)
+    parquet = args.input or (args.source_dir / directory / "extractions.parquet")
     if not parquet.exists():
         raise FileNotFoundError(f"source parquet not found: {parquet}")
-    resolver = load_endpoint_resolver()
     table = pq.read_table(parquet)
     rows = table.to_pylist()
     reserved = set(_GLOBAL_RESERVED)
-    cols = resolver.source_columns(args.source)
     for key in ("raw_endpoint_column", "raw_value_column", "raw_unit_column"):
         col = cols.get(key)
         if col and col != "embedded_in_measured_value":

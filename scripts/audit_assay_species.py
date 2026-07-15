@@ -26,13 +26,21 @@ SOURCE_COLUMNS = {
     "q4": ["species", "assay_system"],
 }
 
+# Source id -> stage-first source directory (dataset_system_design.md 2.1, 3.1).
+SOURCE_DIRECTORIES = {
+    "q1": "oral_bioavailability",
+    "q2": "intestinal_absorption",
+    "q3": "gut_wall",
+    "q4": "hepatic",
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset-root",
         type=Path,
-        default=Path("datasets/starling_assays/datasets"),
+        default=Path("datasets/sources"),
     )
     parser.add_argument(
         "--oral-path",
@@ -77,7 +85,7 @@ def main() -> None:
     paths = {
         "oral_bioavailability": args.oral_path,
         **{
-            source: args.dataset_root / source / "extractions.parquet"
+            source: args.dataset_root / SOURCE_DIRECTORIES[source] / "extractions.parquet"
             for source in ("q1", "q2", "q3", "q4")
         },
     }
