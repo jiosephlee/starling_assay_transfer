@@ -42,6 +42,7 @@ from pipeline.normalize.assay_species_normalization import (  # noqa: E402
     SPECIES_EXACT_COLUMN,
     resolve_species_record,
 )
+from pipeline.normalize.conditions import CONDITION_COLUMNS, normalize_conditions  # noqa: E402
 
 DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "starling_assays" / "datasets"
 
@@ -57,7 +58,8 @@ _GLOBAL_RESERVED = {
     "smiles",
 }
 
-# Fixed canonical columns emitted first, in this order.
+# Fixed canonical columns emitted first, in this order. Normalized condition columns
+# (for most_specific keying) follow species_exact.
 _CANONICAL_COLUMNS = [
     "smiles",
     "source_id",
@@ -67,6 +69,7 @@ _CANONICAL_COLUMNS = [
     "property_value",
     "property_value_native",
     SPECIES_EXACT_COLUMN,
+    *CONDITION_COLUMNS,
     "pmid",
     "extraction_id",
 ]
@@ -106,6 +109,7 @@ def _prepare_records(
             "pmid": row.get("pmid"),
             "extraction_id": row.get("extraction_id"),
         }
+        record.update(normalize_conditions(row))
         for col in metadata_cols:
             value = row.get(col)
             record[col] = value if value is not None and str(value).strip() else None
@@ -151,6 +155,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     pq.write_table(out_table, args.output_dir / "base.parquet", compression=args.compression)
 
     species_known = sum(1 for r in records if r[SPECIES_EXACT_COLUMN])
+    condition_coverage = {
+        col: round(sum(1 for r in records if r.get(col)) / len(records), 4)
+        for col in CONDITION_COLUMNS
+    }
     report = {
         "source": args.source,
         "input": str(parquet),
@@ -163,6 +171,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "assigned_by_endpoint": dict(assigned.most_common()),
         "quarantine_by_reason": dict(quarantine.most_common()),
         "species_exact_coverage": round(species_known / len(records), 4),
+        "condition_field_coverage": condition_coverage,
         "metadata_columns": metadata_cols,
         "columns": out_table.column_names,
     }

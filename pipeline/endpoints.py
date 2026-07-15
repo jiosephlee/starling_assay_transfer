@@ -115,6 +115,13 @@ class EndpointResolver:
     def enabled_endpoints(self) -> list[str]:
         return sorted(self._enabled)
 
+    def most_specific_schema(self, canonical_endpoint_id: str) -> Optional[str]:
+        spec = self._endpoints.get(canonical_endpoint_id, {})
+        return spec.get("most_specific_schema")
+
+    def metric_type(self, canonical_endpoint_id: str) -> str:
+        return self._endpoints[canonical_endpoint_id]["metric_type"]
+
 
 @lru_cache(maxsize=None)
 def load_endpoint_resolver(config_root: Optional[str] = None) -> EndpointResolver:
