@@ -11,11 +11,8 @@ LEARNING_RATES = ("1e-4", "2e-4", "4e-4")
 EFFECTIVE_BATCH_SIZES = ("8192", "16384", "32768")
 SWEEP_MAX_STEPS = 300
 SWEEP_EVAL_STEPS = 50
-FULL_TDC_EVAL_STEPS = 250
 HP_SELECT_METRIC = "eval_val_no_overlap_macro_f1"
 BEST_VAL_CHECKPOINT_DIR = "best_val_macro_f1"
-BEST_TDC_CHECKPOINT_DIR = "best_tdc_train_macro_f1"
-BEST_RECORD_KNN_CHECKPOINT_DIR = "best_record_knn_validation_1_macro_f1"
 
 EVAL_SUBSET_ALIASES = {
     "no_overlap": "double_unseen",

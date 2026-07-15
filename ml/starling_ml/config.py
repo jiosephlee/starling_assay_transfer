@@ -67,8 +67,10 @@ class ModelConfig:
     dropout: float = 0.1
     # LayerScale init for residual branches (per-channel learnable scale); <=0 disables.
     layerscale_init: float = 0.0
-    # Directional variant: append the source-side oral bioavailability scalar to the head input.
-    use_source_value: bool = False
+    # The retrieval value y_A is always a model input (assay_transfer_design.md 2, 10): the
+    # no-source-value variant is removed. Kept True; the residual gates in data.py/model.py
+    # are excised when data.py is rewritten to the new materialized schema.
+    use_source_value: bool = True
     source_value_scale: float = 100.0
 
 
@@ -140,27 +142,6 @@ class TrainConfig:
     wandb_simple_validation_only: bool = False
     # Metric key from Trainer evaluation metrics used for the rolling best checkpoint.
     best_metric: str = "eval_val_macro_f1"
-    tdc_eval_enabled: bool = False
-    tdc_eval_path: str = "tdc/official_tianang/train/Bioavailability_Ma.jsonl"
-    tdc_eval_valid_path: str = "tdc/official_tianang/valid/Bioavailability_Ma.jsonl"
-    tdc_eval_valid_on_best_val: bool = True
-    tdc_eval_cache_dir: str = "ml/artifacts/tdc_knn_eval"
-    tdc_eval_steps: int = 250
-    tdc_eval_top_fraction: float = 0.25
-    tdc_eval_k: int = 10
-    tdc_eval_batch_size: int = 65536
-    record_knn_eval_enabled: bool = False
-    record_knn_eval_dataset_dir: str = "datasets/starling_eval/condition_key_v3_record_splits_hf"
-    record_knn_eval_dataset_config: str = "full_metadata"
-    record_knn_eval_splits: list[str] = field(default_factory=lambda: ["validation_1"])
-    record_knn_final_splits: list[str] = field(default_factory=lambda: ["validation_1", "validation_2"])
-    record_knn_eval_cache_dir: str = "ml/artifacts/record_knn_eval_cache/condition_key_v3_record_splits_hf"
-    record_knn_eval_steps: int = 500
-    record_knn_eval_extra_steps: list[int] = field(default_factory=list)
-    record_knn_eval_top_fraction: float = 0.10
-    record_knn_eval_k: int = 10
-    record_knn_eval_batch_size: int = 4096
-    record_knn_eval_max_queries: int = 0
 
 
 @dataclass
