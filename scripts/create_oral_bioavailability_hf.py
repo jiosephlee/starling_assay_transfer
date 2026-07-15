@@ -9,13 +9,12 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-INTERNAL_DIR = SCRIPT_DIR / "internal"
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-if str(INTERNAL_DIR) not in sys.path:
-    sys.path.insert(0, str(INTERNAL_DIR))
+_REPO_ROOT = SCRIPT_DIR.parent
+for _p in (SCRIPT_DIR, _REPO_ROOT):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-import create_hf_parquets_from_splits as hf_render  # noqa: E402
+import pipeline.normalize.create_hf_parquets_from_splits as hf_render  # noqa: E402
 
 
 SPLIT_DIR_PREFIX = {

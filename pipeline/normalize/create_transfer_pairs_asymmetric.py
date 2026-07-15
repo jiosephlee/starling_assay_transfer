@@ -34,13 +34,11 @@ from typing import Any, Optional
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SCRIPTS_DIR = SCRIPT_DIR.parent
-for _p in (SCRIPT_DIR, SCRIPTS_DIR):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from common_transfer import (  # noqa: E402
+from pipeline.normalize.common_transfer import (  # noqa: E402
     FingerprintCache,
     bucket_for_value,
     finite_float,
@@ -48,7 +46,7 @@ from common_transfer import (  # noqa: E402
     utc_now,
     write_json,
 )
-from task_specs import get_task  # noqa: E402
+from pipeline.taskspecs import get_task  # noqa: E402
 
 LABEL_CODES = {"transfer": 1, "not_transfer": 0}
 

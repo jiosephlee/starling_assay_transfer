@@ -15,14 +15,13 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-INTERNAL_DIR = SCRIPT_DIR / "internal"
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-if str(INTERNAL_DIR) not in sys.path:
-    sys.path.insert(0, str(INTERNAL_DIR))
+_REPO_ROOT = SCRIPT_DIR.parent
+for _p in (SCRIPT_DIR, _REPO_ROOT):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-import create_oral_bioavailability_shared_eval_splits as shared_splits  # noqa: E402
-import create_oral_bioavailability_shared_eval_splits_v2 as shared_splits_v2  # noqa: E402
+import pipeline.normalize.create_oral_bioavailability_shared_eval_splits as shared_splits  # noqa: E402
+import pipeline.normalize.create_oral_bioavailability_shared_eval_splits_v2 as shared_splits_v2  # noqa: E402
 import create_oral_bioavailability_splits as v1_wrapper  # noqa: E402
 
 V2_STEM = "oral_bioavailability_shared_eval_v3_v2"

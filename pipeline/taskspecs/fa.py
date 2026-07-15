@@ -10,15 +10,9 @@ separate log-scale endpoint for later.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any, Optional
 
-_INTERNAL = Path(__file__).resolve().parents[1] / "internal"
-if str(_INTERNAL) not in sys.path:
-    sys.path.insert(0, str(_INTERNAL))
-
-from species_normalization import (  # noqa: E402
+from pipeline.normalize.species_normalization import (
     NORMALIZED_COLUMN,
     normalized_species_or_population,
 )

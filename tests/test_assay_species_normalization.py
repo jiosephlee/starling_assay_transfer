@@ -4,15 +4,15 @@ from pathlib import Path
 import sys
 import unittest
 
-_INTERNAL = Path(__file__).resolve().parents[1] / "scripts" / "internal"
-if str(_INTERNAL) not in sys.path:
-    sys.path.insert(0, str(_INTERNAL))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from assay_species_normalization import (  # noqa: E402
+from pipeline.normalize.assay_species_normalization import (  # noqa: E402
     resolve_assay_species,
     resolve_species_record,
 )
-from species_normalization import normalized_species_or_population  # noqa: E402
+from pipeline.normalize.species_normalization import normalized_species_or_population  # noqa: E402
 
 
 class UnifiedFacadeTest(unittest.TestCase):

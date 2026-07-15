@@ -12,11 +12,11 @@ from typing import Any
 
 import pyarrow.parquet as pq
 
-_INTERNAL = Path(__file__).resolve().parent / "internal"
-if str(_INTERNAL) not in sys.path:
-    sys.path.insert(0, str(_INTERNAL))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from assay_species_normalization import resolve_species_record  # noqa: E402
+from pipeline.normalize.assay_species_normalization import resolve_species_record  # noqa: E402
 
 SOURCE_COLUMNS = {
     "oral_bioavailability": ["species_or_population"],

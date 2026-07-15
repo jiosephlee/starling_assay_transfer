@@ -15,7 +15,7 @@ from typing import Any, Iterable, Mapping
 
 import yaml
 
-from species_text import normalize_text
+from pipeline.normalize.species_text import normalize_text
 
 SPECIES_EXACT_COLUMN = "species_exact"
 SPECIES_OUTPUT_COLUMNS = (SPECIES_EXACT_COLUMN,)

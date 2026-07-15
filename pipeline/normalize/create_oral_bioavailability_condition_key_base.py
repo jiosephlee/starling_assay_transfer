@@ -15,11 +15,15 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from common_transfer import parquet_files_from_input, utc_now, write_json  # noqa: E402
+from pipeline.normalize.common_transfer import (  # noqa: E402
+    parquet_files_from_input,
+    utc_now,
+    write_json,
+)
 
 
 DEFAULT_INPUT = "datasets/base/Oral_bioavailability_cleaned_v4"

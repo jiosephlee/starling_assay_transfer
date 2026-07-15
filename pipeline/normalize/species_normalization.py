@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from assay_species_normalization import (
+from pipeline.normalize.assay_species_normalization import (
     SPECIES_EXACT_COLUMN,
     SPECIES_OUTPUT_COLUMNS,
     resolve_assay_species,
 )
-from species_text import NULL_VALUES, normalize_text
+from pipeline.normalize.species_text import NULL_VALUES, normalize_text
 
 NORMALIZED_COLUMN = SPECIES_EXACT_COLUMN
 

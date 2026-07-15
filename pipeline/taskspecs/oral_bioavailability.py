@@ -8,20 +8,14 @@ reference implementation the new Fa/Fg/Fh specs mirror.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
-# Reuse the existing normalizers from scripts/internal without duplicating them.
-_INTERNAL = Path(__file__).resolve().parents[1] / "internal"
-if str(_INTERNAL) not in sys.path:
-    sys.path.insert(0, str(_INTERNAL))
-
-from create_oral_bioavailability_condition_key_base import (  # noqa: E402
+# Reuse the existing normalizers from the pipeline.normalize package.
+from pipeline.normalize.create_oral_bioavailability_condition_key_base import (
     KEY_COLUMN,
     condition_key,
 )
-from species_normalization import (  # noqa: E402
+from pipeline.normalize.species_normalization import (
     NORMALIZED_COLUMN,
     normalized_species_or_population,
 )

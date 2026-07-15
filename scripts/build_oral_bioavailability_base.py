@@ -20,20 +20,21 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-INTERNAL_DIR = SCRIPT_DIR / "internal"
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-if str(INTERNAL_DIR) not in sys.path:
-    sys.path.insert(0, str(INTERNAL_DIR))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from common_transfer import parquet_files_from_input, utc_now, write_json  # noqa: E402
-from species_normalization import (  # noqa: E402
+from pipeline.normalize.common_transfer import (  # noqa: E402
+    parquet_files_from_input,
+    utc_now,
+    write_json,
+)
+from pipeline.normalize.species_normalization import (  # noqa: E402
     SPECIES_EXACT_COLUMN,
     SPECIES_OUTPUT_COLUMNS,
     species_resolution,
 )
-from create_oral_bioavailability_condition_key_base import (  # noqa: E402
+from pipeline.normalize.create_oral_bioavailability_condition_key_base import (  # noqa: E402
     KEY_COLUMN,
     condition_key,
 )

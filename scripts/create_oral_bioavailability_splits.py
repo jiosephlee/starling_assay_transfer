@@ -15,13 +15,12 @@ import pyarrow.compute as pc
 import pyarrow.dataset as ds
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-INTERNAL_DIR = SCRIPT_DIR / "internal"
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-if str(INTERNAL_DIR) not in sys.path:
-    sys.path.insert(0, str(INTERNAL_DIR))
+_REPO_ROOT = SCRIPT_DIR.parent
+for _p in (SCRIPT_DIR, _REPO_ROOT):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-import create_oral_bioavailability_shared_eval_splits as shared_splits  # noqa: E402
+import pipeline.normalize.create_oral_bioavailability_shared_eval_splits as shared_splits  # noqa: E402
 
 
 def build(args: argparse.Namespace) -> dict[str, object]:

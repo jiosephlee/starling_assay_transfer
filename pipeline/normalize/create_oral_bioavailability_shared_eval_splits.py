@@ -24,11 +24,11 @@ from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.warning")
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from common_transfer import (  # noqa: E402
+from pipeline.normalize.common_transfer import (  # noqa: E402
     EVAL_SPLITS,
     SPLITS,
     largest_remainder_allocation,
@@ -37,7 +37,10 @@ from common_transfer import (  # noqa: E402
     utc_now,
     write_json,
 )
-from materialize_full_pairs_from_splits import metadata_struct, molecule_struct_type  # noqa: E402
+from pipeline.normalize.materialize_full_pairs_from_splits import (  # noqa: E402
+    metadata_struct,
+    molecule_struct_type,
+)
 
 
 DEFAULT_BASE_INPUT = "datasets/base/Oral_bioavailability_cleaned_v2_condition_key"

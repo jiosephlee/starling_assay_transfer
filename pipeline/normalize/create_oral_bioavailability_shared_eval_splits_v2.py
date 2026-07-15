@@ -34,11 +34,11 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.dataset as ds
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-import create_oral_bioavailability_shared_eval_splits as v1  # noqa: E402
+import pipeline.normalize.create_oral_bioavailability_shared_eval_splits as v1  # noqa: E402
 
 # Aliases so the copied support-accounting logic runs unchanged against v1.
 pair_key = v1.pair_key

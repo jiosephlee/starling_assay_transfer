@@ -30,11 +30,11 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from task_specs import available, get_task  # noqa: E402
+from pipeline.taskspecs import available, get_task  # noqa: E402
 
 DEFAULT_ID_SMILES_MAP = "datasets/starling_assays/final_smiles_mapping_v2.parquet"
 

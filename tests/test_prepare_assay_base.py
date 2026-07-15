@@ -4,12 +4,14 @@ from pathlib import Path
 import sys
 import unittest
 
-_SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
-if str(_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS))
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_SCRIPTS = _REPO_ROOT / "scripts"
+for _p in (_REPO_ROOT, _SCRIPTS):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 from prepare_assay_base import _prepare_record  # noqa: E402
-from task_specs import get_task  # noqa: E402
+from pipeline.taskspecs import get_task  # noqa: E402
 
 
 class PrepareDerivedSpeciesTest(unittest.TestCase):
