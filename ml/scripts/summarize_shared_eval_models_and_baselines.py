@@ -45,13 +45,6 @@ def build_lanes(run_tag: str) -> tuple[Lane, ...]:
             run_root=Path(f"ml/artifacts/runs/shared_eval_{run_tag}"),
             split_suffix="shared_eval_full",
         ),
-        Lane(
-            key="no_source_value",
-            label="unidirectional/no_source_value",
-            run_prefix="nosv",
-            run_root=Path(f"ml/artifacts/runs/shared_eval_no_source_value_{run_tag}"),
-            split_suffix="shared_eval_unidirectional_full",
-        ),
     )
 
 UNIVERSES = (
@@ -206,10 +199,6 @@ def parse_eval_dicts(log_path: Path) -> list[dict[str, float]]:
     return out
 
 
-def log_completed(log_path: Path) -> bool:
-    return "[done] training complete" in log_path.read_text(errors="ignore")
-
-
 def find_log(lane: Lane, universe: Universe, final_suffix: str) -> Path:
     matches = sorted(
         lane.run_root.glob(f"final_{lane.run_prefix}_{universe.key}_*_ga1_{final_suffix}.log")
@@ -221,8 +210,6 @@ def find_log(lane: Lane, universe: Universe, final_suffix: str) -> Path:
 
 def metrics_csv_path(lane: Lane, universe: Universe, log_path: Path) -> Path:
     dataset = f"shared_eval_{universe.key}"
-    if lane.key == "no_source_value":
-        dataset = f"{dataset}_no_source_value"
     return OUT_DIR / dataset / "runs" / log_path.with_suffix("").name / "metrics.csv"
 
 
@@ -281,8 +268,6 @@ def model_row(
         accuracy, accuracy_step = best_subset_average(metrics_path, "accuracy", eval_subsets)
         precision, precision_step = best_subset_average(metrics_path, "transfer_precision", eval_subsets)
     notes = note
-    if lane.key == "no_source_value" and universe.key == "condition_key" and not log_completed(log_path):
-        notes = f"{notes}; killed/incomplete run; best-so-far from log".strip("; ")
     return {
         "lane": lane.key,
         "lane_label": lane.label,

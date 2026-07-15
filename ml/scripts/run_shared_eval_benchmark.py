@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """Run shared-eval MLP precompute, HP sweeps, final training, and HF upload.
 
-The benchmark has two lanes:
-
-    source_value:    bidirectional train, source value enabled, GPUs 4-7
-    no_source_value: unidirectional train, source value disabled, GPUs 0-3
-
-Sweep jobs are single-GPU with gradient accumulation 4. Final jobs use 4 GPUs
-with gradient accumulation 1 so the effective global batch is comparable.
+Single lane: source_value (the retrieval value y_A is always a model input; the
+no-source-value variant and the KNN validation callbacks are removed). Sweep jobs are
+single-GPU with gradient accumulation 4; final jobs use 4 GPUs with gradient accumulation
+1 so the effective global batch is comparable.
 """
 from __future__ import annotations
 
@@ -33,14 +30,6 @@ from starling_ml import benchmark_spec as spec  # noqa: E402
 LRS = spec.LEARNING_RATES
 EFFECTIVE_BATCH_SIZES = spec.EFFECTIVE_BATCH_SIZES
 BASE_RESULTS_ROOT = Path("ml/results")
-RECORD_KNN_DATASET_DIR = "datasets/starling_eval/condition_key_v3_record_splits_hf"
-RECORD_KNN_DATASET_CONFIG = "full_metadata"
-RECORD_KNN_CACHE_DIR = "ml/artifacts/record_knn_eval_cache/condition_key_v3_record_splits_hf"
-RECORD_KNN_EVAL_SPLITS = ("validation_1",)
-RECORD_KNN_FINAL_SPLITS = ("validation_1", "validation_2")
-RECORD_KNN_TOP_FRACTION = "0.10"
-RECORD_KNN_K = "10"
-RECORD_KNN_MAX_QUERIES = "0"
 
 
 @dataclass(frozen=True)
@@ -49,14 +38,12 @@ class Universe:
     config: str
     final_port: int
     source_repo_id: str
-    no_source_repo_id: str
 
 
 @dataclass(frozen=True)
 class Lane:
     key: str
     run_prefix: str
-    use_source_value: bool
     sweep_gpus: tuple[str, str, str]
     final_gpus: str
     sweep_root: Path
@@ -81,21 +68,18 @@ UNIVERSES = (
         config="ml/configs/shared_eval_condition_key.yaml",
         final_port=29640,
         source_repo_id="jiosephlee/starling-transfer-shared-eval-condition-key-source-value",
-        no_source_repo_id="jiosephlee/starling-transfer-shared-eval-condition-key-no-source-value",
     ),
     Universe(
         key="same_species_v2",
         config="ml/configs/shared_eval_same_species_v2.yaml",
         final_port=29641,
         source_repo_id="jiosephlee/starling-transfer-shared-eval-same-species-v2-source-value",
-        no_source_repo_id="jiosephlee/starling-transfer-shared-eval-same-species-v2-no-source-value",
     ),
     Universe(
         key="no_constraints",
         config="ml/configs/shared_eval_no_constraints.yaml",
         final_port=29642,
         source_repo_id="jiosephlee/starling-transfer-shared-eval-no-constraints-source-value",
-        no_source_repo_id="jiosephlee/starling-transfer-shared-eval-no-constraints-no-source-value",
     ),
 )
 
@@ -145,14 +129,11 @@ def build_lanes(
     split_version: str = "v3",
 ) -> tuple[Lane, ...]:
     source_sweep_gpus = _gpu_tuple(sweep_gpus, ("4", "5", "6"))
-    nosv_sweep_gpus = _gpu_tuple(sweep_gpus, ("0", "1", "2"))
     source_final_gpus = ",".join(_gpu_tuple(final_gpus, ("4", "5", "6", "7")))
-    nosv_final_gpus = ",".join(_gpu_tuple(final_gpus, ("0", "1", "2", "3")))
     return (
         Lane(
             key="source_value",
             run_prefix="srcval",
-            use_source_value=True,
             sweep_gpus=source_sweep_gpus,
             final_gpus=source_final_gpus,
             sweep_root=Path(f"ml/artifacts/hp_sweeps/shared_eval_{run_tag}"),
@@ -160,19 +141,6 @@ def build_lanes(
             results_root=Path(f"ml/results/shared_eval_{run_tag}"),
             final_group=f"shared_eval_final_source_value_{run_tag}",
             split_version=split_version,
-        ),
-        Lane(
-            key="no_source_value",
-            run_prefix="nosv",
-            use_source_value=False,
-            sweep_gpus=nosv_sweep_gpus,
-            final_gpus=nosv_final_gpus,
-            sweep_root=Path(f"ml/artifacts/hp_sweeps/shared_eval_no_source_value_{run_tag}"),
-            final_root=Path(f"ml/artifacts/runs/shared_eval_no_source_value_{run_tag}"),
-            results_root=Path(f"ml/results/shared_eval_no_source_value_{run_tag}"),
-            final_group=f"shared_eval_final_no_source_value_{run_tag}",
-            split_version=split_version,
-            final_port_offset=-100,
         ),
     )
 
@@ -232,61 +200,43 @@ def selected_universes(name: str) -> tuple[Universe, ...]:
 
 def lane_dataset(lane: Lane, universe: Universe) -> str:
     suffix = "" if lane.split_version == "v3" else f"_{lane.split_version}"
-    if lane.use_source_value:
-        return f"shared_eval_{universe.key}{suffix}"
-    return f"shared_eval_{universe.key}_no_source_value{suffix}"
+    return f"shared_eval_{universe.key}{suffix}"
 
 
 def lane_memmap_dir(lane: Lane, universe: Universe) -> str:
-    if lane.use_source_value:
-        if lane.split_version == "v3_v2":
-            return {
-                "condition_key": "ml/artifacts/memmap_shared_eval_condition_key_source_value_v3_v2",
-                "same_species_v2": "ml/artifacts/memmap_shared_eval_same_species_v2_source_value_v3_v2",
-                "no_constraints": "ml/artifacts/memmap_shared_eval_no_constraints_source_value_v3_v2",
-            }[universe.key]
-        return {
-            "condition_key": "ml/artifacts/memmap_shared_eval_condition_key_source_value",
-            "same_species_v2": "ml/artifacts/memmap_shared_eval_same_species_source_value",
-            "no_constraints": "ml/artifacts/memmap_shared_eval_no_constraints_source_value",
-        }[universe.key]
     if lane.split_version == "v3_v2":
-        return f"ml/artifacts/memmap_shared_eval_{universe.key}_no_source_value_v3_v2"
-    return f"ml/artifacts/memmap_shared_eval_{universe.key}_no_source_value"
+        return {
+            "condition_key": "ml/artifacts/memmap_shared_eval_condition_key_source_value_v3_v2",
+            "same_species_v2": "ml/artifacts/memmap_shared_eval_same_species_v2_source_value_v3_v2",
+            "no_constraints": "ml/artifacts/memmap_shared_eval_no_constraints_source_value_v3_v2",
+        }[universe.key]
+    return {
+        "condition_key": "ml/artifacts/memmap_shared_eval_condition_key_source_value",
+        "same_species_v2": "ml/artifacts/memmap_shared_eval_same_species_source_value",
+        "no_constraints": "ml/artifacts/memmap_shared_eval_no_constraints_source_value",
+    }[universe.key]
 
 
 def lane_splits_dir(lane: Lane, universe: Universe) -> str:
-    if lane.use_source_value:
-        if lane.split_version == "v3_v2":
-            return {
-                "condition_key": "datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2",
-                "same_species_v2": "datasets/pairs_split_full/oral_bioavailability_same_species_v2_shared_eval_full_v3_v2",
-                "no_constraints": "datasets/pairs_split_full/oral_bioavailability_no_constraints_shared_eval_full_v3_v2",
-            }[universe.key]
-        return {
-            "condition_key": "datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3",
-            "same_species_v2": "datasets/pairs_split_full/oral_bioavailability_same_species_v2_shared_eval_full_v3",
-            "no_constraints": "datasets/pairs_split_full/oral_bioavailability_no_constraints_shared_eval_full_v3",
-        }[universe.key]
     if lane.split_version == "v3_v2":
-        return (
-            "datasets/pairs_split_full/"
-            f"oral_bioavailability_{universe.key}_shared_eval_unidirectional_full_v3_v2"
-        )
-    return (
-        "datasets/pairs_split_full/"
-        f"oral_bioavailability_{universe.key}_shared_eval_unidirectional_full_v3"
-    )
+        return {
+            "condition_key": "datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3_v2",
+            "same_species_v2": "datasets/pairs_split_full/oral_bioavailability_same_species_v2_shared_eval_full_v3_v2",
+            "no_constraints": "datasets/pairs_split_full/oral_bioavailability_no_constraints_shared_eval_full_v3_v2",
+        }[universe.key]
+    return {
+        "condition_key": "datasets/pairs_split_full/oral_bioavailability_condition_key_shared_eval_full_v3",
+        "same_species_v2": "datasets/pairs_split_full/oral_bioavailability_same_species_v2_shared_eval_full_v3",
+        "no_constraints": "datasets/pairs_split_full/oral_bioavailability_no_constraints_shared_eval_full_v3",
+    }[universe.key]
 
 
 def lane_overrides(lane: Lane, universe: Universe) -> list[str]:
-    overrides = [
+    return [
         f"paths.dataset={lane_dataset(lane, universe)}",
         f"paths.memmap_dir={lane_memmap_dir(lane, universe)}",
         f"paths.splits_dir={lane_splits_dir(lane, universe)}",
-        f"model.use_source_value={'true' if lane.use_source_value else 'false'}",
     ]
-    return overrides
 
 
 def train_cmd(
@@ -762,7 +712,7 @@ def read_winners(lane: Lane) -> list[dict[str, str]]:
 
 
 def repo_id_for(lane: Lane, universe: Universe) -> str:
-    return universe.source_repo_id if lane.use_source_value else universe.no_source_repo_id
+    return universe.source_repo_id
 
 
 def run_upload(
@@ -813,7 +763,6 @@ def run_final(
     n_devices = len([gpu for gpu in lane.final_gpus.split(",") if gpu.strip()])
     env = final_env(lane)
     overrides = final_overrides(lane, universe, winner, preset, run_name, output_dir, n_devices)
-    prebuild_record_knn_caches(python, universe.config, lane.final_root / f"{run_name}_record_knn_cache.log")
     train = train_cmd(python, universe.config, overrides, rebuild_memmap=rebuild_memmap)
     cmd = final_distributed_cmd(python, train, n_devices, universe.final_port + lane.final_port_offset)
     code = run_logged(cmd, log_path, env)
@@ -896,25 +845,6 @@ def final_training_overrides(steps_per_epoch: int) -> list[str]:
         f"train.best_metric={spec.HP_SELECT_METRIC}",
         "train.report_to=wandb",
         f"train.wandb_project={spec.FULL_RUN_PROJECT}",
-        "train.tdc_eval_enabled=false",
-        *record_knn_training_overrides(),
-    ]
-
-
-def record_knn_training_overrides() -> list[str]:
-    return [
-        "train.record_knn_eval_enabled=true",
-        f"train.record_knn_eval_dataset_dir={RECORD_KNN_DATASET_DIR}",
-        f"train.record_knn_eval_dataset_config={RECORD_KNN_DATASET_CONFIG}",
-        'train.record_knn_eval_splits=["validation_1"]',
-        'train.record_knn_final_splits=["validation_1","validation_2"]',
-        f"train.record_knn_eval_cache_dir={RECORD_KNN_CACHE_DIR}",
-        "train.record_knn_eval_steps=500",
-        "train.record_knn_eval_extra_steps=[250]",
-        f"train.record_knn_eval_top_fraction={RECORD_KNN_TOP_FRACTION}",
-        f"train.record_knn_eval_k={RECORD_KNN_K}",
-        "train.record_knn_eval_batch_size=4096",
-        f"train.record_knn_eval_max_queries={RECORD_KNN_MAX_QUERIES}",
     ]
 
 
@@ -926,41 +856,6 @@ def final_distributed_cmd(python: str, train: list[str], n_devices: int, port: i
         f"--nproc_per_node={n_devices}",
         f"--master_port={port}",
         *train[1:],
-    ]
-
-
-def prebuild_record_knn_caches(python: str, config: str, log_path: Path) -> None:
-    for split in record_knn_prebuild_splits():
-        split_log = log_path.with_name(f"{log_path.stem}_{split}{log_path.suffix}")
-        code = run_logged(record_knn_cache_cmd(python, config, split), split_log, env_with_pythonpath())
-        if code != 0:
-            raise SystemExit(f"record KNN cache prebuild failed for {split}; see {split_log}")
-
-
-def record_knn_prebuild_splits() -> tuple[str, ...]:
-    return tuple(dict.fromkeys((*RECORD_KNN_EVAL_SPLITS, *RECORD_KNN_FINAL_SPLITS)))
-
-
-def record_knn_cache_cmd(python: str, config: str, split: str) -> list[str]:
-    return [
-        python,
-        "-m",
-        "starling_ml.record_knn_eval",
-        "--config",
-        config,
-        "--cache-only",
-        "--split",
-        split,
-        "--dataset-dir",
-        RECORD_KNN_DATASET_DIR,
-        "--dataset-config",
-        RECORD_KNN_DATASET_CONFIG,
-        "--cache-dir",
-        RECORD_KNN_CACHE_DIR,
-        "--top-fraction",
-        RECORD_KNN_TOP_FRACTION,
-        "--max-queries",
-        RECORD_KNN_MAX_QUERIES,
     ]
 
 
@@ -1061,8 +956,8 @@ def benchmark_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--lane",
-        choices=("both", "source_value", "no_source_value"),
-        default="both",
+        choices=("both", "source_value"),
+        default="source_value",
     )
     parser.add_argument(
         "--universe",
