@@ -24,12 +24,14 @@ from transformers import Trainer, TrainerCallback, TrainingArguments
 
 from . import benchmark_spec
 from .config import Config
-from .data import PairDataset, build_split_memmap, collate_pairs
-from .metrics import binary_metrics, simple_transfer_metrics
+from .data import DEFAULT_METADATA_FIELDS, PairDataset, build_split_memmap, collate_pairs
+from .metrics import binary_metrics, regression_metrics, simple_transfer_metrics
 from .model import build_model
 
 
 def _metric_fn(metric_set: str):
+    if metric_set == "distance":
+        return regression_metrics  # v2 primary: predicted vs target D_expected
     if metric_set == "simple_transfer":
         return simple_transfer_metrics
     if metric_set == "binary":
@@ -288,19 +290,25 @@ def _memmap_ready_marker(cfg: Config, train_split: str, eval_split: str) -> str:
     )
 
 
+def _load_index_maps(cfg: Config) -> tuple[dict, dict]:
+    """SMILES-> and metadata-> row maps written by precompute_embeddings.build_v2_tables."""
+    with open(os.path.join(cfg.paths.embeddings_dir, "smiles_index.json")) as fh:
+        smiles_to_row = json.load(fh)
+    with open(os.path.join(cfg.paths.embeddings_dir, "meta_index.json")) as fh:
+        meta_to_row = json.load(fh)
+    return smiles_to_row, meta_to_row
+
+
 def _build_split_memmap_for_config(cfg: Config, split: str, rebuild: bool = False) -> dict:
+    smiles_to_row, meta_to_row = _load_index_maps(cfg)
     return build_split_memmap(
-        cfg.paths.splits_dir,
+        cfg.paths.dataset_parquet,
         cfg.paths.memmap_dir,
         split,
-        rebuild,
-        base_parquet=cfg.paths.base_parquet,
-        use_source_value=cfg.model.use_source_value,
-        source_value_scale=cfg.model.source_value_scale,
-        store_eval_subset=bool(cfg.train.eval_subset_metrics and split != "train"),
-        eval_subset_names=tuple(cfg.train.eval_subset_names),
-        store_similarity_bucket=bool(cfg.train.eval_similarity_bucket_metrics and split != "train"),
-        similarity_bucket_names=tuple(cfg.train.eval_similarity_bucket_names),
+        smiles_to_row,
+        meta_to_row,
+        metadata_fields=DEFAULT_METADATA_FIELDS,
+        rebuild=rebuild,
     )
 
 
@@ -375,7 +383,7 @@ def parse_train_args() -> argparse.Namespace:
 def setup_training_config(args: argparse.Namespace) -> Config:
     cfg = Config.from_yaml(args.config).apply_overrides(args.overrides)
     tc = cfg.train
-    if tc.metric_set not in {"binary", "simple_transfer"}:
+    if tc.metric_set not in {"binary", "simple_transfer", "distance"}:
         raise ValueError(f"unknown train.metric_set={tc.metric_set!r}")
 
     if tc.report_to == "wandb":
@@ -467,7 +475,9 @@ def build_training_args(cfg: Config) -> TrainingArguments:
         report_to=hf_report_to,
         run_name=(tc.run_name or None),
         remove_unused_columns=False,  # our inputs are not model-signature columns
-        label_names=["labels"],
+        # v2 primary target is the continuous distance; binary "labels" stay a model input
+        # for the masked auxiliary head.
+        label_names=(["distance"] if cfg.train.metric_set == "distance" else ["labels"]),
         load_best_model_at_end=False,
     )
 

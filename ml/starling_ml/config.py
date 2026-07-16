@@ -28,6 +28,9 @@ class PathsConfig:
     # Short dataset label used to namespace ml/results/<dataset>/{runs,plots,tables}.
     dataset: str = "same_species_v2"
     base_parquet: str = "datasets/base/Oral_bioavailability_cleaned_v2/train.parquet"
+    # v2 materialized transfer-example artifact (parquet/<build>/<profile>/dataset.parquet)
+    # consumed by data.build_split_memmap and precompute_embeddings.build_v2_tables.
+    dataset_parquet: str = "datasets/parquet/tier1_fa_fg_fh_v2/same_endpoint/dataset.parquet"
     splits_dir: str = "datasets/pairs_split_full/oral_bioavailability_pair_splits_same_species_v2_full"
     embeddings_dir: str = "ml/artifacts/embeddings_same_species_v2"
     memmap_dir: str = "ml/artifacts/memmap_same_species_v2"
@@ -125,9 +128,9 @@ class TrainConfig:
     # Mirror full-val metrics to the wandb `val/*` section. Disable for HP sweeps so they only
     # populate the default `eval` section, keeping `val/*` reserved for the final full run.
     wandb_val_mirror: bool = True
-    # "binary" keeps the historical broad metric set; "simple_transfer" reports only the
-    # compact benchmark metrics.
-    metric_set: str = "binary"
+    # "distance" is the v2 primary (regression on D_expected); "binary"/"simple_transfer"
+    # keep the legacy binary metric sets.
+    metric_set: str = "distance"
     # When enabled, validation memmaps retain eval_subset and final evaluation includes
     # no_overlap, a_seen_only, and both_seen slices.
     eval_subset_metrics: bool = False
@@ -150,7 +153,7 @@ class TrainConfig:
     # whitelisted validation metric keys.
     wandb_simple_validation_only: bool = False
     # Metric key from Trainer evaluation metrics used for the rolling best checkpoint.
-    best_metric: str = "eval_val_macro_f1"
+    best_metric: str = "eval_val_spearman"  # v2: rank corr of predicted vs target distance (higher better)
 
 
 @dataclass
