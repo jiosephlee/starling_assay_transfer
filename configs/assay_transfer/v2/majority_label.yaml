@@ -1,0 +1,19 @@
+version: majority_label_v1
+status: provisional
+# Strict-majority binary target over ALL eligible comparable records
+# (assay_transfer_design_v2.md 10.3). Opposing and ambiguous votes both count against a
+# side obtaining a majority; ties and no-majority distributions receive no binary label.
+#
+#   N             = n_transfer + n_nontransfer + n_ambiguous
+#   binary_label  = 1     if n_transfer    > N / 2
+#   binary_label  = 0     if n_nontransfer > N / 2
+#   binary_label  = null  otherwise
+rule: strict_majority_over_all_eligible
+majority_threshold: half            # strictly greater than N/2
+ambiguous_counts_in_denominator: true
+retrieval_anchored: true            # label may differ per retrieval record / y_A
+
+minimum_evidence:
+  min_eligible_records: 1           # records in R_B(K_A) required to form a candidate
+  # Training keeps candidates with a defined continuous target even when binary is null;
+  # validation/test additionally require a non-null binary label (see sampling.yaml).

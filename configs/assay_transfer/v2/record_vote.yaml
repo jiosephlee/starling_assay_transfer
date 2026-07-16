@@ -1,0 +1,17 @@
+version: record_vote_v1
+status: provisional
+# Three-state record vote (assay_transfer_design_v2.md 10.2). Each comparable query
+# record r_B casts one vote by the distance d_j = d_m(y_A, y_Bj) on the canonical metric
+# scale. Thresholds are attached to the metric type and never vary by source, assay
+# concept, condition-key profile, Tanimoto bucket, or realized K.
+threshold_source: configs/assay_transfer/v1/metric_thresholds.yaml
+threshold_lookup_key: metric_type
+
+vote_states:
+  transfer: distance_lte_transfer_max
+  not_transfer: distance_gte_not_transfer_min
+  ambiguous: strictly_between   # counts in the denominator N; never discarded
+
+boundaries:
+  transfer_boundary: inclusive
+  not_transfer_boundary: inclusive

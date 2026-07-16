@@ -27,6 +27,7 @@ from typing import Any, Optional
 import yaml
 
 _CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs" / "assay_transfer" / "v1"
+_V2_CONFIG_ROOT = Path(__file__).resolve().parents[1] / "configs" / "assay_transfer" / "v2"
 
 LabelResult = Optional[str]  # "transfer" | "not_transfer" | None (deadband / drop)
 
@@ -142,3 +143,119 @@ def load_metric_policy(config_root: Optional[str] = None) -> MetricPolicy:
 def load_condition_key_policy(config_root: Optional[str] = None) -> ConditionKeyPolicy:
     root = Path(config_root) if config_root else _CONFIG_ROOT
     return ConditionKeyPolicy(_load_yaml(root / "condition_keys.yaml"))
+
+
+# --------------------------------------------------------------------------------------
+# Version 2 policies (assay_transfer_design_v2.md). Condition keys / metric thresholds are
+# reused from v1; these add the v2 target, sampling, and fingerprint contracts.
+# --------------------------------------------------------------------------------------
+
+
+class AssayConceptPolicy:
+    """``assay_concept.yaml`` — source_id -> coarse sampling concept (section 5)."""
+
+    def __init__(self, config: dict[str, Any]):
+        self.version: str = config.get("version", "")
+        self.concepts: list[str] = list(config.get("concepts", []))
+        self._map: dict[str, str] = dict(config.get("source_to_concept", {}) or {})
+
+    def concept_for(self, source_id: str) -> Optional[str]:
+        return self._map.get(source_id)
+
+
+class FingerprintPolicy:
+    """``fingerprint.yaml`` — Morgan fingerprint + weighted-similarity parameters (9.3)."""
+
+    def __init__(self, config: dict[str, Any]):
+        self.version: str = config.get("version", "")
+        self.radius: int = int(config.get("radius", 2))
+        self.n_bits: int = int(config.get("n_bits", 2048))
+        sim = config.get("similarity", {}) or {}
+        self.morgan_weight: float = float(sim.get("morgan_weight", 0.8))
+        self.feature_weight: float = float(sim.get("feature_weight", 0.2))
+
+
+class TanimotoBucketPolicy:
+    """``tanimoto_bucket.yaml`` — low/high bucket by a similarity boundary (9.3)."""
+
+    def __init__(self, config: dict[str, Any]):
+        self.version: str = config.get("version", "")
+        self.boundary: float = float(config.get("boundary", 0.4))
+
+    def bucket_for(self, similarity: Optional[float]) -> Optional[str]:
+        if similarity is None:
+            return None
+        return "high" if similarity >= self.boundary else "low"
+
+
+class MajorityPolicy:
+    """``majority_label.yaml`` — strict-majority nullable binary + min-evidence (10.3)."""
+
+    def __init__(self, config: dict[str, Any]):
+        self.version: str = config.get("version", "")
+        self.min_eligible_records: int = int(
+            (config.get("minimum_evidence", {}) or {}).get("min_eligible_records", 1)
+        )
+
+    def majority_label(self, n_transfer: int, n_nontransfer: int, n_total: int) -> Optional[int]:
+        """1 / 0 / None under a strict majority of all eligible records."""
+        if n_total <= 0:
+            return None
+        if n_transfer * 2 > n_total:
+            return 1
+        if n_nontransfer * 2 > n_total:
+            return 0
+        return None
+
+
+class SamplingPolicy:
+    """``sampling.yaml`` — strata, quotas, degree control, and expansion prefixes (12, 13)."""
+
+    def __init__(self, config: dict[str, Any]):
+        self.version: str = config.get("version", "")
+        self.strata_axes: list[str] = list((config.get("strata", {}) or {}).get("axes", []))
+        quotas = config.get("quotas", {}) or {}
+        self.quotas: dict[str, int] = {k: int(v) for k, v in quotas.items()}
+        self.allocation: str = (config.get("allocation", {}) or {}).get("policy", "equal")
+        self.train_prefixes: list[int] = [int(x) for x in config.get("train_prefixes", [])]
+        dc = config.get("degree_control", {}) or {}
+        self.round_robin_over: list[str] = list(dc.get("round_robin_over", []))
+        self.max_per_query_molecule: int = int(dc.get("max_per_query_molecule", 0))
+        self.max_per_retrieval_molecule: int = int(dc.get("max_per_retrieval_molecule", 0))
+        self.max_per_retrieval_record: int = int(dc.get("max_per_retrieval_record", 0))
+        self.tie_break: str = dc.get("tie_break", "candidate_id_ascending")
+        sel = config.get("selection", {}) or {}
+        self.seed: int = int(sel.get("seed", 17))
+        self.enumeration_cap: int = int(
+            (config.get("enumeration", {}) or {}).get("max_queries_per_retrieval_record", 0)
+        )
+
+
+@lru_cache(maxsize=None)
+def load_assay_concepts(config_root: Optional[str] = None) -> AssayConceptPolicy:
+    root = Path(config_root) if config_root else _V2_CONFIG_ROOT
+    return AssayConceptPolicy(_load_yaml(root / "assay_concept.yaml"))
+
+
+@lru_cache(maxsize=None)
+def load_fingerprint_policy(config_root: Optional[str] = None) -> FingerprintPolicy:
+    root = Path(config_root) if config_root else _V2_CONFIG_ROOT
+    return FingerprintPolicy(_load_yaml(root / "fingerprint.yaml"))
+
+
+@lru_cache(maxsize=None)
+def load_tanimoto_policy(config_root: Optional[str] = None) -> TanimotoBucketPolicy:
+    root = Path(config_root) if config_root else _V2_CONFIG_ROOT
+    return TanimotoBucketPolicy(_load_yaml(root / "tanimoto_bucket.yaml"))
+
+
+@lru_cache(maxsize=None)
+def load_majority_policy(config_root: Optional[str] = None) -> MajorityPolicy:
+    root = Path(config_root) if config_root else _V2_CONFIG_ROOT
+    return MajorityPolicy(_load_yaml(root / "majority_label.yaml"))
+
+
+@lru_cache(maxsize=None)
+def load_sampling_policy(config_root: Optional[str] = None) -> SamplingPolicy:
+    root = Path(config_root) if config_root else _V2_CONFIG_ROOT
+    return SamplingPolicy(_load_yaml(root / "sampling.yaml"))

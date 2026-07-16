@@ -1,0 +1,18 @@
+version: assay_concept_v1
+status: provisional
+# Coarse assay concept per source, used as a sampling / reporting stratum only
+# (assay_transfer_design_v2.md 5). A concept is NOT an eligibility key: records may only
+# compare within the same canonical endpoint even when two endpoints share a concept.
+concepts:
+  - oral_bioavailability
+  - Fa
+  - Fg
+  - Fh
+
+# source_id -> assay concept.
+source_to_concept:
+  q1: oral_bioavailability
+  starling: oral_bioavailability
+  q2: Fa
+  q3: Fg
+  q4: Fh

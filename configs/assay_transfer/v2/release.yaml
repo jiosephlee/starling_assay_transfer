@@ -1,0 +1,59 @@
+release_version: assay_transfer_v2
+status: design_scaffold
+architecture_document: docs/assay_transfer_design_v2.md
+
+# v2 reuses the v1 endpoint / metric-threshold / species / condition-key contracts
+# unchanged (the condition-key work is revised on a separate track) and adds the v2
+# target, sampling, and fingerprint policies.
+configs:
+  endpoints: configs/assay_transfer/v1/endpoints.yaml
+  metric_thresholds: configs/assay_transfer/v1/metric_thresholds.yaml
+  species: configs/assay_transfer/v1/species.yaml
+  condition_keys: configs/assay_transfer/v1/condition_keys.yaml
+  record_vote: configs/assay_transfer/v2/record_vote.yaml
+  majority_label: configs/assay_transfer/v2/majority_label.yaml
+  continuous_target: configs/assay_transfer/v2/continuous_target.yaml
+  fingerprint: configs/assay_transfer/v2/fingerprint.yaml
+  tanimoto_bucket: configs/assay_transfer/v2/tanimoto_bucket.yaml
+  assay_concept: configs/assay_transfer/v2/assay_concept.yaml
+  sampling: configs/assay_transfer/v2/sampling.yaml
+
+invariants:
+  global_molecule_split: true
+  within_split_examples_only: true
+  directed_retrieval_anchored_examples: true
+  one_query_molecule_per_evidence_distribution: true
+  equal_record_contributions: true
+  strict_majority_binary_label: true
+  continuous_mean_distance_primary: true
+  binary_only_fixed_eval_sets: true
+  sampling_strata: assay_concept_x_tanimoto
+  knn_influences_training: false
+  query_metadata_available_at_inference: false
+
+# assay_transfer_design_v2.md 18 version axes bound by a released build.
+version_axes:
+  - dataset_snapshot_version
+  - assay_transfer_release_version
+  - molecule_canonicalization_version
+  - split_version
+  - endpoint_ontology_version
+  - endpoint_assignment_version
+  - value_parser_version
+  - species_normalization_version
+  - condition_key_version
+  - metric_threshold_policy_version
+  - record_vote_policy_version
+  - majority_label_policy_version
+  - continuous_target_version
+  - fingerprint_version
+  - tanimoto_bucket_version
+  - sampling_strata_version
+  - degree_control_version
+  - sampling_version
+  - model_input_contract_version
+  - evaluation_protocol_version
+  - artifact_schema_version
+
+implementation:
+  consumed_by_pipeline: false

@@ -1,0 +1,16 @@
+version: continuous_target_v1
+status: provisional
+# Primary continuous target (assay_transfer_design_v2.md 10.4): the arithmetic mean of the
+# individual retrieval-to-query-record distances, NOT the distance to an average query
+# value. Every eligible record with a defined scalar distance contributes one equal
+# observation, including records whose binary vote is ambiguous. Context-cell macro
+# averaging is removed (10.5).
+primary: mean_record_distance          # D_expected = (1/N) * sum_j d_j
+requires_defined_scalar_distance: true
+
+# Stored as diagnostics / future ablations only; they do not replace the mean target.
+dispersion_diagnostics:
+  - std
+  - median
+  - q90
+  - max

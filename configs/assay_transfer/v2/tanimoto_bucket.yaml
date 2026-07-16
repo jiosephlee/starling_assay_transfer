@@ -1,0 +1,10 @@
+version: tanimoto_bucket_v1
+status: provisional
+# Low/high Tanimoto bucket for each candidate (assay_transfer_design_v2.md 9.3). The
+# similarity is computed by fingerprint.yaml between the canonical retrieval and query
+# structures. Sampling / reporting stratum only.
+fingerprint_source: configs/assay_transfer/v2/fingerprint.yaml
+boundary: 0.4                 # similarity < boundary -> low ; >= boundary -> high
+buckets:
+  low: similarity_lt_boundary
+  high: similarity_gte_boundary

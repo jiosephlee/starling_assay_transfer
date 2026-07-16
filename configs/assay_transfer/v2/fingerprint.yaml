@@ -1,0 +1,19 @@
+version: fingerprint_v1
+status: provisional
+# Fingerprint + similarity policy for the Tanimoto sampling stratum
+# (assay_transfer_design_v2.md 9.3). Matches pipeline/normalize/common_transfer.py
+# FingerprintCache. Tanimoto affects sampling only, never eligibility.
+implementation: rdkit_morgan_generator
+molecule_representation: rdkit_canonical_isomeric_smiles
+radius: 2
+n_bits: 2048
+include_ring_membership: true
+
+# Similarity = weighted blend of a Morgan and a Morgan-feature fingerprint.
+similarity:
+  kind: weighted_morgan_feature
+  morgan_weight: 0.8
+  feature_weight: 0.2
+
+invalid_structure:
+  behavior: null_similarity   # unparseable structures -> no Tanimoto -> excluded from bucketing

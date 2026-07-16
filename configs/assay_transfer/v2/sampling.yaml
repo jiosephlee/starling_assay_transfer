@@ -1,0 +1,43 @@
+version: sampling_v1
+status: provisional
+# Sampling strata, fixed sizes, and degree control (assay_transfer_design_v2.md 12).
+# The only primary selection strata are assay_concept x Tanimoto bucket (8 strata).
+# Endpoint, source, condition-key profile, label, and evidence counts are reported but
+# do not create additional strata.
+strata:
+  axes: [assay_concept, tanimoto_bucket]
+  assay_concept_source: configs/assay_transfer/v2/assay_concept.yaml
+  tanimoto_bucket_source: configs/assay_transfer/v2/tanimoto_bucket.yaml
+
+quotas:
+  train: 200000        # requires a valid continuous target; binary label optional
+  validation: 2000     # requires a non-null hard binary label
+  test: 2000           # requires a non-null hard binary label
+
+allocation:
+  policy: equal        # equal per-stratum share of each quota; underfill reported, never
+                       # backfilled by weakening eligibility/split/label rules
+  underfill: report
+
+# 13.3 expandable nested prefixes; expansion advances a per-stratum cursor without
+# recomputing validation/test or moving molecules between splits.
+train_prefixes: [200000, 400000, 800000]
+
+degree_control:
+  # Deterministic round-robin / caps so a high-degree molecule or record cannot dominate.
+  round_robin_over: [primary_stratum, query_molecule, retrieval_molecule, retrieval_record]
+  max_per_query_molecule: 0        # 0 = unlimited (cap enforced only by round-robin order)
+  max_per_retrieval_molecule: 0
+  max_per_retrieval_record: 0
+  exhaustion: skip_and_continue
+  tie_break: candidate_id_ascending
+
+selection:
+  seed: 17
+  deterministic_priority: candidate_id_hash
+  reproducible_from_frozen_universe: true
+
+# Optional bound on candidate ENUMERATION (pairs stage) to keep the quadratic universe
+# tractable before selection. 0 = enumerate all eligible candidates.
+enumeration:
+  max_queries_per_retrieval_record: 0

@@ -11,7 +11,15 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from pipeline.policy import load_condition_key_policy, load_metric_policy  # noqa: E402
+from pipeline.policy import (  # noqa: E402
+    load_assay_concepts,
+    load_condition_key_policy,
+    load_fingerprint_policy,
+    load_majority_policy,
+    load_metric_policy,
+    load_sampling_policy,
+    load_tanimoto_policy,
+)
 from pipeline.endpoints import load_endpoint_resolver  # noqa: E402
 from pipeline.normalize import value_canon  # noqa: E402
 
@@ -126,6 +134,47 @@ class EndpointResolverTest(unittest.TestCase):
         a, reason = self.resolver.assign("q4", row)
         self.assertIsNone(a)
         self.assertEqual(reason, "unresolved_value_or_unit")
+
+
+class V2PolicyTest(unittest.TestCase):
+    def test_assay_concepts(self) -> None:
+        c = load_assay_concepts()
+        self.assertEqual(c.concept_for("q2"), "Fa")
+        self.assertEqual(c.concept_for("q4"), "Fh")
+        self.assertEqual(c.concept_for("q1"), "oral_bioavailability")
+        self.assertIsNone(c.concept_for("unknown_source"))
+
+    def test_tanimoto_bucket(self) -> None:
+        t = load_tanimoto_policy()
+        self.assertEqual(t.bucket_for(0.9), "high")
+        self.assertEqual(t.bucket_for(t.boundary), "high")  # boundary is inclusive high
+        self.assertEqual(t.bucket_for(0.1), "low")
+        self.assertIsNone(t.bucket_for(None))
+
+    def test_fingerprint_policy(self) -> None:
+        f = load_fingerprint_policy()
+        self.assertEqual(f.radius, 2)
+        self.assertEqual(f.n_bits, 2048)
+        self.assertAlmostEqual(f.morgan_weight + f.feature_weight, 1.0)
+
+    def test_majority_label(self) -> None:
+        m = load_majority_policy()
+        # 4 transfer / 1 non / 0 amb of N=5 -> 4*2 > 5 -> transfer(1).
+        self.assertEqual(m.majority_label(4, 1, 5), 1)
+        self.assertEqual(m.majority_label(1, 4, 5), 0)
+        # 2 transfer / 2 non / 1 ambiguous of N=5 -> no majority -> null.
+        self.assertIsNone(m.majority_label(2, 2, 5))
+        # exactly half is NOT a strict majority.
+        self.assertIsNone(m.majority_label(2, 0, 4))
+        self.assertGreaterEqual(m.min_eligible_records, 1)
+
+    def test_sampling_policy(self) -> None:
+        s = load_sampling_policy()
+        self.assertEqual(s.quotas["train"], 200000)
+        self.assertEqual(s.quotas["validation"], 2000)
+        self.assertEqual(s.quotas["test"], 2000)
+        self.assertEqual(s.strata_axes, ["assay_concept", "tanimoto_bucket"])
+        self.assertIn(200000, s.train_prefixes)
 
 
 if __name__ == "__main__":
