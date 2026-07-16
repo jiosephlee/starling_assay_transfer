@@ -1,0 +1,24 @@
+extends: source_normalization_v2.yaml
+version: source_normalization_v3
+artifact_schema_version: canonical_endpoints_v3
+value_parser_version: scalar_measurement_parser_v2
+output_directory: datasets/base/canonical_endpoints_v3
+report_path: docs/source_normalization_report_v3.md
+
+references:
+  fg_support_reextraction:
+    path: configs/source_normalization/fg_support_text_reextraction_v1.csv
+    format: csv
+    sha256: 58228f818fdff40e8601cf0f099469a49ffda4310b495665c959cf25d3cdccf2
+    size: 136
+    mtime_ns: 1784193453169548939
+    rows: 2
+    expected_columns: [source_id, source_row_number, pmid, extraction_id, measurement_text]
+  identifier_reconciliation:
+    path: configs/source_normalization/fg_identifier_reconciliation_v1.csv
+    format: csv
+    sha256: e59bae5debb8b87bcd44106b3c5342797e7c16e3d2c031d92e3a9263cb25a719
+    size: 5346
+    mtime_ns: 1784193095560877155
+    rows: 37
+    expected_columns: [source_id, source_row_number, pmid, extraction_id, molecule_name, normalized_molecule_name, resolved_global_identifier, resolution_method, evidence_source_rows]

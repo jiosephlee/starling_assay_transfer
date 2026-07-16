@@ -28,6 +28,11 @@ from pipeline.source_normalization.structures import (  # noqa: E402
     compare_exported_smiles,
     tdc_match,
 )
+from pipeline.source_normalization.io import (  # noqa: E402
+    load_config, load_identifier_reconciliations, load_tdc_exclusions,
+)
+from pipeline.source_normalization.fg import split_explicit_fg_measurements  # noqa: E402
+from pipeline.source_normalization.endpoint_keys import assign_canonical_endpoint  # noqa: E402
 from pipeline.source_normalization.text import normalize_lexical, normalize_unit  # noqa: E402
 
 
@@ -51,6 +56,26 @@ class StructureNormalizationTest(unittest.TestCase):
         self.assertTrue(tdc_match("C(C)O", "CCO", exclusions))
         self.assertTrue(tdc_match("NCC", "CCN", exclusions))
         self.assertFalse(tdc_match("CCC", "CCC", exclusions))
+
+    def test_v2_excludes_only_heldout_tdc_splits(self) -> None:
+        config = load_config(REPO_ROOT / "configs/source_normalization_v2.yaml")
+        spec = config["references"]["tdc_exclusion"]
+        path = REPO_ROOT / spec["path"]
+        exclusions, stats = load_tdc_exclusions(path, spec["included_splits"])
+        self.assertEqual(config["artifact_schema_version"], "canonical_endpoints_v2")
+        self.assertEqual(stats["source_rows"], 640)
+        self.assertEqual(stats["rows"], 192)
+        self.assertEqual(stats["splits"], ["test", "valid"])
+        self.assertEqual(len(exclusions), 192)
+
+    def test_v3_identifier_reconciliation_is_explicit_and_excludes_ambiguous_rows(self) -> None:
+        config = load_config(REPO_ROOT / "configs/source_normalization_v3.yaml")
+        spec = config["references"]["identifier_reconciliation"]
+        mappings, stats = load_identifier_reconciliations(REPO_ROOT / spec["path"])
+        self.assertEqual(stats["rows"], 37)
+        self.assertEqual(stats["methods"], {"same_pmid_unique_name": 9, "source_unique_name": 28})
+        self.assertNotIn(("q3", 4990), mappings)
+        self.assertNotIn(("q3", 18843), mappings)
 
     def test_exported_mapping_comparison_statuses(self) -> None:
         self.assertEqual(compare_exported_smiles("CCO", "CCO"), "exact_match")
@@ -81,6 +106,39 @@ class MeasurementNormalizationTest(unittest.TestCase):
         allowed = ["substrate", "not_substrate"]
         self.assertEqual(approved_category("not_substrate", allowed), "not substrate")
         self.assertIsNone(approved_category("inhibited", allowed))
+
+    def test_explicit_unitless_fg_fraction_becomes_percent(self) -> None:
+        emissions, rejected = split_explicit_fg_measurements("Fg = 0.14") or ([], [])
+        self.assertFalse(rejected)
+        self.assertEqual(len(emissions), 1)
+        self.assertEqual(emissions[0].unit_normalized, "percent")
+        self.assertEqual(emissions[0].scalar_value, 14.0)
+
+    def test_condition_specific_fg_values_are_separate_children(self) -> None:
+        text = "Fg 3.4% ± 1.8% (competent) vs 4.5% ± 1.6% (deficient)"
+        emissions, rejected = split_explicit_fg_measurements(text) or ([], [])
+        self.assertFalse(rejected)
+        self.assertEqual([item.scalar_value for item in emissions], [3.4, 4.5])
+        self.assertEqual([item.local_measurement_context for item in emissions], ["competent", "deficient"])
+
+    def test_fa_times_fg_is_retained_with_its_own_measurement_label(self) -> None:
+        parsed = split_explicit_fg_measurements("Fa×Fg = 0.22; Fg = 0.14")
+        emissions, rejected = parsed or ([], [])
+        self.assertFalse(rejected)
+        self.assertEqual([item.scalar_value for item in emissions], [22.0, 14.0])
+        self.assertEqual([item.measurement_label for item in emissions], ["fa x fg", "fg"])
+
+    def test_fa_times_fg_maps_to_the_broad_fg_concept(self) -> None:
+        emissions, _ = split_explicit_fg_measurements("Fa×Fg = 0.22") or ([], [])
+        assignment, reason = assign_canonical_endpoint("q3", {"endpoint_alias_raw": "intestinal availability"}, emissions[0])
+        self.assertIsNone(reason)
+        self.assertEqual(assignment.canonical_endpoint_key if assignment else None, "q3.gut_wall_escape.fg.percent")
+
+    def test_curated_support_text_reextraction_is_marked(self) -> None:
+        emissions, rejected = split_explicit_fg_measurements("0.75", "F_G = 0.75") or ([], [])
+        self.assertFalse(rejected)
+        self.assertEqual(emissions[0].scalar_value, 75.0)
+        self.assertIn("support text re-extraction", emissions[0].local_measurement_context or "")
 
 
 def _base_row(columns: list[str]) -> dict[str, object]:
@@ -175,7 +233,11 @@ class StableEvidenceTest(unittest.TestCase):
 
 class NewFunctionLengthTest(unittest.TestCase):
     def test_new_functions_are_at_most_sixty_lines(self) -> None:
-        roots = [REPO_ROOT / "pipeline/source_normalization", REPO_ROOT / "scripts/normalize_sources.py"]
+        roots = [
+            REPO_ROOT / "pipeline/source_normalization",
+            REPO_ROOT / "scripts/normalize_sources.py",
+            REPO_ROOT / "scripts/publish_cleaned_canonical_bases.py",
+        ]
         violations = []
         paths = [path for root in roots for path in ([root] if root.is_file() else root.glob("*.py"))]
         for path in paths:

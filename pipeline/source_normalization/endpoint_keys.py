@@ -247,6 +247,8 @@ def _q3(source: str, record: Mapping[str, Any], emission: ScalarEmission) -> tup
     kinetic = _kinetic_parameter(label)
     if kinetic and family == "intestinal metabolism":
         return _target_kinetic(source, "intestinal_metabolism", kinetic, record, emission, "transporter_or_enzyme")
+    if label == "fa x fg":
+        return (_assignment(source, "gut_wall_escape", "fg", unit), None) if unit in {"percent", "fraction"} else (None, "incompatible_or_missing_unit_basis")
     if re.fullmatch(r"f[_ ]?g", label) or "gut wall extraction" in family:
         return (_assignment(source, "gut_wall_escape", "fg", unit), None) if unit in {"percent", "fraction"} else (None, "incompatible_or_missing_unit_basis")
     if "auc ratio" in label:

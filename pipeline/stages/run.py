@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
-"""Build DAG runner: a build config -> the full assay-transfer pipeline.
-
-Executes the stages in dependency order over the stage-first ``datasets/`` layout
-(``dataset_system_design.md`` sections 2, 7):
-
-    prepare (per source) -> split (composed) -> pairs (per K profile)
-        -> materialize (per profile) -> render_hf (per profile)
-
-Outputs are keyed by build name so progress is visible per stage directory:
-
-    <root>/base/<source>/                 (per source, reusable)
-    <root>/splits/<build>/                (per build)
-    <root>/pairs/<build>/<profile>/
-    <root>/parquet/<build>/<profile>/
-    <root>/hf_parquet/<build>/<profile>/
-
-Each stage writes its own manifest.json. ``--from`` / ``--only`` restrict which stages run.
-"""
+"""Run the v3 canonical-base-to-Hugging-Face build DAG."""
 
 from __future__ import annotations
 
@@ -29,109 +12,244 @@ from typing import Any
 
 import yaml
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from pipeline.stages import expand, materialize, pairs, prepare, render_hf, selection, split  # noqa: E402
+from pipeline.stages import compose_v3, expand_v3, materialize, pairs, render_hf, selection, split  # noqa: E402
+from pipeline.v3_policy import V3Policies, resolve_path  # noqa: E402
 
-STAGES = ("prepare", "split", "pairs", "select", "materialize", "render_hf", "expand")
-SELECTED_SPLITS = ("train", "validation", "test")
-DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "sources"
-
-
-def _stages_to_run(args: argparse.Namespace) -> list[str]:
-    if args.only:
-        return [args.only]
-    start = STAGES.index(args.from_stage) if args.from_stage else 0
-    return list(STAGES[start:])
+STAGES = ("compose", "split", "pairs", "select", "materialize", "render_hf", "expand")
+SPLITS = ("train", "validation", "test")
 
 
-def run_build(config: dict[str, Any], root: Path, source_dir: Path, stages: list[str]) -> dict[str, Any]:
-    build_name = config["build"]
-    sources = config["sources"]
-    split_cfg = config.get("split", {})
-    pairs_cfg = config.get("pairs", {})
-    hf_cfg = config.get("hf", {})
-    profiles = pairs_cfg.get("profiles", ["same_endpoint"])
+def _paths(root: Path, build: str) -> dict[str, Path]:
+    return {"eligible": root / "eligible" / build, "split": root / "splits" / build,
+            "pairs": root / "pairs" / build / "same_endpoint",
+            "select": root / "select" / build / "same_endpoint",
+            "parquet": root / "parquet" / build / "same_endpoint",
+            "hf": root / "hf_parquet" / build, "expand": root / "expand" / build}
 
-    base_dirs = [root / "base" / s for s in sources]
-    split_dir = root / "splits" / build_name
-    results: dict[str, Any] = {"build": build_name, "stages": {}}
 
-    if "prepare" in stages:
-        results["stages"]["prepare"] = {}
-        for s in sources:
-            r = prepare.build(
-                Namespace(source=s, input=None, source_dir=source_dir,
-                          output_dir=root / "base" / s, compression="zstd")
+def _compose(config: dict, paths: dict, release: Path) -> dict:
+    return compose_v3.build(Namespace(base=config["base_inputs"], release=str(release),
+                                      output_dir=paths["eligible"]))
+
+
+def _split(paths: dict, policies: V3Policies) -> dict:
+    fractions = policies.sampling["split"]
+    return split.build(Namespace(base=[paths["eligible"]], output_dir=paths["split"],
+                                 seed=int(policies.sampling["seed"]),
+                                 train_frac=float(fractions["train"]),
+                                 val_frac=float(fractions["validation"]),
+                                 test_frac=float(fractions["test"])))
+
+
+def _pair(paths: dict, release: Path, caps: dict[str, int]) -> dict:
+    return pairs.build(Namespace(base=[paths["eligible"]], split_dir=paths["split"],
+                                 release=str(release), output_dir=paths["pairs"],
+                                 query_caps=caps, max_queries=None))
+
+
+def _select(paths: dict, release: Path, quotas: dict[str, int], output: Path,
+            targets: dict | None = None) -> dict:
+    return selection.build(Namespace(candidates=[paths["pairs"]], output_dir=output,
+                                     train_quota=quotas["train"], val_quota=quotas["validation"],
+                                     test_quota=quotas["test"], release=str(release),
+                                     stratum_targets=targets))
+
+
+def _deficient(report: dict) -> set[str]:
+    concepts = set()
+    for data in report["splits"].values():
+        concepts.update(key.split("|", 1)[0] for key in data["underfilled_strata"])
+    return concepts
+
+
+def _deficient_strata(report: dict) -> set[str]:
+    strata = set()
+    for data in report["splits"].values():
+        strata.update(data["underfilled_strata"])
+    return strata
+
+
+def _actionable_deficits(report: dict, policies: V3Policies) -> set[str]:
+    sparse = policies.sampling["sparse_strata"]
+    train_sparse = set(sparse["train_all_available"])
+    heldout_sparse = set(sparse["heldout_matched_min"])
+    backfill_concepts = set(sparse.get("heldout_backfill_within_concept", []))
+    actionable = set()
+    for split, data in report["splits"].items():
+        for stratum in data["underfilled_strata"]:
+            concept = stratum.split("|", 1)[0]
+            ignored = (split == "train" and stratum in train_sparse) or (
+                split != "train" and stratum in heldout_sparse
+            ) or (
+                split != "train" and concept in backfill_concepts
             )
-            results["stages"]["prepare"][s] = {"records_kept": r["records_kept"]}
+            if not ignored:
+                actionable.add(stratum)
+    return actionable
 
-    if "split" in stages:
-        results["stages"]["split"] = split.build(
-            Namespace(base=base_dirs, output_dir=split_dir,
-                      seed=split_cfg.get("seed", 17),
-                      train_frac=split_cfg.get("train_frac", 0.8),
-                      val_frac=split_cfg.get("val_frac", 0.1),
-                      test_frac=split_cfg.get("test_frac", 0.1))
-        )
 
-    select_cfg = config.get("select", {})
-    for profile in profiles:
-        pairs_dir = root / "pairs" / build_name / profile
-        select_dir = root / "select" / build_name / profile
-        parquet_dir = root / "parquet" / build_name / profile
-        hf_dir = root / "hf_parquet" / build_name / profile
-        expand_dir = root / "expand" / build_name / profile
-        if "pairs" in stages:
-            results["stages"].setdefault("pairs", {})[profile] = pairs.build(
-                Namespace(base=base_dirs, split_dir=split_dir, profile=profile,
-                          output_dir=pairs_dir, split_version=split_cfg.get("version", "v2"),
-                          max_queries=pairs_cfg.get("max_queries"))
-            )
-        if "select" in stages:
-            results["stages"].setdefault("select", {})[profile] = selection.build(
-                Namespace(candidates=[pairs_dir], output_dir=select_dir,
-                          train_quota=select_cfg.get("train_quota"),
-                          val_quota=select_cfg.get("val_quota"),
-                          test_quota=select_cfg.get("test_quota"))
-            )
-        if "materialize" in stages:
-            selected = [select_dir / "selected" / s for s in SELECTED_SPLITS]
-            results["stages"].setdefault("materialize", {})[profile] = materialize.build(
-                Namespace(pairs=selected, base=base_dirs, output_dir=parquet_dir)
-            )
-        if "render_hf" in stages:
-            template = Path(hf_cfg.get("template", render_hf.DEFAULT_TEMPLATE))
-            results["stages"].setdefault("render_hf", {})[profile] = render_hf.build(
-                Namespace(dataset=parquet_dir / "dataset.parquet", template=template, output_dir=hf_dir)
-            )
-        if "expand" in stages:
-            results["stages"].setdefault("expand", {})[profile] = expand.build(
-                Namespace(candidates=[pairs_dir], output_dir=expand_dir, prefixes=None)
-            )
+def _exhausted_strata(pair_report: dict, capacity_report: dict) -> list[str]:
+    saturation = pair_report.get("enumeration_saturation", {})
+    deficient = set()
+    for split in capacity_report["splits"].values():
+        deficient.update(split["underfilled_strata"])
+    exhausted = []
+    for stratum in sorted(deficient):
+        concept, bucket = stratum.split("|", 1)
+        if saturation.get(f"{concept}|{bucket}|capped_molecules", 0) == 0:
+            exhausted.append(stratum)
+    return exhausted
 
-    (root / "builds").mkdir(parents=True, exist_ok=True)
-    (root / "builds" / f"{build_name}.run.json").write_text(json.dumps(results, indent=2, default=str))
+
+def _capacity(paths: dict, release: Path, policies: V3Policies) -> tuple[dict, dict]:
+    caps = {key: int(value) for key, value in
+            policies.sampling["initial_queries_per_retrieval_per_bucket"].items()}
+    quotas = {key: int(value * float(policies.sampling["capacity_headroom"]))
+              for key, value in policies.sampling["quotas"].items()}
+    capacity_dir = paths["select"].parent / "capacity_check"
+    failure_path = capacity_dir / "capacity_failure.json"
+    failure_path.unlink(missing_ok=True)
+    for attempt in range(6):
+        pair_report = _pair(paths, release, caps)
+        capacity_report = _select(paths, release, quotas, capacity_dir)
+        deficient_strata = _actionable_deficits(capacity_report, policies)
+        deficient = {stratum.split("|", 1)[0] for stratum in deficient_strata}
+        if not deficient_strata:
+            return caps, {"pairs": pair_report, "capacity": capacity_report}
+        exhausted = [name for name in _exhausted_strata(pair_report, capacity_report)
+                     if name in deficient_strata]
+        if exhausted:
+            failure = {"status": "blocked", "reason": "candidate_universe_exhausted",
+                       "exhausted_strata": exhausted, "query_caps": caps,
+                       "pairs": pair_report, "capacity": capacity_report}
+            capacity_dir.mkdir(parents=True, exist_ok=True)
+            (capacity_dir / "capacity_failure.json").write_text(json.dumps(failure, indent=2))
+            raise RuntimeError(f"v3 candidate universe exhausted for strata: {exhausted}")
+        for concept in deficient:
+            caps[concept] = 0 if attempt == 4 else max(1, caps[concept] * 2)
+    raise RuntimeError(f"v3 capacity exhausted for concepts: {sorted(deficient)}")
+
+
+def _resolved_targets(policies: V3Policies, capacity: dict) -> dict[str, dict[str, int]]:
+    concepts = policies.concepts["concepts"]
+    strata = [f"{concept}|{bucket}" for concept in concepts for bucket in ("low", "high")]
+    quotas = {key: int(value) for key, value in policies.sampling["quotas"].items()}
+    targets = {split: {stratum: quotas[split] // len(strata) for stratum in strata}
+               for split in SPLITS}
+    available = {split: capacity["splits"][split]["per_stratum_available"] for split in SPLITS}
+    sparse = policies.sampling["sparse_strata"]
+    for stratum in sparse["train_all_available"]:
+        targets["train"][stratum] = available["train"].get(stratum, 0)
+    for stratum in sparse["heldout_matched_min"]:
+        matched = min(available["validation"].get(stratum, 0), available["test"].get(stratum, 0))
+        targets["validation"][stratum] = matched
+        targets["test"][stratum] = matched
+    _apply_heldout_backfill(targets, available, sparse, quotas, len(concepts))
+    return targets
+
+
+def _apply_heldout_backfill(targets: dict, available: dict, sparse: dict,
+                            quotas: dict, concept_count: int) -> None:
+    """Keep concept totals fixed when one held-out similarity bucket is exhausted."""
+    concept_target = quotas["validation"] // concept_count
+    for split in ("validation", "test"):
+        for concept in sparse.get("heldout_backfill_within_concept", []):
+            high, low = f"{concept}|high", f"{concept}|low"
+            high_target = min(targets[split][high], available[split].get(high, 0))
+            low_target = concept_target - high_target
+            if available[split].get(low, 0) < low_target:
+                raise RuntimeError(f"insufficient {split} backfill capacity for {concept}")
+            targets[split][high] = high_target
+            targets[split][low] = low_target
+
+
+def _target_totals(targets: dict[str, dict[str, int]]) -> dict[str, int]:
+    return {split: sum(values.values()) for split, values in targets.items()}
+
+
+def resume_after_capacity(config: dict[str, Any], root: Path) -> dict[str, Any]:
+    build_name, release = config["build"], resolve_path(config["release"])
+    policies, paths = V3Policies(release), _paths(root, build_name)
+    capacity = json.loads((paths["select"].parent / "capacity_check/manifest.json").read_text())
+    pair_report = json.loads((paths["pairs"] / "manifest.json").read_text())
+    targets = _resolved_targets(policies, capacity)
+    results = {"build": build_name, "release": str(release), "stages":
+               {"pairs": pair_report, "capacity": capacity}}
+    results["stages"]["select"] = _select(paths, release, _target_totals(targets),
+                                             paths["select"], targets)
+    results["stages"]["materialize"] = _materialize(paths)
+    results["stages"]["render_hf"] = _render(config, paths)
+    caps = pair_report["query_caps"]
+    results["stages"]["expand"] = _expand(config, paths, release, caps)
+    results.update({"resolved_query_caps": caps, "resolved_stratum_targets": targets})
+    output = root / "builds" / f"{build_name}.run.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(results, indent=2, default=str))
+    return results
+
+
+def _materialize(paths: dict) -> dict:
+    selected = [paths["select"] / "selected" / name for name in SPLITS]
+    return materialize.build(Namespace(pairs=selected, base=[paths["eligible"]],
+                                       output_dir=paths["parquet"]))
+
+
+def _render(config: dict, paths: dict) -> dict:
+    template_dir = resolve_path(config["hf"]["template_dir"])
+    schema_version = V3Policies(resolve_path(config["release"])).release["artifact_schema_version"]
+    return render_hf.build(Namespace(dataset=paths["parquet"] / "dataset.parquet",
+                                     template_dir=template_dir, output_dir=paths["hf"],
+                                     schema_version=schema_version))
+
+
+def _expand(config: dict, paths: dict, release: Path, caps: dict) -> dict:
+    return expand_v3.build(Namespace(eligible=paths["eligible"], split_dir=paths["split"],
+                                     selection_dir=paths["select"], release=str(release),
+                                     template_dir=resolve_path(config["hf"]["template_dir"]),
+                                     output_dir=paths["expand"], query_caps=caps))
+
+
+def run_build(config: dict[str, Any], root: Path) -> dict[str, Any]:
+    build_name, release = config["build"], resolve_path(config["release"])
+    policies, paths = V3Policies(release), _paths(root, build_name)
+    results: dict[str, Any] = {"build": build_name, "release": str(release), "stages": {}}
+    results["stages"]["compose"] = _compose(config, paths, release)
+    results["stages"]["split"] = _split(paths, policies)
+    caps, capacity = _capacity(paths, release, policies)
+    results["stages"].update(capacity)
+    targets = _resolved_targets(policies, capacity["capacity"])
+    quotas = _target_totals(targets)
+    results["stages"]["select"] = _select(paths, release, quotas, paths["select"], targets)
+    if _deficient(results["stages"]["select"]):
+        raise RuntimeError("final v3 selection underfilled after successful capacity check")
+    results["stages"]["materialize"] = _materialize(paths)
+    results["stages"]["render_hf"] = _render(config, paths)
+    results["stages"]["expand"] = _expand(config, paths, release, caps)
+    results["resolved_query_caps"] = caps
+    results["resolved_stratum_targets"] = targets
+    output = root / "builds" / f"{build_name}.run.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(results, indent=2, default=str))
     return results
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, required=True, help="configs/builds/<build>.yaml")
-    parser.add_argument("--root", type=Path, default=_REPO_ROOT / "datasets")
-    parser.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
-    parser.add_argument("--from", dest="from_stage", choices=STAGES, default=None)
-    parser.add_argument("--only", choices=STAGES, default=None)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--root", type=Path, default=REPO_ROOT / "datasets")
+    parser.add_argument("--resume-after-capacity", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = yaml.safe_load(args.config.read_text())
-    results = run_build(config, args.root, args.source_dir, _stages_to_run(args))
-    print(json.dumps({"build": results["build"], "stages": list(results["stages"])}, indent=2))
+    result = resume_after_capacity(config, args.root) if args.resume_after_capacity else run_build(config, args.root)
+    print(json.dumps({"build": result["build"], "stages": list(result["stages"])}, indent=2))
 
 
 if __name__ == "__main__":

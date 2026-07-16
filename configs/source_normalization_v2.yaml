@@ -1,0 +1,10 @@
+extends: source_normalization_v1.yaml
+version: source_normalization_v2
+artifact_schema_version: canonical_endpoints_v2
+output_directory: datasets/base/canonical_endpoints_v2
+report_path: docs/source_normalization_report_v2.md
+
+references:
+  tdc_exclusion:
+    included_splits: [valid, test]
+

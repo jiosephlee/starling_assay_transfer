@@ -1,0 +1,13 @@
+version: assay_transfer_v3
+artifact_schema_version: assay_transfer_binary_v3
+base_schema_version: canonical_endpoints_v1
+binary_primary: true
+condition_profile: same_endpoint
+policies:
+  metrics: configs/assay_transfer/v3/metrics.yaml
+  concepts: configs/assay_transfer/v3/concepts.yaml
+  sampling: configs/assay_transfer/v3/sampling.yaml
+  fingerprint: configs/assay_transfer/v2/fingerprint.yaml
+  tanimoto: configs/assay_transfer/v2/tanimoto_bucket.yaml
+  majority: configs/assay_transfer/v2/majority_label.yaml
+

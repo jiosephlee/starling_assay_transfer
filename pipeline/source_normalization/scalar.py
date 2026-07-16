@@ -10,7 +10,7 @@ from typing import Any
 from pipeline.source_normalization.measurement import NUMBER
 from pipeline.source_normalization.text import measurement_text, normalize_lexical, normalize_unit
 
-PARSER_VERSION = "scalar_measurement_parser_v1"
+PARSER_VERSION = "scalar_measurement_parser_v2"
 _LABEL_TEXT = (
     r"efflux\s+ratio|relative\s+bioavailability|absolute\s+bioavailability|auc(?:\s+ratio)?"
     r"(?:[₀-₉0-9∞τ_-]+)?|cmax|tmax|papp|p_eff|peff|vmax|km|clint|half[- ]?life|"

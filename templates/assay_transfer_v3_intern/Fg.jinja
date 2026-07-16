@@ -1,0 +1,22 @@
+You are comparing two molecules for a gut-wall (Fg) assay.
+
+The endpoint is {{ row.endpoint_subtype }} in {{ row.unit_basis }}. Classify transfer when values are {{ row.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ row.retrieved_original_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(row.retrieved_value) }} {{ row.unit_basis }}
+- measured process: {{ row.retrieved_context_measured_process or "not specified" }}
+- transporter or enzyme: {{ row.retrieved_context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ row.retrieved_context_substrate_status or "not specified" }}
+- assay system: {{ row.retrieved_context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ row.retrieved_context_intestinal_site or "not specified" }}
+- qualifying conditions: {{ row.retrieved_context_qualifying_conditions or "not specified" }}
+
+Molecule B (query)
+- <SMILES>{{ row.query_original_smiles }}</SMILES>
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

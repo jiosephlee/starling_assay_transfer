@@ -1,133 +1,129 @@
-"""Tests for the v2 materialize and render_hf stages (continuous primary + nullable binary)."""
+"""Tests for v3 hard-label materialization and three-column MCQA rendering."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 import tempfile
 import unittest
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-from pipeline.stages import materialize, render_hf  # noqa: E402
+from pipeline.stages import materialize, render_hf
 
 
-def _Args(**kw):
-    ns = type("Args", (), {})()
-    ns.__dict__.update(kw)
-    return ns
+def _args(**values):
+    obj = type("Args", (), {})()
+    obj.__dict__.update(values)
+    return obj
 
 
-def _write_base(path):
-    pq.write_table(
-        pa.table(
-            {
-                "smiles": ["mA"],
-                "source_id": ["q4"],
-                "canonical_endpoint_id": ["q4.metabolic_half_life"],
-                "canonical_endpoint_key": ["q4.metabolic_half_life"],
-                "metric_type": ["half_life"],
-                "property_value": [2.0],
-                "property_value_native": [120.0],
-                "species_exact": ["human"],
-                "assay_system": ["human liver microsomes"],
-            }
-        ),
-        path,
-    )
+def _retrieval():
+    row = {"child_id": "child-a", "parent_provenance_id": "parent-a", "record_id": "record-a",
+           "input_sha256": "abc", "scalar_is_approximate": False,
+           "source_smiles": "OCC", "canonical_smiles": "CCO",
+           "canonical_endpoint_key": "q4.half_life.minute", "measurement_label": "fa x fg"}
+    for name in render_hf.CONTEXT_NAMES:
+        row[f"context_{name}"] = None
+    row["context_study_or_assay_system"] = "human liver microsomes"
+    return row
 
 
-def _selected():
-    # Two candidates: one hard-binary (train), one null-binary (train), one hard (validation).
-    base = dict(
-        canonical_endpoint_id="q4.metabolic_half_life",
-        k_profile="same_endpoint",
-        setting_key="",
-        metric_type="half_life",
-        retrieval_record_id="e0",
-        retrieved_row_index=0,
-        retrieved_smiles="mA",
-        retrieved_source_id="q4",
-        retrieved_value=2.0,
-        retrieved_value_native=120.0,
-        n_records=3,
-        n_transfer=2,
-        n_nontransfer=0,
-        n_ambiguous=1,
-        transfer_fraction=0.66,
-        nontransfer_fraction=0.0,
-        ambiguous_fraction=0.33,
-        majority_side="transfer",
-        majority_margin=0.16,
-        dist_std=0.1,
-        dist_median=0.2,
-        dist_max=0.3,
-        tanimoto=0.2,
-    )
-    return [
-        {**base, "candidate_id": "c1", "split": "train", "assay_concept": "Fh",
-         "tanimoto_bucket": "low", "query_smiles": "mB", "binary_label": 1, "continuous_target": 0.2},
-        {**base, "candidate_id": "c2", "split": "train", "assay_concept": "Fh",
-         "tanimoto_bucket": "low", "query_smiles": "mC", "binary_label": None, "continuous_target": 0.5},
-        {**base, "candidate_id": "c3", "split": "validation", "assay_concept": "Fh",
-         "tanimoto_bucket": "low", "query_smiles": "mD", "binary_label": 0, "continuous_target": 0.9},
-    ]
+def _query_record():
+    row = {"child_id": "child-q", "parent_provenance_id": "parent-q", "record_id": "record-q",
+           "input_sha256": "def", "scalar_is_approximate": False,
+           "source_smiles": "OCCC", "canonical_smiles": "CCCO",
+           "canonical_endpoint_key": "q4.half_life.minute"}
+    row.update({f"context_{name}": None for name in render_hf.CONTEXT_NAMES})
+    return row
 
 
-class MaterializeRenderV2Test(unittest.TestCase):
-    def _materialize(self, d: Path):
-        _write_base(d / "base.parquet")
-        sel_dir = d / "sel"
-        sel_dir.mkdir()
-        pq.write_table(pa.Table.from_pylist(_selected()), sel_dir / "selected.parquet")
-        out = d / "mat"
-        report = materialize.build(_Args(pairs=[sel_dir], base=[d / "base.parquet"], output_dir=out))
-        return report, out
+def _candidate(cid, split, label, query):
+    return {"candidate_id": cid, "split": split, "canonical_endpoint_key": "q4.half_life.minute",
+            "endpoint_family": "hepatic_metabolism", "endpoint_subtype": "half_life",
+            "unit_basis": "minute", "assay_concept": "Fh", "k_profile": "same_endpoint",
+            "setting_key": "q4.half_life.minute", "metric_type": "positive_scalar",
+            "retrieval_record_id": "child-a", "retrieved_smiles": "CCO", "retrieved_source_id": "q4",
+            "retrieved_value": 120.0, "query_smiles": query, "transfer_max": 0.30103,
+            "not_transfer_min": 0.69897, "threshold_display": "within 2-fold / at least 5-fold apart",
+            "n_records": 2, "n_transfer": 2 if label else 0, "n_nontransfer": 0 if label else 2,
+            "n_ambiguous": 0, "transfer_fraction": float(label),
+            "nontransfer_fraction": float(1 - label), "ambiguous_fraction": 0.0,
+            "binary_label": label, "majority_margin": 0.5, "tanimoto": 0.2,
+            "tanimoto_bucket": "low"}
 
-    def test_materialize_inlines_metadata_and_keeps_null_binary(self) -> None:
-        with tempfile.TemporaryDirectory() as d:
-            report, out = self._materialize(Path(d))
-            self.assertEqual(report["rows"], 3)
-            self.assertEqual(report["rows_by_split"], {"train": 2, "validation": 1})
-            recs = pq.read_table(out / "dataset.parquet").to_pylist()
-            self.assertEqual(recs[0]["retrieved_assay_system"], "human liver microsomes")
-            # continuous target present on all; binary nullable.
-            self.assertTrue(all(r["continuous_target"] is not None for r in recs))
-            self.assertTrue(any(r["binary_label"] is None for r in recs))
 
-    def test_materialize_requires_v2_fields(self) -> None:
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            _write_base(d / "base.parquet")
-            sel = d / "sel"
-            sel.mkdir()
-            pq.write_table(pa.table({"query_smiles": ["x"], "retrieved_row_index": [0]}),
-                           sel / "selected.parquet")
+class MaterializeRenderV3Test(unittest.TestCase):
+    def _build(self, root: Path):
+        base = root / "base"
+        base.mkdir()
+        pq.write_table(pa.Table.from_pylist([_retrieval(), _query_record()]), base / "records.parquet")
+        selected = root / "selected"
+        selected.mkdir()
+        pq.write_table(pa.Table.from_pylist([_candidate("c1", "train", 1, "CCCO"),
+                                             _candidate("c2", "validation", 0, "CCCCO")]),
+                       selected / "selected.parquet")
+        materialized = root / "materialized"
+        materialize.build(_args(pairs=[selected], base=[base], output_dir=materialized))
+        return materialized
+
+    def test_rejects_null_binary_label(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base = root / "base"
+            base.mkdir()
+            pq.write_table(pa.Table.from_pylist([_retrieval()]), base / "records.parquet")
+            selected = root / "selected"
+            selected.mkdir()
+            row = _candidate("bad", "train", 1, "CCC")
+            row["binary_label"] = None
+            pq.write_table(pa.Table.from_pylist([row]), selected / "selected.parquet")
             with self.assertRaises(ValueError):
-                materialize.build(_Args(pairs=[sel], base=[d / "base.parquet"], output_dir=d / "mat"))
+                materialize.build(_args(pairs=[selected], base=[base], output_dir=root / "out"))
 
-    def test_render_hf_continuous_primary_nullable_binary(self) -> None:
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            _, mat = self._materialize(d)
-            hf = d / "hf"
-            info = render_hf.build(_Args(dataset=mat / "dataset.parquet",
-                                         template=render_hf.DEFAULT_TEMPLATE, output_dir=hf))
-            self.assertEqual(info["primary_target"], "continuous_target")
-            self.assertEqual(info["rows_per_split"], {"train": 2, "validation": 1})
-            train = pq.read_table(hf / "train" / "data.parquet").to_pylist()
-            # continuous target always present; the null-binary row has no completion.
-            self.assertTrue(all(r["continuous_target"] is not None for r in train))
-            null_row = next(r for r in train if r["binary_label"] is None)
-            self.assertIsNone(null_row["completion"])
-            hard_row = next(r for r in train if r["binary_label"] == "transfer")
-            self.assertEqual(hard_row["completion"], " transfer")
-            self.assertIn("human liver microsomes", hard_row["prompt"])
+    def test_hf_schema_and_mcqa_leakage_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialized = self._build(root)
+            hf = root / "hf"
+            info = render_hf.build(_args(dataset=materialized / "dataset.parquet",
+                                         template_dir=Path("templates/assay_transfer_v3"), output_dir=hf))
+            table = pq.read_table(hf / "train/data.parquet")
+            self.assertEqual(table.column_names, ["prompt", "completion", "metadata"])
+            row = table.to_pylist()[0]
+            self.assertEqual(row["completion"], "A")
+            self.assertIn("human liver microsomes", row["prompt"])
+            self.assertNotIn("n_transfer", row["prompt"])
+            self.assertNotIn("continuous_target", table.schema.names)
+            self.assertEqual(info["completion_map"], {"1": "A", "0": "B"})
+            self.assertEqual(row["metadata"]["retrieved_measurement_label"], "fa x fg")
+
+    def test_renderer_accepts_release_schema_version(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialized = self._build(root)
+            info = render_hf.build(_args(dataset=materialized / "dataset.parquet",
+                                         template_dir=Path("templates/assay_transfer_v3"),
+                                         output_dir=root / "hf",
+                                         schema_version="assay_transfer_binary_v4"))
+            table = pq.read_table(root / "hf/train/data.parquet")
+            self.assertEqual(info["schema_version"], "assay_transfer_binary_v4")
+            self.assertEqual(table["metadata"][0].as_py()["schema_version"],
+                             "assay_transfer_binary_v4")
+
+    def test_intern_variant_wraps_only_smiles_and_versions_template(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            materialized = self._build(root)
+            hf = root / "hf-intern"
+            render_hf.build(_args(dataset=materialized / "dataset.parquet",
+                                  template_dir=Path("templates/assay_transfer_v3_intern"),
+                                  template_variant="intern", output_dir=hf))
+            row = pq.read_table(hf / "train/data.parquet").to_pylist()[0]
+            self.assertIn("<SMILES>OCC</SMILES>", row["prompt"])
+            self.assertIn("<SMILES>OCCC</SMILES>", row["prompt"])
+            self.assertEqual(row["completion"], "(A)")
+            self.assertEqual(row["metadata"]["template_id"], "Fh_intern_mcqa_v3")
 
 
 if __name__ == "__main__":

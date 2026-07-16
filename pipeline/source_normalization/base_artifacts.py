@@ -119,5 +119,16 @@ def render_report(manifests: list[Mapping[str, Any]]) -> str:
             f"{yields['accepted_base_children']:,} | {coverage['unique_canonical_endpoint_keys']:,} | "
             f"{expansion['partially_retained_parents']:,} |"
         )
-    lines.extend(["", "Only dedicated structured measurement fields were parsed. Narrative support and detail fields were never inspected. Generated Parquets are reproducible local artifacts and are not committed.", ""])
+    lines.extend(["", _report_scope(manifests), ""])
     return "\n".join(lines)
+
+
+def _report_scope(manifests: list[Mapping[str, Any]]) -> str:
+    curated = any("fg_support_reextraction" in item["references"] for item in manifests)
+    if curated:
+        return (
+            "Only dedicated structured measurement fields were parsed, except for the pinned Q3 Fg "
+            "support-text re-extraction artifact. Other narrative support and detail fields were never inspected. "
+            "Generated Parquets are reproducible local artifacts and are not committed."
+        )
+    return "Only dedicated structured measurement fields were parsed. Narrative support and detail fields were never inspected. Generated Parquets are reproducible local artifacts and are not committed."

@@ -1,0 +1,27 @@
+version: sampling_v4
+seed: 17
+split: {train: 0.60, validation: 0.20, test: 0.20}
+quotas: {train: 0, validation: 2000, test: 2000}
+strata: [assay_concept, tanimoto_bucket]
+allocation: equal
+capacity_headroom: 1.0
+initial_queries_per_retrieval_per_bucket:
+  oral_bioavailability: 8
+  oral_exposure: 8
+  Fa: 32
+  Fg: 256
+  Fh: 96
+sparse_strata:
+  train_all_available:
+    - oral_bioavailability|low
+    - oral_bioavailability|high
+    - oral_exposure|low
+    - oral_exposure|high
+    - Fa|low
+    - Fa|high
+    - Fg|low
+    - Fg|high
+    - Fh|low
+    - Fh|high
+  heldout_matched_min: []
+expansion_prefixes: [200000, 400000, 800000]

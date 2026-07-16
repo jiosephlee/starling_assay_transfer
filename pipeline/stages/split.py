@@ -58,20 +58,32 @@ def assign_split(smiles: str, seed: int, ratios: tuple[float, float, float]) -> 
     return "test"
 
 
+def _base_file(path: Path) -> Path:
+    if not path.is_dir():
+        return path
+    records = path / "records.parquet"
+    return records if records.exists() else path / "base.parquet"
+
+
 def _collect_molecules(base_paths: list[Path]) -> tuple[dict[str, str], Counter]:
     """Map raw smiles -> canonical smiles across all base tables; count parse failures."""
     canon: dict[str, str] = {}
     stats: Counter = Counter()
     for path in base_paths:
-        table = pq.read_table(path, columns=["smiles"])
-        for raw in table.column("smiles").to_pylist():
+        schema = pq.read_schema(path)
+        canonical_input = "canonical_smiles" in schema.names
+        if canonical_input:
+            stats["canonical_input_tables"] += 1
+        column = "canonical_smiles" if canonical_input else "smiles"
+        table = pq.read_table(path, columns=[column])
+        for raw in table.column(column).to_pylist():
             if raw is None or not str(raw).strip():
                 stats["missing_smiles"] += 1
                 continue
             raw = str(raw).strip()
             if raw in canon:
                 continue
-            c = canonical_smiles(raw)
+            c = raw if canonical_input else canonical_smiles(raw)
             if c is None:
                 stats["uncanonicalizable"] += 1
                 # Fall back to the raw string so the molecule is still splittable.
@@ -86,7 +98,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     ratios = (args.train_frac, args.val_frac, args.test_frac)
     if abs(sum(ratios) - 1.0) > 1e-6:
         raise ValueError(f"split ratios must sum to 1.0, got {ratios}")
-    base_paths = [p / "base.parquet" if p.is_dir() else p for p in args.base]
+    base_paths = [_base_file(Path(p)) for p in args.base]
     for p in base_paths:
         if not p.exists():
             raise FileNotFoundError(f"base parquet not found: {p}")
@@ -112,7 +124,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     manifest = {
         "stage": "split",
         "base_inputs": [str(p) for p in base_paths],
-        "molecule_canonicalization_version": MOLECULE_CANONICALIZATION_VERSION,
+        "molecule_canonicalization_version": (
+            "canonical_base_passthrough_v1" if stats.get("canonical_input_tables") == len(base_paths)
+            else MOLECULE_CANONICALIZATION_VERSION
+        ),
         "split_seed": args.seed,
         "split_ratios": {"train": ratios[0], "validation": ratios[1], "test": ratios[2]},
         "unique_canonical_molecules": len(canon_split),

@@ -1,0 +1,10 @@
+version: assay_concepts_v3
+concepts: [oral_bioavailability, oral_exposure, Fa, Fg, Fh]
+rules:
+  - {source_id: q1, endpoint_family: oral_bioavailability, concept: oral_bioavailability}
+  - {source_id: q1, endpoint_family: oral_exposure, concept: oral_exposure}
+  - {source_id: starling, endpoint_family: oral_bioavailability, concept: oral_bioavailability}
+  - {source_id: q2, concept: Fa}
+  - {source_id: q3, concept: Fg}
+  - {source_id: q4, concept: Fh}
+

@@ -15,13 +15,15 @@ from pipeline.source_normalization.base_artifacts import (
 )
 from pipeline.source_normalization.endpoint_keys import assign_canonical_endpoint
 from pipeline.source_normalization.io import (
-    load_config, load_mapping, load_tdc_exclusions, read_source, required_identifiers,
+    load_config, load_fg_support_reextractions, load_identifier_reconciliations, load_mapping, load_tdc_exclusions,
+    read_source, required_identifiers,
     resolve_path, sha256_file, verify_artifact, write_json, write_parquet,
 )
 from pipeline.source_normalization.normalize import normalize_row, stable_hash
 from pipeline.source_normalization.scalar import (
     PARSER_VERSION, FragmentRejection, ScalarEmission, split_scalar_measurements,
 )
+from pipeline.source_normalization.fg import split_explicit_fg_measurements
 
 _STRUCTURAL_REASONS = {
     "missing_global_identifier", "unresolved_smiles_mapping", "conflicting_smiles_mapping",
@@ -39,18 +41,39 @@ def _shared_context(
     config: Mapping[str, Any], config_path: Path, data_root: Path,
     source_metadata: Mapping[str, Any], reference_metadata: Mapping[str, Any],
 ) -> dict[str, Any]:
+    reconciliation_spec = config["references"].get("identifier_reconciliation")
+    reextraction_spec = config["references"].get("fg_support_reextraction")
+    reconciliations, reconciliation_stats = {}, None
+    fg_reextractions, reextraction_stats = {}, None
+    if reconciliation_spec:
+        reconciliation_path = resolve_path(data_root, reconciliation_spec["path"])
+        reconciliations, reconciliation_stats = load_identifier_reconciliations(reconciliation_path)
+    if reextraction_spec:
+        reextraction_path = resolve_path(data_root, reextraction_spec["path"])
+        fg_reextractions, reextraction_stats = load_fg_support_reextractions(reextraction_path)
     identifiers = required_identifiers(config, data_root)
+    identifiers.update(row["resolved_global_identifier"] for row in reconciliations.values())
     mapping_path = resolve_path(data_root, config["references"]["smiles_mapping"]["path"])
     mapping, mapping_stats = load_mapping(mapping_path, identifiers)
-    tdc_path = resolve_path(data_root, config["references"]["tdc_exclusion"]["path"])
-    tdc, tdc_stats = load_tdc_exclusions(tdc_path)
+    tdc_spec = config["references"]["tdc_exclusion"]
+    tdc_path = resolve_path(data_root, tdc_spec["path"])
+    tdc, tdc_stats = load_tdc_exclusions(tdc_path, tdc_spec.get("included_splits"))
     references = dict(reference_metadata)
     references["smiles_mapping"] = {**references["smiles_mapping"], **mapping_stats}
     references["tdc_exclusion"] = {**references["tdc_exclusion"], **tdc_stats}
+    if reconciliation_stats is not None:
+        references["identifier_reconciliation"] = {
+            **references["identifier_reconciliation"], **reconciliation_stats,
+        }
+    if reextraction_stats is not None:
+        references["fg_support_reextraction"] = {
+            **references["fg_support_reextraction"], **reextraction_stats,
+        }
     return {
         "config": config, "config_hash": sha256_file(config_path),
         "source_metadata": source_metadata, "reference_metadata": references,
-        "mapping": mapping, "tdc": tdc,
+        "mapping": mapping, "tdc": tdc, "identifier_reconciliations": reconciliations,
+        "fg_reextractions": fg_reextractions,
     }
 
 
@@ -58,6 +81,8 @@ def _row_context(source_id: str, spec: Mapping[str, Any], shared: Mapping[str, A
     return {
         "source_id": source_id, "spec": spec, "mapping": shared["mapping"],
         "tdc": shared["tdc"], "allowlists": shared["config"]["categorical_allowlists"],
+        "identifier_reconciliations": shared["identifier_reconciliations"],
+        "fg_reextractions": shared["fg_reextractions"],
         "input_hash": spec["sha256"],
     }
 
@@ -69,7 +94,8 @@ def _child_id(parent_id: str, label: str | None, start: int, end: int, index: in
 def _base_rejection(record: Mapping[str, Any], child_id: str | None, stage: str) -> dict[str, Any]:
     keep = (
         "record_id", "source_id", "source_name", "source_row_number", "input_sha256", "pmid", "extraction_id",
-        "global_identifier", "source_smiles", "authoritative_smiles", "canonical_smiles",
+        "global_identifier", "global_identifier_original", "identifier_resolution_method",
+        "identifier_resolution_evidence_rows", "source_smiles", "authoritative_smiles", "canonical_smiles",
         "endpoint_alias_raw", "measurement_raw",
     )
     payload = {key: record.get(key) for key in keep}
@@ -146,10 +172,9 @@ def _ledger_row(
 
 def _process_candidate(
     record: dict[str, Any], source_id: str, spec: Mapping[str, Any],
+    fg_reextractions: Mapping[tuple[str, int], Mapping[str, str]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    emissions, fragments = split_scalar_measurements(
-        record.get(spec["measurement_column"]), record.get("endpoint_alias_raw"), record.get("unit_raw"),
-    )
+    emissions, fragments = _scalar_children(record, source_id, spec, fg_reextractions)
     accepted, rejected, child_ids = [], [], []
     for index, fragment in enumerate(fragments):
         rejection, child = _fragment_rejection(record, fragment, index)
@@ -167,6 +192,35 @@ def _process_candidate(
     return accepted, rejected, ledger
 
 
+def _scalar_children(
+    record: Mapping[str, Any], source_id: str, spec: Mapping[str, Any],
+    fg_reextractions: Mapping[tuple[str, int], Mapping[str, str]],
+) -> tuple[list[ScalarEmission], list[FragmentRejection]]:
+    override = _fg_override(record, source_id, fg_reextractions)
+    if source_id == "q3":
+        parsed = split_explicit_fg_measurements(
+            record.get(spec["measurement_column"]), override["measurement_text"] if override else None,
+        )
+        if parsed is not None:
+            return parsed
+    return split_scalar_measurements(
+        record.get(spec["measurement_column"]), record.get("endpoint_alias_raw"), record.get("unit_raw"),
+    )
+
+
+def _fg_override(
+    record: Mapping[str, Any], source_id: str,
+    reextractions: Mapping[tuple[str, int], Mapping[str, str]],
+) -> Mapping[str, str] | None:
+    override = reextractions.get((source_id, record["source_row_number"]))
+    if override is None:
+        return None
+    for field in ("pmid", "extraction_id"):
+        if str(record.get(field) or "") != override[field]:
+            raise ValueError(f"Fg support re-extraction mismatch at row {record['source_row_number']}: {field}")
+    return override
+
+
 def _normalize_source(
     frame: pd.DataFrame, source_id: str, spec: Mapping[str, Any], shared: Mapping[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -180,7 +234,9 @@ def _normalize_source(
             rejections.append(_structural_rejection(candidate, structural))
             ledger.append(_ledger_row(candidate, 0, 0, 1, [], structural=True))
             continue
-        accepted, rejected, parent = _process_candidate(candidate, source_id, spec)
+        accepted, rejected, parent = _process_candidate(
+            candidate, source_id, spec, shared["fg_reextractions"],
+        )
         records.extend(accepted)
         rejections.extend(rejected)
         ledger.append(parent)

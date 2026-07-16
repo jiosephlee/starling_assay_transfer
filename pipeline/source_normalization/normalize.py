@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 import hashlib
 import json
+import re
 from typing import Any, Mapping
 
 import pandas as pd
@@ -55,6 +56,35 @@ def _native(value: Any) -> Any:
 
 def _native_row(row: Mapping[str, Any]) -> dict[str, Any]:
     return {key: _native(value) for key, value in row.items()}
+
+
+def _normalized_entity_name(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _reconcile_identifier(
+    row: dict[str, Any], context: Mapping[str, Any], row_number: int,
+) -> dict[str, Any]:
+    entry = context.get("identifier_reconciliations", {}).get((context["source_id"], row_number))
+    if entry is None:
+        return row
+    if as_nonempty_text(row.get("global_identifier")) is not None:
+        raise ValueError(f"identifier reconciliation targets populated row {row_number}")
+    checks = {
+        "pmid": str(row.get("pmid") or ""), "extraction_id": str(row.get("extraction_id") or ""),
+        "normalized_molecule_name": _normalized_entity_name(row.get("molecule_name")),
+    }
+    for field, actual in checks.items():
+        if str(entry[field]) != actual:
+            raise ValueError(f"identifier reconciliation mismatch at row {row_number}: {field}")
+    resolved = dict(row)
+    resolved.update({
+        "global_identifier_original": None,
+        "global_identifier": entry["resolved_global_identifier"],
+        "identifier_resolution_method": entry["resolution_method"],
+        "identifier_resolution_evidence_rows": entry["evidence_source_rows"],
+    })
+    return resolved
 
 
 def _mapped_structure(
@@ -193,7 +223,7 @@ def normalize_row(
     row: Mapping[str, Any], context: Mapping[str, Any], row_number: int
 ) -> tuple[dict[str, Any], list[str]]:
     source_id, spec = context["source_id"], context["spec"]
-    original = _native_row(row)
+    original = _reconcile_identifier(_native_row(row), context, row_number)
     structure, structure_error = structure_fields(original, spec, context["mapping"])
     endpoint = endpoint_fields(original, spec)
     measurement, measurement_error = measurement_fields(original, spec, context["allowlists"])

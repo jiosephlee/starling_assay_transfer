@@ -1,0 +1,17 @@
+version: sampling_v3
+seed: 17
+split: {train: 0.70, validation: 0.15, test: 0.15}
+quotas: {train: 200000, validation: 2000, test: 2000}
+strata: [assay_concept, tanimoto_bucket]
+allocation: equal
+capacity_headroom: 1.0
+initial_queries_per_retrieval_per_bucket:
+  oral_bioavailability: 4
+  oral_exposure: 4
+  Fa: 16
+  Fg: 128
+  Fh: 48
+sparse_strata:
+  train_all_available: [Fa|high, Fg|high, Fh|high]
+  heldout_matched_min: [Fa|high, Fg|high]
+expansion_prefixes: [200000, 400000, 800000]

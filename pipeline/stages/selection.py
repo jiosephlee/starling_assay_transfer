@@ -37,6 +37,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from pipeline.policy import load_sampling_policy  # noqa: E402
+from pipeline.v3_policy import V3Policies, resolve_path  # noqa: E402
 
 SPLITS = ("train", "validation", "test")
 
@@ -127,11 +128,12 @@ def _equal_allocation(quota: int, n_strata: int) -> tuple[int, int]:
 
 
 def _select_split(
-    pool: list[dict[str, Any]], quota: int, sampling: Any
+    pool: list[dict[str, Any]], quota: int, sampling: Any, expected_strata: Optional[list[tuple]] = None,
+    targets: Optional[dict[tuple, Optional[int]]] = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Equal-allocation, degree-controlled selection of up to ``quota`` from one pool."""
     orders, excluded_no_stratum = stratum_orders(pool, sampling)
-    strata = sorted(orders)
+    strata = sorted(expected_strata or orders)
     per_stratum_quota, remainder = _equal_allocation(quota, len(strata))
 
     selected: list[dict[str, Any]] = []
@@ -139,9 +141,10 @@ def _select_split(
     per_stratum_available: Counter = Counter()
     underfilled: dict[str, int] = {}
     for i, s in enumerate(strata):
-        order = orders[s]
+        order = orders.get(s, [])
         per_stratum_available[s] = len(order)
-        target = per_stratum_quota + (1 if i < remainder else 0)
+        target = targets.get(s) if targets is not None else per_stratum_quota + (1 if i < remainder else 0)
+        target = len(order) if target is None else target
         take = order[:target]
         selected.extend(take)
         per_stratum_selected[s] = len(take)
@@ -172,13 +175,25 @@ def _coverage_report(pool: list[dict[str, Any]]) -> dict[str, Any]:
     for r in pool:
         by_concept[r.get("assay_concept")].append(r)
         by_bucket[r.get("tanimoto_bucket")].append(r)
-        by_endpoint[r.get("canonical_endpoint_id")].append(r)
+        by_endpoint[r.get("canonical_endpoint_key") or r.get("canonical_endpoint_id")].append(r)
     return {
         "overall": cov(pool),
         "by_assay_concept": {k: cov(v) for k, v in by_concept.items()},
         "by_tanimoto_bucket": {k: cov(v) for k, v in by_bucket.items()},
         "by_endpoint": {k: cov(v) for k, v in by_endpoint.items()},
     }
+
+
+def _selected_audit(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    query = Counter(row["query_smiles"] for row in rows)
+    retrieval = Counter(row["retrieved_smiles"] for row in rows)
+    records = Counter(row["retrieval_record_id"] for row in rows)
+    labels = Counter(str(row["binary_label"]) for row in rows)
+    return {"binary_label_counts": dict(labels), "unique_query_molecules": len(query),
+            "unique_retrieval_molecules": len(retrieval), "unique_retrieval_records": len(records),
+            "max_query_degree": max(query.values(), default=0),
+            "max_retrieval_molecule_degree": max(retrieval.values(), default=0),
+            "max_retrieval_record_degree": max(records.values(), default=0)}
 
 
 def _write_split(rows: list[dict[str, Any]], out_dir: Path, schema: pa.Schema) -> None:
@@ -192,7 +207,9 @@ def _write_split(rows: list[dict[str, Any]], out_dir: Path, schema: pa.Schema) -
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
-    sampling = load_sampling_policy()
+    release = getattr(args, "release", None)
+    policies = V3Policies(resolve_path(release)) if release else None
+    sampling = _v3_sampling(policies) if policies else load_sampling_policy()
     quotas = {
         "train": args.train_quota if args.train_quota is not None else sampling.quotas.get("train", 0),
         "validation": args.val_quota if args.val_quota is not None else sampling.quotas.get("validation", 0),
@@ -211,18 +228,18 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
 
     report: dict[str, Any] = {"stage": "select", "sampling_version": sampling.version,
                               "quotas": quotas, "seed": sampling.seed, "splits": {}}
+    configured_targets = getattr(args, "stratum_targets", None)
     for split in SPLITS:
         pool = by_split.get(split, [])
-        # train: require continuous target; val/test: require a hard binary label.
-        if split == "train":
-            eligible = [r for r in pool if r.get("continuous_target") is not None]
-        else:
-            eligible = [r for r in pool if r.get("binary_label") is not None]
-        selected, audit = _select_split(eligible, quotas[split], sampling)
+        eligible = [r for r in pool if r.get("binary_label") is not None]
+        expected = _expected_strata(policies) if policies else None
+        targets = _targets_for_split(configured_targets, split)
+        selected, audit = _select_split(eligible, quotas[split], sampling, expected, targets)
         out_dir = args.output_dir / "selected" / split
         _write_split(selected, out_dir, schema)
         report["splits"][split] = {
             **audit,
+            **_selected_audit(selected),
             "eligible_candidates": len(eligible),
             "total_candidates": len(pool),
             "binary_label_coverage": _coverage_report(pool),
@@ -233,6 +250,35 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     return report
 
 
+def _targets_for_split(config: Optional[dict], split: str) -> Optional[dict[tuple, Optional[int]]]:
+    if not config or split not in config:
+        return None
+    targets = {}
+    for key, value in config[split].items():
+        concept, bucket = key.split("|", 1)
+        targets[(concept, bucket)] = None if value is None else int(value)
+    return targets
+
+
+def _expected_strata(policies: V3Policies) -> list[tuple[str, str]]:
+    return [(concept, bucket) for concept in policies.concepts["concepts"] for bucket in ("low", "high")]
+
+
+class _V3Sampling:
+    def __init__(self, policies: V3Policies):
+        config = policies.sampling
+        self.version = config["version"]
+        self.quotas = {key: int(value) for key, value in config["quotas"].items()}
+        self.seed = int(config["seed"])
+        self.max_per_query_molecule = 0
+        self.max_per_retrieval_molecule = 0
+        self.max_per_retrieval_record = 0
+
+
+def _v3_sampling(policies: V3Policies) -> _V3Sampling:
+    return _V3Sampling(policies)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidates", nargs="+", required=True, help="pairs.parquet dirs/files.")
@@ -240,6 +286,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-quota", type=int, default=None)
     parser.add_argument("--val-quota", type=int, default=None)
     parser.add_argument("--test-quota", type=int, default=None)
+    parser.add_argument("--release", default=None)
     return parser.parse_args()
 
 

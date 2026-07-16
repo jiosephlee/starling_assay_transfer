@@ -1,0 +1,12 @@
+build: assay_transfer_binary_v3
+version: v3
+release: configs/assay_transfer/v3/release.yaml
+base_inputs:
+  - datasets/base/canonical_endpoints_v1/oral_bioavailability
+  - datasets/base/canonical_endpoints_v1/starling_oba
+  - datasets/base/canonical_endpoints_v1/intestinal_absorption
+  - datasets/base/canonical_endpoints_v1/gut_wall
+  - datasets/base/canonical_endpoints_v1/hepatic
+hf:
+  template_dir: templates/assay_transfer_v3
+

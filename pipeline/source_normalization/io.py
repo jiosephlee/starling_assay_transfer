@@ -26,10 +26,24 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _deep_merge(base: dict[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, Mapping) and isinstance(merged.get(key), Mapping):
+            merged[key] = _deep_merge(dict(merged[key]), value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def load_config(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
         config = yaml.safe_load(handle)
-    if config.get("version") != "source_normalization_v1":
+    parent = config.pop("extends", None)
+    if parent:
+        config = _deep_merge(load_config(path.parent / parent), config)
+    supported = {"source_normalization_v1", "source_normalization_v2", "source_normalization_v3"}
+    if config.get("version") not in supported:
         raise ValueError(f"unsupported config version: {config.get('version')!r}")
     return config
 
@@ -129,13 +143,54 @@ def load_mapping(path: Path, identifiers: set[str]) -> tuple[dict[str, str], dic
     return mapping, stats
 
 
-def load_tdc_exclusions(path: Path) -> tuple[set[str], dict[str, Any]]:
+def load_tdc_exclusions(
+    path: Path, included_splits: list[str] | None = None,
+) -> tuple[set[str], dict[str, Any]]:
     table = pq.read_table(path)
+    source_rows = len(table)
+    if included_splits is not None:
+        split_mask = pc.is_in(table["split"], value_set=pa.array(included_splits))
+        table = table.filter(split_mask)
     raw = {value for value in table["raw_smiles"].to_pylist() if value}
     canonical = {value for value in table["canonical_smiles"].to_pylist() if value}
     splits = sorted(set(table["split"].to_pylist()))
-    stats = {"rows": len(table), "raw_unique": len(raw), "canonical_unique": len(canonical), "splits": splits}
+    stats = {
+        "source_rows": source_rows, "rows": len(table), "raw_unique": len(raw),
+        "canonical_unique": len(canonical), "splits": splits,
+        "included_splits": included_splits,
+    }
     return raw | canonical, stats
+
+
+def load_identifier_reconciliations(path: Path) -> tuple[dict[tuple[str, int], dict], dict[str, Any]]:
+    frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+    allowed = {"same_pmid_unique_name", "source_unique_name"}
+    mappings: dict[tuple[str, int], dict] = {}
+    methods: dict[str, int] = {}
+    for row in frame.to_dict(orient="records"):
+        key = (row["source_id"], int(row["source_row_number"]))
+        if key in mappings:
+            raise ValueError(f"duplicate identifier reconciliation key: {key}")
+        if row["resolution_method"] not in allowed:
+            raise ValueError(f"unsupported identifier resolution method: {row['resolution_method']}")
+        mappings[key] = row
+        methods[row["resolution_method"]] = methods.get(row["resolution_method"], 0) + 1
+    return mappings, {"rows": len(frame), "methods": methods}
+
+
+def load_fg_support_reextractions(path: Path) -> tuple[dict[tuple[str, int], dict], dict[str, int]]:
+    """Load curated Q3 support-text recoveries keyed by immutable source row."""
+    frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+    required = {"source_id", "source_row_number", "pmid", "extraction_id", "measurement_text"}
+    if set(frame.columns) != required:
+        raise ValueError("unexpected Fg support re-extraction columns")
+    entries: dict[tuple[str, int], dict] = {}
+    for row in frame.to_dict(orient="records"):
+        key = (row["source_id"], int(row["source_row_number"]))
+        if key in entries or not row["measurement_text"]:
+            raise ValueError(f"invalid Fg support re-extraction: {key}")
+        entries[key] = row
+    return entries, {"rows": len(entries)}
 
 
 def write_parquet(frame: pd.DataFrame, path: Path) -> None:
