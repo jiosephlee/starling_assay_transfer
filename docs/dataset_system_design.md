@@ -57,7 +57,7 @@ build progress is directly visible: if `fa_plus_oba_human_v1` exists under `spli
 
 | New | Current | Notes |
 |---|---|---|
-| `datasets/sources/` | `datasets/starling_assays/datasets/` | rename `q1`-`q4` to semantic names |
+| `datasets/_source/` | semantic extraction Parquets | pinned raw-source inputs |
 | `datasets/base/` | `datasets/base/` | keep; becomes strictly per-source normalized records |
 | `datasets/splits/` | split half of `datasets/pairs_split_full/` | molecule assignment only |
 | `datasets/pairs/` | `datasets/pairs_compact/` | candidate pairs, compact form |

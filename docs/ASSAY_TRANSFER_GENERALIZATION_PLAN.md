@@ -91,8 +91,9 @@ the model.
 
 ## 4. Full datasets
 
-The Parquets under `datasets/starling_assays/datasets/` are canonical. CSV exports under
-`datasets/starling_assays/unpacked/` are for inspection only.
+Raw extraction inputs now live under `datasets/_source/`, organized by semantic domain.
+The semantic Parquets are retained as canonical snapshots; source-normalization v1 pins the
+matching CSV exports byte-for-byte for stable provenance.
 
 | Dataset | Scientific role | Rows | Unique SMILES | Missing SMILES |
 |---|---|---:|---:|---:|

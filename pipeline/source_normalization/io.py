@@ -152,4 +152,3 @@ def write_json(payload: Mapping[str, Any], path: Path) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(content, encoding="utf-8")
     os.replace(temporary, path)
-

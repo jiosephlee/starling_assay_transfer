@@ -10,7 +10,7 @@ report_path: docs/source_normalization_report.md
 
 references:
   smiles_mapping:
-    path: datasets/starling_assays/final_smiles_mapping_v2.parquet
+    path: datasets/_source/final_smiles_mapping_v2.parquet
     format: parquet
     sha256: 98ae43b6d9c61b77f0a95e4dce681010694b163a02e7a313667592d985496a0b
     size: 54852240
@@ -44,7 +44,7 @@ categorical_allowlists:
 sources:
   q1:
     semantic_name: oral_bioavailability
-    path: datasets/starling_assays/unpacked/q1_extractions.csv
+    path: datasets/_source/oral_bioavailability/extractions.csv
     format: csv
     sha256: 18a03e6744723a60811965cf316b866b7d9473226a890261740f81479ba22661
     size: 48778367
@@ -59,7 +59,7 @@ sources:
     normalized_fields: [exposure_measure, parameter_units, statistic_type, oral_dose, study_context, comparator_exposure, qualifying_conditions]
   q2:
     semantic_name: intestinal_absorption
-    path: datasets/starling_assays/unpacked/q2_extractions.csv
+    path: datasets/_source/intestinal_absorption/extractions.csv
     format: csv
     sha256: 8960778a88ffd3dd35a32457f98c9544fdd1724e8f1222bc6852039cbfc1a949
     size: 35365649
@@ -75,7 +75,7 @@ sources:
     normalized_fields: [endpoint_category, assay_system, reported_units, condition_medium, biological_context, formulation_or_solid_form, qualifying_conditions]
   q3:
     semantic_name: gut_wall
-    path: datasets/starling_assays/unpacked/q3_extractions.csv
+    path: datasets/_source/gut_wall/extractions.csv
     format: csv
     sha256: eb8f0e5419f3c2cc67cd5bdd13735c54af9f2b8bd4753f62c8fc6a34f5c0d638
     size: 15492045
@@ -92,7 +92,7 @@ sources:
     normalized_fields: [gut_wall_process, transporter_or_enzyme, substrate_status, assay_system, intestinal_site, qualifying_conditions]
   q4:
     semantic_name: hepatic
-    path: datasets/starling_assays/unpacked/q4_extractions.csv
+    path: datasets/_source/hepatic/extractions.csv
     format: csv
     sha256: e78b8190ddf01bfb2f6f415931557ce6f610859ab5f9af481207a2fadb075d5e
     size: 26375606

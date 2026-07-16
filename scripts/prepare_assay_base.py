@@ -4,7 +4,7 @@
 This is the new first phase of the assay-transfer pipeline (before the base builder).
 Driven entirely by a :class:`TaskSpec`, it:
 
-1. loads the raw CSV (``datasets/starling_assays/{Fa,Fg,Fh}.csv``),
+1. loads a canonical extraction input from ``datasets/_source/<domain>/``,
 2. resolves the internal ``global_identifier`` ("SMILES:<int>") to real SMILES via
    ``final_smiles_mapping_v2.parquet``,
 3. filters to the task's comparable-endpoint family,
@@ -36,7 +36,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from pipeline.taskspecs import available, get_task  # noqa: E402
 
-DEFAULT_ID_SMILES_MAP = "datasets/starling_assays/final_smiles_mapping_v2.parquet"
+DEFAULT_ID_SMILES_MAP = "datasets/_source/final_smiles_mapping_v2.parquet"
 
 
 def load_id_smiles_map(map_path: Path, needed_ids: set[str]) -> dict[str, str]:
