@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normalize Q1--Q4 and Starling into round-one artifacts."""
+"""Build finite scalar canonical bases directly from Q1--Q4 and Starling."""
 
 from __future__ import annotations
 
@@ -31,8 +31,11 @@ def main() -> None:
     RDLogger.DisableLog("rdApp.error")
     manifests = run_normalization(args.config, args.data_root, args.output_root, args.report)
     for manifest in manifests:
-        counts = manifest["counts"]
-        print(f"{manifest['source_id']}: {counts['accepted']} accepted, {counts['rejected']} rejected")
+        yields = manifest["stage_yields"]
+        print(
+            f"{manifest['source_id']}: {yields['accepted_base_children']} base children "
+            f"from {yields['raw_parents']} raw parents"
+        )
 
 
 if __name__ == "__main__":

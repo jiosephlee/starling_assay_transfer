@@ -1,10 +1,11 @@
 version: source_normalization_v1
-artifact_schema_version: normalized_records_v1
-value_parser_version: measurement_parser_v1
+artifact_schema_version: canonical_endpoints_v1
+value_parser_version: scalar_measurement_parser_v1
+endpoint_resolver_version: canonical_endpoint_resolver_v1
 unit_normalization_version: lexical_unit_v1
 structure_normalization_version: rdkit_canonical_isomeric_v1
 species_normalization_version: species_v1
-output_directory: datasets/normalized_sources/v1
+output_directory: datasets/base/canonical_endpoints_v1
 report_path: docs/source_normalization_report.md
 
 references:

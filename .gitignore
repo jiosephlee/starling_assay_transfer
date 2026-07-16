@@ -10,6 +10,7 @@ datasets/*
 !datasets/base/
 !datasets/starling_eval/
 !datasets/exclusions/
+datasets/base/canonical_endpoints_v1/
 *.log
 *.out
 *.err
