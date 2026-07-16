@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 from pipeline.source_normalization.base_artifacts import (
     build_manifest, endpoint_inventory, output_hashes, render_report,
@@ -228,6 +229,26 @@ def _postflight(config: Mapping[str, Any], data_root: Path) -> None:
             raise RuntimeError(f"input changed during base construction: {path}")
 
 
+def _refresh_source_manifest(
+    source_id: str, spec: Mapping[str, Any], output_root: Path, shared: Mapping[str, Any],
+) -> dict[str, Any]:
+    source_directory = output_root / spec["semantic_name"]
+    required = ("records.parquet", "rejections.parquet", "parent_ledger.parquet", "endpoint_inventory.parquet")
+    missing = [name for name in required if not (source_directory / name).exists()]
+    if missing:
+        raise FileNotFoundError(f"missing base artifacts for {source_id}: {missing}")
+    records = pq.read_table(source_directory / "records.parquet").to_pylist()
+    rejections = pq.read_table(source_directory / "rejections.parquet").to_pylist()
+    ledger = pq.read_table(source_directory / "parent_ledger.parquet").to_pylist()
+    manifest = build_manifest(
+        source_id=source_id, spec=spec, records=records, rejections=rejections,
+        ledger=ledger, shared=shared, hashes=output_hashes(source_directory),
+        source_directory=source_directory,
+    )
+    write_json(manifest, source_directory / "manifest.json")
+    return manifest
+
+
 def run_normalization(
     config_path: Path, data_root: Path, output_root: Path | None = None,
     report_path: Path | None = None,
@@ -238,6 +259,26 @@ def run_normalization(
     shared = _shared_context(config, config_path, data_root, source_metadata, reference_metadata)
     outputs = output_root or data_root / config["output_directory"]
     manifests = [_write_source(key, spec, data_root, outputs, shared) for key, spec in config["sources"].items()]
+    _postflight(config, data_root)
+    report = report_path or config_path.parents[1] / config["report_path"]
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_report(manifests), encoding="utf-8")
+    return manifests
+
+
+def refresh_manifests(
+    config_path: Path, data_root: Path, output_root: Path | None = None,
+    report_path: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Refresh base manifests after a byte-identical input relocation."""
+    config = load_config(config_path)
+    source_metadata, reference_metadata = _preflight(config, data_root)
+    shared = _shared_context(config, config_path, data_root, source_metadata, reference_metadata)
+    outputs = output_root or data_root / config["output_directory"]
+    manifests = [
+        _refresh_source_manifest(key, spec, outputs, shared)
+        for key, spec in config["sources"].items()
+    ]
     _postflight(config, data_root)
     report = report_path or config_path.parents[1] / config["report_path"]
     report.parent.mkdir(parents=True, exist_ok=True)
