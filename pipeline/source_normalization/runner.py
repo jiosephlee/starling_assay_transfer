@@ -67,7 +67,7 @@ def _child_id(parent_id: str, label: str | None, start: int, end: int, index: in
 
 def _base_rejection(record: Mapping[str, Any], child_id: str | None, stage: str) -> dict[str, Any]:
     keep = (
-        "record_id", "source_id", "source_row_number", "input_sha256", "pmid", "extraction_id",
+        "record_id", "source_id", "source_name", "source_row_number", "input_sha256", "pmid", "extraction_id",
         "global_identifier", "source_smiles", "authoritative_smiles", "canonical_smiles",
         "endpoint_alias_raw", "measurement_raw",
     )
@@ -135,6 +135,7 @@ def _ledger_row(
 ) -> dict[str, Any]:
     return {
         "parent_provenance_id": record["record_id"], "source_id": record["source_id"],
+        "source_name": record["source_name"],
         "source_row_number": record["source_row_number"], "input_sha256": record["input_sha256"],
         "parent_status": _parent_status(emitted, accepted, rejection_count, structural),
         "scalar_children_emitted": emitted, "accepted_child_count": accepted,
@@ -172,6 +173,7 @@ def _normalize_source(
     records, rejections, ledger = [], [], []
     for row_number, row in enumerate(frame.to_dict(orient="records"), start=1):
         candidate, reasons = normalize_row(row, context, row_number)
+        candidate["source_name"] = spec["semantic_name"]
         structural = [reason for reason in reasons if reason in _STRUCTURAL_REASONS]
         if structural:
             rejections.append(_structural_rejection(candidate, structural))
@@ -203,11 +205,13 @@ def _write_source(
     frame = read_source(spec, data_root)
     records, rejections, ledger = _normalize_source(frame, source_id, spec, shared)
     _assert_invariants(records, ledger, spec, shared)
-    source_directory = output_root / source_id
+    source_name = spec["semantic_name"]
+    source_directory = output_root / source_name
     write_parquet(pd.DataFrame(records), source_directory / "records.parquet")
     write_parquet(pd.DataFrame(rejections), source_directory / "rejections.parquet")
     write_parquet(pd.DataFrame(ledger), source_directory / "parent_ledger.parquet")
-    write_parquet(endpoint_inventory(records, source_id), source_directory / "endpoint_inventory.parquet")
+    inventory = endpoint_inventory(records, source_id, source_name)
+    write_parquet(inventory, source_directory / "endpoint_inventory.parquet")
     hashes = output_hashes(source_directory)
     manifest = build_manifest(
         source_id=source_id, spec=spec, records=records, rejections=rejections,

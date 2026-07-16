@@ -43,6 +43,7 @@ categorical_allowlists:
 
 sources:
   q1:
+    semantic_name: oral_bioavailability
     path: datasets/starling_assays/unpacked/q1_extractions.csv
     format: csv
     sha256: 18a03e6744723a60811965cf316b866b7d9473226a890261740f81479ba22661
@@ -57,6 +58,7 @@ sources:
     expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, exposure_measure, parameter_value, parameter_units, statistic_type, oral_dose, study_context, comparator_exposure, qualifying_conditions, extra_details, smiles]
     normalized_fields: [exposure_measure, parameter_units, statistic_type, oral_dose, study_context, comparator_exposure, qualifying_conditions]
   q2:
+    semantic_name: intestinal_absorption
     path: datasets/starling_assays/unpacked/q2_extractions.csv
     format: csv
     sha256: 8960778a88ffd3dd35a32457f98c9544fdd1724e8f1222bc6852039cbfc1a949
@@ -72,6 +74,7 @@ sources:
     expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, endpoint_category, assay_system, reported_value, reported_units, condition_medium, biological_context, formulation_or_solid_form, qualifying_conditions, extra_details, smiles]
     normalized_fields: [endpoint_category, assay_system, reported_units, condition_medium, biological_context, formulation_or_solid_form, qualifying_conditions]
   q3:
+    semantic_name: gut_wall
     path: datasets/starling_assays/unpacked/q3_extractions.csv
     format: csv
     sha256: eb8f0e5419f3c2cc67cd5bdd13735c54af9f2b8bd4753f62c8fc6a34f5c0d638
@@ -88,6 +91,7 @@ sources:
     expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, molecule_name, gut_wall_process, transporter_or_enzyme, substrate_status, assay_system, intestinal_site, measured_value, qualifying_conditions, extra_details, smiles]
     normalized_fields: [gut_wall_process, transporter_or_enzyme, substrate_status, assay_system, intestinal_site, qualifying_conditions]
   q4:
+    semantic_name: hepatic
     path: datasets/starling_assays/unpacked/q4_extractions.csv
     format: csv
     sha256: e78b8190ddf01bfb2f6f415931557ce6f610859ab5f9af481207a2fadb075d5e
@@ -103,6 +107,7 @@ sources:
     expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, metric_type, assay_system, species, molecular_form, reported_value, reported_units, enzyme_or_pathway, qualifying_conditions, extra_details, smiles]
     normalized_fields: [metric_type, assay_system, species, molecular_form, reported_units, enzyme_or_pathway, qualifying_conditions]
   starling:
+    semantic_name: starling_oba
     path: datasets/base/Oral_bioavailability_cleaned_v3/train.parquet
     format: parquet
     sha256: 2068cd431e76155d0c7f61a9eb45a2ba64eaa8d77c7a19c966a70a294079dceb

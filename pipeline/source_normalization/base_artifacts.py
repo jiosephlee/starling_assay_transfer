@@ -22,12 +22,17 @@ IDENTITY_FIELDS = (
 )
 
 
-def endpoint_inventory(records: list[dict[str, Any]], source_id: str) -> pd.DataFrame:
+def endpoint_inventory(
+    records: list[dict[str, Any]], source_id: str, source_name: str,
+) -> pd.DataFrame:
     counts = Counter(tuple(record.get(field) for field in IDENTITY_FIELDS) for record in records)
     rows = []
     for values, count in sorted(counts.items(), key=lambda item: tuple(str(v) for v in item[0])):
-        rows.append({"source_id": source_id, **dict(zip(IDENTITY_FIELDS, values, strict=True)), "count": count})
-    return pd.DataFrame(rows, columns=["source_id", *IDENTITY_FIELDS, "count"])
+        rows.append({
+            "source_id": source_id, "source_name": source_name,
+            **dict(zip(IDENTITY_FIELDS, values, strict=True)), "count": count,
+        })
+    return pd.DataFrame(rows, columns=["source_id", "source_name", *IDENTITY_FIELDS, "count"])
 
 
 def output_hashes(source_directory: Path) -> dict[str, str]:
@@ -68,7 +73,8 @@ def build_manifest(
         "artifact_schema_version": shared["config"]["artifact_schema_version"],
         "scalar_parser_version": shared["config"]["value_parser_version"],
         "endpoint_resolver_version": shared["config"]["endpoint_resolver_version"],
-        "source_id": source_id, "runtime_versions": runtime_versions(),
+        "source_id": source_id, "source_name": spec["semantic_name"],
+        "runtime_versions": runtime_versions(),
         "input": shared["source_metadata"][source_id], "references": shared["reference_metadata"],
         "config_sha256": shared["config_hash"],
         "stage_yields": {
@@ -109,7 +115,7 @@ def render_report(manifests: list[Mapping[str, Any]]) -> str:
     for item in manifests:
         yields, coverage, expansion = item["stage_yields"], item["endpoint_coverage"], item["split_expansion"]
         lines.append(
-            f"| {item['source_id']} | {yields['raw_parents']:,} | {yields['scalar_children_emitted']:,} | "
+            f"| {item['source_name']} | {yields['raw_parents']:,} | {yields['scalar_children_emitted']:,} | "
             f"{yields['accepted_base_children']:,} | {coverage['unique_canonical_endpoint_keys']:,} | "
             f"{expansion['partially_retained_parents']:,} |"
         )

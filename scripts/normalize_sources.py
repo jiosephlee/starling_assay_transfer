@@ -33,7 +33,7 @@ def main() -> None:
     for manifest in manifests:
         yields = manifest["stage_yields"]
         print(
-            f"{manifest['source_id']}: {yields['accepted_base_children']} base children "
+            f"{manifest['source_name']}: {yields['accepted_base_children']} base children "
             f"from {yields['raw_parents']} raw parents"
         )
 

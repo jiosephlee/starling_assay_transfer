@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import unittest
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -128,6 +130,17 @@ class EndpointAssignmentTest(unittest.TestCase):
         self.assertIn("zero_to_24h", assigned.canonical_endpoint_key)
         self.assertIsNone(missing)
         self.assertEqual(reason, "missing_auc_window_or_unit")
+
+
+class SemanticSourceNameTest(unittest.TestCase):
+    def test_semantic_names_are_unique_and_stable(self) -> None:
+        config = yaml.safe_load((REPO_ROOT / "configs/source_normalization_v1.yaml").read_text())
+        names = {source: spec["semantic_name"] for source, spec in config["sources"].items()}
+        self.assertEqual(names, {
+            "q1": "oral_bioavailability", "q2": "intestinal_absorption",
+            "q3": "gut_wall", "q4": "hepatic", "starling": "starling_oba",
+        })
+        self.assertEqual(len(set(names.values())), len(names))
 
 
 if __name__ == "__main__":
