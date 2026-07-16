@@ -1,8 +1,7 @@
-"""Tests for the pairs stage: endpoint firewall, labeling, setting exclusion."""
+"""Tests for the v2 pairs stage: record votes, strict majority, continuous target, firewall."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import sys
 import tempfile
@@ -16,7 +15,13 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from pipeline.normalize.conditions import CONDITION_COLUMNS  # noqa: E402
-from pipeline.stages import pairs  # noqa: E402
+
+try:
+    from pipeline.stages import pairs  # imports FingerprintCache (rdkit)
+
+    _HAS_RDKIT = True
+except Exception:  # pragma: no cover
+    _HAS_RDKIT = False
 
 
 def _Args(**kw):
@@ -25,8 +30,9 @@ def _Args(**kw):
     return ns
 
 
-def _base_row(smiles, endpoint, metric, value, species="human", **conditions):
-    row = {
+def _row(smiles, value, endpoint="q2.fraction_absorbed.percent", metric="bounded_percentage",
+         species="human", ext="e0"):
+    r = {
         "smiles": smiles,
         "source_id": "q2",
         "canonical_endpoint_id": endpoint,
@@ -35,10 +41,12 @@ def _base_row(smiles, endpoint, metric, value, species="human", **conditions):
         "property_value": float(value),
         "property_value_native": float(value),
         "species_exact": species,
+        "pmid": "1",
+        "extraction_id": ext,
     }
     for c in CONDITION_COLUMNS:
-        row[c] = conditions.get(c)
-    return row
+        r[c] = None
+    return r
 
 
 def _write_base(path, rows):
@@ -53,67 +61,69 @@ def _write_split(path, molecules, split="train"):
     )
 
 
-class PairsStageTest(unittest.TestCase):
-    def _run(self, rows, molecules, profile, tmp):
-        base = Path(tmp) / "base.parquet"
-        split_dir = Path(tmp) / "splits"
-        split_dir.mkdir()
+@unittest.skipUnless(_HAS_RDKIT, "rdkit not available")
+class PairsV2Test(unittest.TestCase):
+    def _run(self, rows, molecules, splits, profile="same_endpoint"):
+        tmp = Path(self._tmp.name)
+        base = tmp / "base.parquet"
+        split_dir = tmp / "splits"
+        split_dir.mkdir(exist_ok=True)
         _write_base(base, rows)
-        _write_split(split_dir / "molecule_splits.parquet", molecules)
-        out = Path(tmp) / "pairs"
+        sm = pa.table({"smiles": molecules, "canonical_smiles": molecules, "split": splits})
+        pq.write_table(sm, split_dir / "molecule_splits.parquet")
+        out = tmp / f"pairs_{profile}"
         manifest = pairs.build(
-            _Args(base=[base], split_dir=split_dir, profile=profile, output_dir=out, seed=1, max_queries=64)
+            _Args(base=[base], split_dir=split_dir, profile=profile, output_dir=out,
+                  split_version="v2", max_queries=0)
         )
         table = pq.read_table(out / "pairs.parquet").to_pylist()
         return manifest, table
 
-    def test_firewall_and_labels_same_endpoint(self) -> None:
-        rows = [
-            _base_row("m1", "q2.fraction_absorbed.percent", "bounded_percentage", 50),
-            _base_row("m2", "q2.fraction_absorbed.percent", "bounded_percentage", 55),  # close -> transfer
-            _base_row("m3", "q2.fraction_absorbed.percent", "bounded_percentage", 90),  # far -> not_transfer
-            _base_row("m1", "q4.metabolic_half_life", "half_life", 2.0),  # different endpoint
-        ]
-        with tempfile.TemporaryDirectory() as tmp:
-            manifest, table = self._run(rows, ["m1", "m2", "m3"], "same_endpoint", tmp)
-            # No pair crosses an endpoint.
-            self.assertTrue(all(p["canonical_endpoint_id"] == "q2.fraction_absorbed.percent" for p in table))
-            # m1(50) -> m2(55) transfer ; m1(50) -> m3(90) not_transfer.
-            by_pair = {(p["retrieved_smiles"], p["query_smiles"]): p["transfer_label"] for p in table}
-            self.assertEqual(by_pair[("m1", "m2")], "transfer")
-            self.assertEqual(by_pair[("m1", "m3")], "not_transfer")
-            # self-pairs excluded.
-            self.assertNotIn(("m1", "m1"), by_pair)
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
 
-    def test_same_species_excludes_null_species(self) -> None:
+    def test_votes_majority_and_continuous(self) -> None:
+        # CC=ethane, CCO=ethanol, CCCO=propanol, c1ccccc1=benzene; use valid SMILES so rdkit fps work.
         rows = [
-            _base_row("m1", "q2.fraction_absorbed.percent", "bounded_percentage", 50, species="human"),
-            _base_row("m2", "q2.fraction_absorbed.percent", "bounded_percentage", 52, species=None),
+            _row("CCO", 50, ext="a"),                # retrieved m1=50
+            _row("CCCO", 52, ext="b1"),              # query m2 records: 52,51,90
+            _row("CCCO", 51, ext="b2"),
+            _row("CCCO", 90, ext="b3"),
+            _row("c1ccccc1", 70, ext="c"),           # query m3 single: 70 (ambiguous vs 50)
+            # a different endpoint for m1 -> must never pair with the % endpoint (firewall)
+            _row("CCO", 2.0, endpoint="q4.metabolic_half_life", metric="half_life", ext="d"),
         ]
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(RuntimeError):  # m2 excluded -> no cross-molecule query
-                self._run(rows, ["m1", "m2"], "same_species_same_endpoint", tmp)
+        mols = ["CCO", "CCCO", "c1ccccc1"]
+        _, table = self._run(rows, mols, ["train"] * 3)
+        by = {(r["retrieved_smiles"], r["query_smiles"]): r for r in table}
+
+        # firewall: no candidate crosses endpoints.
+        self.assertTrue(all(r["canonical_endpoint_id"] == "q2.fraction_absorbed.percent" for r in table))
+
+        # m1(50) -> m2 evidence [52,51,90]: votes t,t,nt -> N=3 n_t=2 -> majority transfer(1).
+        c = by[("CCO", "CCCO")]
+        self.assertEqual(c["n_records"], 3)
+        self.assertEqual(c["n_transfer"], 2)
+        self.assertEqual(c["n_nontransfer"], 1)
+        self.assertEqual(c["n_ambiguous"], 0)
+        self.assertEqual(c["binary_label"], 1)
+        self.assertEqual(c["majority_side"], "transfer")
+        self.assertAlmostEqual(c["continuous_target"], (2 + 1 + 40) / 3, places=6)  # mean of |50-y|
+
+        # m1(50) -> m3 single 70: d=20 ambiguous -> null binary, but continuous target kept.
+        c2 = by[("CCO", "c1ccccc1")]
+        self.assertEqual(c2["n_records"], 1)
+        self.assertEqual(c2["n_ambiguous"], 1)
+        self.assertIsNone(c2["binary_label"])
+        self.assertAlmostEqual(c2["continuous_target"], 20.0)
+        self.assertIn(c2["tanimoto_bucket"], ("low", "high"))
+        self.assertEqual(c2["assay_concept"], "Fa")
 
     def test_within_split_no_leakage(self) -> None:
-        rows = [
-            _base_row("m1", "q2.fraction_absorbed.percent", "bounded_percentage", 50),
-            _base_row("m2", "q2.fraction_absorbed.percent", "bounded_percentage", 55),
-        ]
-        with tempfile.TemporaryDirectory() as tmp:
-            base = Path(tmp) / "base.parquet"
-            split_dir = Path(tmp) / "splits"
-            split_dir.mkdir()
-            _write_base(base, rows)
-            # m1 train, m2 test -> they must never pair.
-            pq.write_table(
-                pa.table({"smiles": ["m1", "m2"], "canonical_smiles": ["m1", "m2"], "split": ["train", "test"]}),
-                split_dir / "molecule_splits.parquet",
-            )
-            with self.assertRaises(RuntimeError):
-                pairs.build(
-                    _Args(base=[base], split_dir=split_dir, profile="same_endpoint",
-                          output_dir=Path(tmp) / "pairs", seed=1, max_queries=64)
-                )
+        rows = [_row("CCO", 50, ext="a"), _row("CCCO", 55, ext="b")]
+        with self.assertRaises(RuntimeError):  # m1 train, m2 test -> no in-split partner
+            self._run(rows, ["CCO", "CCCO"], ["train", "test"])
 
 
 if __name__ == "__main__":

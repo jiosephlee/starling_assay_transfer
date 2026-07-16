@@ -1,29 +1,33 @@
 #!/usr/bin/env python3
-"""Pairs stage: base records + split -> asymmetric transfer pairs, within endpoint & split.
+"""Pairs stage: base records + split -> directed candidate transfer examples.
 
-For a chosen condition-key profile ``K`` (``same_endpoint``,
-``same_species_same_endpoint``, ``most_specific``) this builds the asymmetric training
-pairs of ``docs/assay_transfer_design.md`` sections 2, 8:
+Implements the version-2 unit of supervision (``docs/assay_transfer_design_v2.md`` 4, 9,
+10): each candidate is ``E = (r_A, B, K_A)`` — one concrete retrieval record ``r_A``, one
+different query molecule ``B``, and the shared setting ``K_A``. The target comes from the
+*evidence distribution* ``R_B(K_A)`` = every record of ``B`` under the same canonical
+endpoint and setting:
 
-- **retrieved** ``A`` = one concrete measurement row (its value ``y_A`` is kept);
-- **query** ``B`` = a molecule whose value is *marginalized* over the ``K`` setting — the
-  mean of ``B``'s records sharing ``A``'s setting key (incidental context averaged away).
+- **record distance** ``d_j = |y_A - y_Bj|`` on the transformed metric scale;
+- **three-state vote** per record (``MetricThreshold.label`` -> transfer / not_transfer /
+  None=ambiguous); ambiguous votes count in the denominator ``N``;
+- **strict-majority** nullable binary label (``> N/2``); and
+- **continuous primary target** ``D_expected = mean_j(d_j)`` (mean of distances, NOT the
+  distance to the mean value), retained even when the binary label is null.
 
-Pairs never cross a ``canonical_endpoint_id`` (the section 5.1 firewall) and are built
-**within a single split** so no label uses a held-out molecule. The record label comes
-from the metric policy (:meth:`pipeline.policy.MetricThreshold.label`) applied on the
-transformed value scale; deadband pairs are dropped from the binary target.
+Candidates never cross a ``canonical_endpoint_id`` (the firewall) and are built within a
+single split (both molecules in the example's split). Each candidate carries a stable
+``candidate_id``, its assay concept, and a low/high Tanimoto bucket (sampling strata only).
+Degree control and fixed sizes are applied later in the select stage; this stage
+enumerates the (optionally capped) candidate universe.
 
-Marginalizing to the query *mean* is the documented distance-to-mean baseline (section
-8.2); the preferred record-first ``P_transfer`` aggregation is a later increment. Queries
-per retrieved record are sampled (seeded) to bound the quadratic pool (section 12.2).
+The condition-key machinery (profiles / setting fields) is consumed unchanged.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-import random
 import statistics
 import sys
 from collections import Counter, defaultdict
@@ -38,7 +42,16 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from pipeline.endpoints import load_endpoint_resolver  # noqa: E402
-from pipeline.policy import load_condition_key_policy, load_metric_policy  # noqa: E402
+from pipeline.normalize.common_transfer import FingerprintCache  # noqa: E402
+from pipeline.policy import (  # noqa: E402
+    load_assay_concepts,
+    load_condition_key_policy,
+    load_fingerprint_policy,
+    load_majority_policy,
+    load_metric_policy,
+    load_sampling_policy,
+    load_tanimoto_policy,
+)
 
 PROFILES = ("same_endpoint", "same_species_same_endpoint", "most_specific")
 
@@ -59,13 +72,11 @@ def _load_base_rows(base_paths: list[Path]) -> list[dict[str, Any]]:
 
 
 def _setting_fields(profile: str, ck: Any, most_specific_schema: Optional[str]) -> list[str]:
-    """Join fields beyond the endpoint key that define the K setting."""
     fields = ck.join_fields(profile, most_specific_schema)
     return [f for f in fields if f != "canonical_endpoint_key"]
 
 
 def _setting_key(row: dict[str, Any], fields: list[str]) -> Optional[tuple]:
-    """Setting-key tuple, or None if any required field is missing (exclude the row)."""
     values = []
     for f in fields:
         v = row.get(f)
@@ -75,10 +86,34 @@ def _setting_key(row: dict[str, Any], fields: list[str]) -> Optional[tuple]:
     return tuple(values)
 
 
+def _record_id(row: dict[str, Any]) -> str:
+    """Stable retrieval-record identity from provenance (falls back to row index)."""
+    ext = row.get("extraction_id")
+    if ext:
+        return str(ext)
+    return f"pmid={row.get('pmid')}#row={row.get('_row_index')}"
+
+
+def _candidate_id(record_id: str, query: str, endpoint: str, profile: str,
+                  setting_key: str, split_version: str, target_policy_version: str) -> str:
+    payload = "|".join([record_id, query, endpoint, profile, setting_key,
+                        split_version, target_policy_version])
+    return hashlib.sha1(payload.encode()).hexdigest()
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     resolver = load_endpoint_resolver()
     ck = load_condition_key_policy()
     metric_policy = load_metric_policy()
+    majority = load_majority_policy()
+    concepts = load_assay_concepts()
+    tanimoto = load_tanimoto_policy()
+    fp_policy = load_fingerprint_policy()
+    sampling = load_sampling_policy()
+
+    fp_cache = FingerprintCache(radius=fp_policy.radius, nbits=fp_policy.n_bits)
+    target_policy_version = f"{majority.version}+{metric_policy.version}"
+    enum_cap = args.max_queries if args.max_queries is not None else sampling.enumeration_cap
 
     split_map = _load_split_map(args.split_dir)
     base_paths = [Path(p) for p in args.base]
@@ -88,10 +123,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         r["_split"] = split_map.get(r.get("smiles"))
         r["_mol"] = r.get("smiles")
 
-    rng = random.Random(args.seed)
-    pair_rows: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     stats: Counter = Counter()
     per_endpoint: Counter = Counter()
+    label_counts: Counter = Counter()
 
     # Partition by (split, canonical_endpoint_id) -> firewall + no cross-split leakage.
     groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -107,9 +142,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         except (KeyError, ValueError):
             continue
         metric = metric_policy.for_metric(resolver.metric_type(endpoint_id))
+        if not metric.is_numeric:
+            continue  # non-numeric endpoints handled by a later categorical target policy
 
-        # Eligible rows carry a valid setting key; index queries by (setting, molecule).
-        query_values: dict[tuple, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        # Evidence index: (setting_key) -> query molecule -> list of transformed values.
+        evidence: dict[tuple, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
         eligible: list[dict[str, Any]] = []
         for r in grp:
             key = _setting_key(r, fields)
@@ -118,67 +155,112 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             r["_setting"] = key
             eligible.append(r)
-            query_values[key][r["_mol"]].append(float(r["property_value"]))
+            evidence[key][r["_mol"]].append(float(r["property_value"]))
 
-        # Precompute query marginal (mean) per (setting, molecule).
-        query_mean: dict[tuple, dict[str, tuple[float, int, float]]] = defaultdict(dict)
-        for key, mols in query_values.items():
-            for mol, vals in mols.items():
-                std = statistics.pstdev(vals) if len(vals) > 1 else 0.0
-                query_mean[key][mol] = (statistics.fmean(vals), len(vals), std)
-
-        # Asymmetric enumeration: retrieved row A -> query molecule B (B != A's molecule),
-        # both sharing A's setting key. Sample queries to bound the pool.
         for a in eligible:
             key = a["_setting"]
-            candidates = [m for m in query_mean[key] if m != a["_mol"]]
-            if not candidates:
-                continue
-            if len(candidates) > args.max_queries:
-                candidates = rng.sample(candidates, args.max_queries)
+            candidate_mols = [m for m in evidence[key] if m != a["_mol"]]
+            if enum_cap and len(candidate_mols) > enum_cap:
+                candidate_mols = sorted(candidate_mols)[:enum_cap]
             y_a = float(a["property_value"])
-            for b in candidates:
-                q_mean, q_n, q_std = query_mean[key][b]
-                label = metric.label(y_a, q_mean)
-                if label is None:
-                    stats["deadband_dropped"] += 1
+            fp_a = fp_cache.get(a["_mol"])
+            for b in candidate_mols:
+                y_bs = evidence[key][b]
+                n_total = len(y_bs)
+                if n_total < majority.min_eligible_records:
+                    stats["below_min_evidence"] += 1
                     continue
-                pair_rows.append(
+                distances = [abs(y_a - y) for y in y_bs]
+                n_transfer = n_nontransfer = 0
+                for y in y_bs:
+                    vote = metric.label(y_a, y)
+                    if vote == "transfer":
+                        n_transfer += 1
+                    elif vote == "not_transfer":
+                        n_nontransfer += 1
+                n_ambiguous = n_total - n_transfer - n_nontransfer
+
+                binary_label = majority.majority_label(n_transfer, n_nontransfer, n_total)
+                if binary_label == 1:
+                    majority_side = "transfer"
+                elif binary_label == 0:
+                    majority_side = "not_transfer"
+                else:
+                    majority_side = None
+                margin = (
+                    max(n_transfer, n_nontransfer) / n_total - 0.5
+                    if binary_label is not None
+                    else None
+                )
+                d_expected = statistics.fmean(distances)
+
+                fp_b = fp_cache.get(b)
+                sim = fp_cache.similarity(fp_a, fp_b) if (fp_a and fp_b) else None
+                bucket = tanimoto.bucket_for(sim)
+
+                setting_str = "|".join(key)
+                record_id = _record_id(a)
+                candidates.append(
                     {
+                        "candidate_id": _candidate_id(
+                            record_id, b, endpoint_id, args.profile, setting_str,
+                            args.split_version, target_policy_version,
+                        ),
                         "split": split,
                         "canonical_endpoint_id": endpoint_id,
+                        "assay_concept": concepts.concept_for(a.get("source_id")),
                         "k_profile": args.profile,
-                        "setting_key": "|".join(key),
+                        "setting_key": setting_str,
+                        "metric_type": a["metric_type"],
+                        "retrieval_record_id": record_id,
                         "retrieved_row_index": a["_row_index"],
                         "retrieved_smiles": a["_mol"],
+                        "retrieved_source_id": a.get("source_id"),
                         "retrieved_value": y_a,
                         "retrieved_value_native": float(a["property_value_native"]),
                         "query_smiles": b,
-                        "query_value_mean": q_mean,
-                        "query_n": q_n,
-                        "query_std": q_std,
-                        "metric_type": a["metric_type"],
-                        "transfer_label": label,
+                        "n_records": n_total,
+                        "n_transfer": n_transfer,
+                        "n_nontransfer": n_nontransfer,
+                        "n_ambiguous": n_ambiguous,
+                        "transfer_fraction": n_transfer / n_total,
+                        "nontransfer_fraction": n_nontransfer / n_total,
+                        "ambiguous_fraction": n_ambiguous / n_total,
+                        "binary_label": binary_label,
+                        "majority_side": majority_side,
+                        "majority_margin": margin,
+                        "continuous_target": d_expected,
+                        "dist_std": statistics.pstdev(distances) if n_total > 1 else 0.0,
+                        "dist_median": statistics.median(distances),
+                        "dist_max": max(distances),
+                        "tanimoto": sim,
+                        "tanimoto_bucket": bucket,
                     }
                 )
-                stats[label] += 1
                 per_endpoint[endpoint_id] += 1
+                label_counts[{1: "transfer", 0: "not_transfer"}.get(binary_label, "null")] += 1
 
-    if not pair_rows:
+    if not candidates:
         raise RuntimeError(
-            f"no pairs produced for profile {args.profile!r}; the setting may exclude all rows"
+            f"no candidates produced for profile {args.profile!r}; the setting may exclude all rows"
         )
 
-    columns = list(pair_rows[0].keys())
+    _INT = {"retrieved_row_index", "n_records", "n_transfer", "n_nontransfer", "n_ambiguous"}
+    _FLOAT = {"retrieved_value", "retrieved_value_native", "transfer_fraction",
+              "nontransfer_fraction", "ambiguous_fraction", "majority_margin",
+              "continuous_target", "dist_std", "dist_median", "dist_max", "tanimoto"}
+    columns = list(candidates[0].keys())
     arrays = {}
     for c in columns:
-        vals = [pr[c] for pr in pair_rows]
-        if c in ("retrieved_row_index", "query_n"):
+        vals = [row[c] for row in candidates]
+        if c == "binary_label":
+            arrays[c] = pa.array(vals, type=pa.int8())  # nullable 0/1/None
+        elif c in _INT:
             arrays[c] = pa.array(vals, type=pa.int64())
-        elif c in ("retrieved_value", "retrieved_value_native", "query_value_mean", "query_std"):
+        elif c in _FLOAT:
             arrays[c] = pa.array(vals, type=pa.float64())
         else:
-            arrays[c] = pa.array([str(v) for v in vals], type=pa.string())
+            arrays[c] = pa.array([None if v is None else str(v) for v in vals], type=pa.string())
     table = pa.table(arrays)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     pq.write_table(table, args.output_dir / "pairs.parquet", compression="zstd")
@@ -188,16 +270,26 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "k_profile": args.profile,
         "base_inputs": [str(p) for p in base_paths],
         "split_dir": str(args.split_dir),
-        "seed": args.seed,
-        "max_queries_per_retrieved": args.max_queries,
+        "split_version": args.split_version,
+        "enumeration_cap": enum_cap,
         "condition_key_version": ck.version,
         "metric_threshold_version": metric_policy.version,
-        "total_pairs": len(pair_rows),
-        "label_counts": {"transfer": stats.get("transfer", 0), "not_transfer": stats.get("not_transfer", 0)},
-        "deadband_dropped": stats.get("deadband_dropped", 0),
+        "record_vote_version": "record_vote_v1",
+        "majority_label_version": majority.version,
+        "fingerprint_version": fp_policy.version,
+        "tanimoto_bucket_version": tanimoto.version,
+        "assay_concept_version": concepts.version,
+        "target_policy_version": target_policy_version,
+        "total_candidates": len(candidates),
+        "binary_label_counts": {k: label_counts.get(k, 0) for k in ("transfer", "not_transfer", "null")},
+        "hard_binary_coverage": round(
+            (label_counts.get("transfer", 0) + label_counts.get("not_transfer", 0)) / len(candidates), 4
+        ),
         "excluded_missing_setting": stats.get("excluded_missing_setting", 0),
-        "pairs_by_endpoint": dict(per_endpoint.most_common()),
-        "pairs_by_split": dict(Counter(pr["split"] for pr in pair_rows)),
+        "below_min_evidence": stats.get("below_min_evidence", 0),
+        "candidates_by_endpoint": dict(per_endpoint.most_common()),
+        "candidates_by_split": dict(Counter(c["split"] for c in candidates)),
+        "candidates_by_tanimoto_bucket": dict(Counter(c["tanimoto_bucket"] for c in candidates)),
     }
     (args.output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
@@ -209,8 +301,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--split-dir", type=Path, required=True, help="Split stage output dir.")
     parser.add_argument("--profile", required=True, choices=PROFILES)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--seed", type=int, default=17)
-    parser.add_argument("--max-queries", type=int, default=64, help="Query molecules sampled per retrieved row.")
+    parser.add_argument("--split-version", default="v2")
+    parser.add_argument("--max-queries", type=int, default=None,
+                        help="Optional enumeration cap per retrieved record (default: sampling.yaml).")
     return parser.parse_args()
 
 
