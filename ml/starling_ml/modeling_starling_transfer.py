@@ -208,9 +208,10 @@ class StarlingTransferModel(PreTrainedModel):
             nn.Linear(config.mol_hidden, config.mol_out),
         )
         self.meta_proj = MetaFieldProjection(n_fields, config.text_emb_dim, config.meta_field_proj)
-        head_in = 2 * config.mol_out + 2 * self.meta_proj.out_features
-        if config.use_source_value:
-            head_in += 1
+        # Asymmetric (assay_transfer_design_v2.md 3): retrieval = structure + metadata + y_A,
+        # query = structure only. head_in = h_a + m_a + h_b + y_A.
+        self.source_value_scale = float(config.source_value_scale)
+        head_in = 2 * config.mol_out + self.meta_proj.out_features + 1
         self.input_ln = nn.LayerNorm(head_in)
         self.in_proj = nn.Linear(head_in, config.d_model)
         self.blocks = nn.ModuleList(
@@ -218,6 +219,8 @@ class StarlingTransferModel(PreTrainedModel):
             for _ in range(config.n_blocks)
         )
         self.out_ln = nn.LayerNorm(config.d_model)
+        # v2 dual head (names match TransferPairModel): dist_out primary, out binary aux.
+        self.dist_out = nn.Linear(config.d_model, 1)
         self.out = nn.Linear(config.d_model, 1)
         self.post_init()  # sets up tied-weights tracking that from_pretrained relies on
 
@@ -274,29 +277,28 @@ class StarlingTransferModel(PreTrainedModel):
             emb[torch.tensor(idx, device=self.device), fi] = pooled.to(emb.dtype)
         return emb, present
 
-    def _encode_pair_side(self, smiles, metadata) -> torch.Tensor:
+    def _encode_retrieval(self, smiles, metadata) -> torch.Tensor:
         h = self.mol_mlp(self._encode_molecule(smiles))
         meta_emb, present = self._encode_metadata(metadata)
         m = self.meta_proj(meta_emb, present)
         return torch.cat([h, m], dim=-1)
 
-    def _head(self, x: torch.Tensor) -> torch.Tensor:
+    def _encode_query(self, smiles) -> torch.Tensor:
+        return self.mol_mlp(self._encode_molecule(smiles))  # structure only
+
+    def _trunk(self, x: torch.Tensor) -> torch.Tensor:
         x = self.in_proj(self.input_ln(x))
         for block in self.blocks:
             x = block(x)
-        return self.out(self.out_ln(x)).squeeze(-1)
+        return self.out_ln(x)
 
-    def forward(self, smiles_a, smiles_b, metadata_a, metadata_b, source_value=None, labels=None):
-        za = self._encode_pair_side(smiles_a, metadata_a)
-        zb = self._encode_pair_side(smiles_b, metadata_b)
-        parts = [za, zb]
-        if self.config.use_source_value:
-            if source_value is None:
-                raise ValueError("source_value (molecule A's raw oral_bioavailability_value) is required")
-            sv = torch.as_tensor(source_value, dtype=za.dtype, device=za.device) / self.config.source_value_scale
-            parts.append(sv.reshape(-1, 1))
-        logits = self._head(torch.cat(parts, dim=-1))
-        loss = None
-        if labels is not None:
-            loss = F.binary_cross_entropy_with_logits(logits, torch.as_tensor(labels, dtype=logits.dtype, device=logits.device))
-        return ModelOutput(loss=loss, logits=logits)
+    def forward(self, smiles_a, smiles_b, metadata_a, source_value, metadata_b=None, labels=None):
+        # metadata_b is accepted but ignored: the query contributes structure only (3).
+        za = self._encode_retrieval(smiles_a, metadata_a)  # [h_a | m_a]
+        zb = self._encode_query(smiles_b)                  # [h_b]
+        y_a = (torch.as_tensor(source_value, dtype=za.dtype, device=za.device)
+               / self.source_value_scale).reshape(-1, 1)
+        trunk = self._trunk(torch.cat([za, zb, y_a], dim=-1))
+        distance = F.softplus(self.dist_out(trunk)).squeeze(-1)
+        logits = self.out(trunk).squeeze(-1)
+        return ModelOutput(loss=None, logits=logits, distance=distance)
