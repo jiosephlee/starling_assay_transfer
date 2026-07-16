@@ -180,13 +180,15 @@ def compute_molformer(smiles: list[str], cfg: Config) -> np.ndarray:
     return out
 
 
-def compute_metadata(columns: dict[str, list], cfg: Config) -> tuple[np.ndarray, np.ndarray]:
+def compute_metadata(
+    field_values: dict[str, list], metadata_fields: list[str], cfg: Config
+) -> tuple[np.ndarray, np.ndarray]:
     """Embed each metadata field with MiniLM and emit a presence mask.
 
-    Returns ``(emb, present)`` where ``emb`` is ``(N, F, 384)`` float16 with **zeros for missing
-    fields** (the model overrides these via a learned per-field missing embedding), and ``present``
-    is ``(N, F)`` uint8 (1 = field non-null and non-empty after trim). Only present values are sent
-    through the encoder.
+    ``field_values`` maps each field name in ``metadata_fields`` to a length-N list of raw
+    values. Returns ``(emb, present)`` where ``emb`` is ``(N, F, 384)`` float16 with **zeros
+    for missing fields** and ``present`` is ``(N, F)`` uint8 (1 = field non-null and
+    non-empty after trim). Only present values are sent through the encoder.
     """
     from sentence_transformers import SentenceTransformer
 
@@ -195,12 +197,12 @@ def compute_metadata(columns: dict[str, list], cfg: Config) -> tuple[np.ndarray,
     device = "cuda" if _cuda() else "cpu"
     encoder = SentenceTransformer(name, device=device)
 
-    n = len(columns["smiles"])
-    n_fields = cfg.embedding.n_meta_fields
+    n = len(next(iter(field_values.values()))) if field_values else 0
+    n_fields = len(metadata_fields)
     out = np.zeros((n, n_fields, cfg.embedding.text_emb_dim), dtype=np.float16)  # missing -> zeros
     present = np.zeros((n, n_fields), dtype=np.uint8)
-    for f_idx, field_name in enumerate(cfg.embedding.metadata_fields):
-        raw = columns[field_name]
+    for f_idx, field_name in enumerate(metadata_fields):
+        raw = field_values[field_name]
         mask = np.array(
             [(v is not None and str(v).strip() != "") for v in raw], dtype=bool
         )
@@ -230,51 +232,87 @@ def _cuda() -> bool:
         return False
 
 
+def build_v2_tables(
+    dataset_parquet: str,
+    out_dir: str,
+    cfg: Config,
+    metadata_fields: list[str],
+    *,
+    molformer_fn=compute_molformer,
+    metadata_fn=compute_metadata,
+) -> dict:
+    """Build the v2 structure + retrieval-metadata embedding tables and their index maps.
+
+    From the materialized artifact (``dataset.parquet``): dedup ``query_smiles ∪
+    retrieved_smiles`` into a structure table and dedup the retrieval metadata tuples
+    (``retrieved_*``) into a metadata table, writing ``molformer_emb.npy`` +
+    ``smiles_index.json`` and ``metadata_emb.npy`` / ``metadata_present.npy`` +
+    ``meta_index.json``. Encoders are injectable so the dedup/index logic is testable
+    without MoLFormer/MiniLM. Keep ``metadata_fields`` in sync with
+    ``data.DEFAULT_METADATA_FIELDS``.
+    """
+    import pyarrow.parquet as pq
+
+    from .data import metadata_key
+
+    os.makedirs(out_dir, exist_ok=True)
+    rows = pq.read_table(dataset_parquet).to_pylist()
+
+    # Structure vocabulary (sorted for determinism) -> row index.
+    smiles = sorted({r["retrieved_smiles"] for r in rows} | {r["query_smiles"] for r in rows})
+    smiles_to_row = {s: i for i, s in enumerate(smiles)}
+
+    # Metadata vocabulary: one representative row per unique Z_A tuple.
+    meta_rep: dict[str, dict] = {}
+    for r in rows:
+        meta_rep.setdefault(metadata_key(r, tuple(metadata_fields)), r)
+    meta_keys = sorted(meta_rep)
+    meta_to_row = {k: i for i, k in enumerate(meta_keys)}
+    field_values = {f: [meta_rep[k].get(f) for k in meta_keys] for f in metadata_fields}
+
+    mol_emb = molformer_fn(smiles, cfg)
+    meta_emb, meta_present = metadata_fn(field_values, metadata_fields, cfg)
+
+    np.save(os.path.join(out_dir, "molformer_emb.npy"), mol_emb)
+    np.save(os.path.join(out_dir, "metadata_emb.npy"), meta_emb)
+    np.save(os.path.join(out_dir, "metadata_present.npy"), meta_present)
+    with open(os.path.join(out_dir, "smiles_index.json"), "w") as fh:
+        json.dump(smiles_to_row, fh)
+    with open(os.path.join(out_dir, "meta_index.json"), "w") as fh:
+        json.dump(meta_to_row, fh)
+
+    manifest = {
+        "dataset_parquet": dataset_parquet,
+        "dataset_sha256": _file_sha256(dataset_parquet),
+        "n_examples": len(rows),
+        "n_unique_smiles": len(smiles),
+        "n_unique_metadata": len(meta_keys),
+        "molformer_model": cfg.embedding.molformer_model,
+        "text_encoder_model": cfg.embedding.text_encoder_model,
+        "mol_emb_shape": list(mol_emb.shape),
+        "metadata_emb_shape": list(meta_emb.shape),
+        "metadata_fields": list(metadata_fields),
+        "dtype": "float16",
+    }
+    with open(os.path.join(out_dir, "manifest.json"), "w") as fh:
+        json.dump(manifest, fh, indent=2)
+    print(f"[done] {len(smiles)} structures, {len(meta_keys)} metadata rows -> {out_dir}")
+    return manifest
+
+
 def main() -> None:
+    from .data import DEFAULT_METADATA_FIELDS
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="ml/configs/default.yaml")
     parser.add_argument("--set", dest="overrides", nargs="*", default=[])
-    parser.add_argument("--limit", type=int, default=None, help="encode only first N molecules (smoke test)")
+    parser.add_argument("--dataset", required=True, help="materialized dataset.parquet")
     parser.add_argument("--output-dir", default=None, help="override paths.embeddings_dir")
     args = parser.parse_args()
 
     cfg = Config.from_yaml(args.config).apply_overrides(args.overrides)
     out_dir = args.output_dir or cfg.paths.embeddings_dir
-    os.makedirs(out_dir, exist_ok=True)
-
-    print(f"[base] loading {cfg.paths.base_parquet}")
-    columns = _load_base_columns(cfg.paths.base_parquet, cfg.embedding.metadata_fields, args.limit)
-    n = len(columns["smiles"])
-    print(f"[base] {n} molecules")
-
-    mol_emb = compute_molformer(columns["smiles"], cfg)
-    meta_emb, meta_present = compute_metadata(columns, cfg)
-
-    mol_path = os.path.join(out_dir, "molformer_emb.npy")
-    meta_path = os.path.join(out_dir, "metadata_emb.npy")
-    present_path = os.path.join(out_dir, "metadata_present.npy")
-    np.save(mol_path, mol_emb)
-    np.save(meta_path, meta_emb)
-    np.save(present_path, meta_present)
-
-    manifest = {
-        "n_molecules": n,
-        "limit": args.limit,
-        "molformer_model": cfg.embedding.molformer_model,
-        "text_encoder_model": cfg.embedding.text_encoder_model,
-        "mol_emb_shape": list(mol_emb.shape),
-        "metadata_emb_shape": list(meta_emb.shape),
-        "metadata_present_shape": list(meta_present.shape),
-        "metadata_fields": list(cfg.embedding.metadata_fields),
-        "metadata_present_rate": [round(float(x), 4) for x in meta_present.mean(axis=0)],
-        "base_parquet": cfg.paths.base_parquet,
-        "base_parquet_sha256": _file_sha256(cfg.paths.base_parquet),
-        "dtype": "float16",
-    }
-    with open(os.path.join(out_dir, "manifest.json"), "w") as fh:
-        json.dump(manifest, fh, indent=2)
-    print(f"[done] wrote {mol_path} {mol_emb.shape}, {meta_path} {meta_emb.shape}, "
-          f"{present_path} {meta_present.shape}")
+    build_v2_tables(args.dataset, out_dir, cfg, list(DEFAULT_METADATA_FIELDS))
 
 
 if __name__ == "__main__":
