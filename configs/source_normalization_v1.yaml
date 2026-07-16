@@ -1,0 +1,133 @@
+version: source_normalization_v1
+artifact_schema_version: normalized_records_v1
+value_parser_version: measurement_parser_v1
+unit_normalization_version: lexical_unit_v1
+structure_normalization_version: rdkit_canonical_isomeric_v1
+species_normalization_version: species_v1
+output_directory: datasets/normalized_sources/v1
+report_path: docs/source_normalization_report.md
+
+references:
+  smiles_mapping:
+    path: datasets/starling_assays/final_smiles_mapping_v2.parquet
+    format: parquet
+    sha256: 98ae43b6d9c61b77f0a95e4dce681010694b163a02e7a313667592d985496a0b
+    size: 54852240
+    mtime_ns: 1783110203955792584
+    rows: 5650322
+    schema:
+      smiles: large_string
+      global_identifier: large_string
+  tdc_exclusion:
+    path: datasets/exclusions/tdc_bioavailability_ma_v3/tdc_bioavailability_ma_smiles.parquet
+    format: parquet
+    sha256: 8cb7619a0763829a8364f0486e5af41fa2ff02f961dd6b76f5d98aa86e5812bb
+    size: 38271
+    mtime_ns: 1782758903371519209
+    rows: 640
+    schema:
+      task: string
+      split: string
+      source_file: string
+      source_row_number: int32
+      raw_smiles: large_string
+      canonical_smiles: large_string
+      Y: int64
+      valid_smiles: bool
+
+categorical_allowlists:
+  q2_qualitative_v1: [decreased, enhanced, high, increased, low, stable, very high, very low]
+  q3_substrate_status_v1: [inconclusive, not_substrate, substrate]
+  q4_qualitative_v1: [decreased, high, increased, low, reduced, stable]
+
+sources:
+  q1:
+    path: datasets/starling_assays/unpacked/q1_extractions.csv
+    format: csv
+    sha256: 18a03e6744723a60811965cf316b866b7d9473226a890261740f81479ba22661
+    size: 48778367
+    mtime_ns: 1783921299411396916
+    rows: 119192
+    structure_mode: mapped
+    endpoint_column: exposure_measure
+    measurement_column: parameter_value
+    unit_column: parameter_units
+    species_collection: q1
+    expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, exposure_measure, parameter_value, parameter_units, statistic_type, oral_dose, study_context, comparator_exposure, qualifying_conditions, extra_details, smiles]
+    normalized_fields: [exposure_measure, parameter_units, statistic_type, oral_dose, study_context, comparator_exposure, qualifying_conditions]
+  q2:
+    path: datasets/starling_assays/unpacked/q2_extractions.csv
+    format: csv
+    sha256: 8960778a88ffd3dd35a32457f98c9544fdd1724e8f1222bc6852039cbfc1a949
+    size: 35365649
+    mtime_ns: 1783921299927375131
+    rows: 85061
+    structure_mode: mapped
+    endpoint_column: endpoint_category
+    measurement_column: reported_value
+    unit_column: reported_units
+    species_collection: q2
+    categorical_measurement_allowlist: q2_qualitative_v1
+    expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, endpoint_category, assay_system, reported_value, reported_units, condition_medium, biological_context, formulation_or_solid_form, qualifying_conditions, extra_details, smiles]
+    normalized_fields: [endpoint_category, assay_system, reported_units, condition_medium, biological_context, formulation_or_solid_form, qualifying_conditions]
+  q3:
+    path: datasets/starling_assays/unpacked/q3_extractions.csv
+    format: csv
+    sha256: eb8f0e5419f3c2cc67cd5bdd13735c54af9f2b8bd4753f62c8fc6a34f5c0d638
+    size: 15492045
+    mtime_ns: 1783921300155365506
+    rows: 27713
+    structure_mode: mapped
+    endpoint_column: gut_wall_process
+    measurement_column: measured_value
+    embedded_unit: true
+    categorical_column: substrate_status
+    categorical_allowlist: q3_substrate_status_v1
+    species_collection: q3
+    expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, molecule_name, gut_wall_process, transporter_or_enzyme, substrate_status, assay_system, intestinal_site, measured_value, qualifying_conditions, extra_details, smiles]
+    normalized_fields: [gut_wall_process, transporter_or_enzyme, substrate_status, assay_system, intestinal_site, qualifying_conditions]
+  q4:
+    path: datasets/starling_assays/unpacked/q4_extractions.csv
+    format: csv
+    sha256: e78b8190ddf01bfb2f6f415931557ce6f610859ab5f9af481207a2fadb075d5e
+    size: 26375606
+    mtime_ns: 1783921300443353347
+    rows: 67943
+    structure_mode: mapped
+    endpoint_column: metric_type
+    measurement_column: reported_value
+    unit_column: reported_units
+    categorical_measurement_allowlist: q4_qualitative_v1
+    species_collection: q4
+    expected_columns: [pmid, extraction_id, global_identifier, confidence, paragraph_idx, support_text, metric_type, assay_system, species, molecular_form, reported_value, reported_units, enzyme_or_pathway, qualifying_conditions, extra_details, smiles]
+    normalized_fields: [metric_type, assay_system, species, molecular_form, reported_units, enzyme_or_pathway, qualifying_conditions]
+  starling:
+    path: datasets/base/Oral_bioavailability_cleaned_v3/train.parquet
+    format: parquet
+    sha256: 2068cd431e76155d0c7f61a9eb45a2ba64eaa8d77c7a19c966a70a294079dceb
+    size: 4230463
+    mtime_ns: 1782758914039057739
+    rows: 49164
+    structure_mode: direct
+    endpoint_constant: oral_bioavailability
+    measurement_column: oral_bioavailability_value
+    unit_constant: percent
+    species_collection: oral_bioavailability
+    schema:
+      pmid: large_string
+      support_text: large_string
+      molecule_name: large_string
+      oral_bioavailability_value: double
+      bioavailability_report_type: large_string
+      species_or_population: large_string
+      dose: large_string
+      oral_exposure_mode: large_string
+      qualifying_conditions: large_string
+      comparator: large_string
+      extra_details: large_string
+      smiles: large_string
+      species_or_population_normalized: string
+      condition_key_repro: string
+    normalized_fields: [bioavailability_report_type, species_or_population, dose, oral_exposure_mode, qualifying_conditions, comparator]
+    normalized_field_names:
+      species_or_population: species_or_population_mechanical_normalized
