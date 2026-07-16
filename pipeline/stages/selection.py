@@ -56,78 +56,97 @@ def _stratum(row: dict[str, Any]) -> Optional[tuple[str, str]]:
     return (concept, bucket)
 
 
-def _select_split(
-    pool: list[dict[str, Any]], quota: int, sampling: Any
-) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Round-robin, degree-controlled selection of up to ``quota`` from one split pool."""
-    # Group by stratum -> query molecule -> candidates ordered by candidate_id (priority).
+def _round_robin(by_query: dict[str, list[dict[str, Any]]], sampling: Any) -> list[dict[str, Any]]:
+    """Full deterministic round-robin order over query molecules in one stratum.
+
+    Iterates query molecules (sorted) taking one candidate each pass, skipping candidates
+    blocked by the degree caps, until the stratum is exhausted. The returned order is
+    frozen: any size-``k`` prefix is a valid degree-controlled selection, and a smaller
+    prefix is contained in a larger one (nested-prefix expansion, section 13.3).
+    """
+    q_cap = sampling.max_per_query_molecule
+    rm_cap = sampling.max_per_retrieval_molecule
+    rr_cap = sampling.max_per_retrieval_record
+    q_counts: Counter = Counter()
+    rm_counts: Counter = Counter()
+    rr_counts: Counter = Counter()
+    cursors = {q: 0 for q in by_query}
+    queries = sorted(by_query)
+    order: list[dict[str, Any]] = []
+    progressed = True
+    while progressed:
+        progressed = False
+        for q in queries:
+            lst = by_query[q]
+            idx = cursors[q]
+            while idx < len(lst):
+                cand = lst[idx]
+                if q_cap and q_counts[q] >= q_cap:
+                    idx = len(lst)
+                    break
+                if rm_cap and rm_counts[cand["retrieved_smiles"]] >= rm_cap:
+                    idx += 1
+                    continue
+                if rr_cap and rr_counts[cand["retrieval_record_id"]] >= rr_cap:
+                    idx += 1
+                    continue
+                break
+            cursors[q] = idx
+            if idx >= len(lst):
+                continue
+            cand = lst[idx]
+            order.append(cand)
+            q_counts[q] += 1
+            rm_counts[cand["retrieved_smiles"]] += 1
+            rr_counts[cand["retrieval_record_id"]] += 1
+            cursors[q] = idx + 1
+            progressed = True
+    return order
+
+
+def stratum_orders(pool: list[dict[str, Any]], sampling: Any) -> tuple[dict[tuple, list[dict[str, Any]]], int]:
+    """Per-stratum frozen round-robin orders + count of candidates lacking a stratum."""
     by_stratum: dict[tuple, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
-    excluded_no_stratum = 0
+    excluded = 0
     for r in pool:
         s = _stratum(r)
         if s is None:
-            excluded_no_stratum += 1
+            excluded += 1
             continue
         by_stratum[s][r["query_smiles"]].append(r)
-    for s, by_q in by_stratum.items():
+    for by_q in by_stratum.values():
         for q in by_q:
             by_q[q].sort(key=lambda r: r["candidate_id"])
+    return {s: _round_robin(by_q, sampling) for s, by_q in by_stratum.items()}, excluded
 
-    strata = sorted(by_stratum)
-    # Equal allocation across strata that have any candidates.
-    per_stratum_quota = quota // len(strata) if strata else 0
-    remainder = quota - per_stratum_quota * len(strata)
+
+def _equal_allocation(quota: int, n_strata: int) -> tuple[int, int]:
+    if n_strata == 0:
+        return 0, 0
+    return quota // n_strata, quota - (quota // n_strata) * n_strata
+
+
+def _select_split(
+    pool: list[dict[str, Any]], quota: int, sampling: Any
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Equal-allocation, degree-controlled selection of up to ``quota`` from one pool."""
+    orders, excluded_no_stratum = stratum_orders(pool, sampling)
+    strata = sorted(orders)
+    per_stratum_quota, remainder = _equal_allocation(quota, len(strata))
 
     selected: list[dict[str, Any]] = []
     per_stratum_selected: Counter = Counter()
     per_stratum_available: Counter = Counter()
-    q_cap = sampling.max_per_query_molecule
-    rm_cap = sampling.max_per_retrieval_molecule
-    rr_cap = sampling.max_per_retrieval_record
-
+    underfilled: dict[str, int] = {}
     for i, s in enumerate(strata):
-        by_q = by_stratum[s]
-        per_stratum_available[s] = sum(len(v) for v in by_q.values())
+        order = orders[s]
+        per_stratum_available[s] = len(order)
         target = per_stratum_quota + (1 if i < remainder else 0)
-        q_counts: Counter = Counter()
-        rm_counts: Counter = Counter()
-        rr_counts: Counter = Counter()
-        cursors = {q: 0 for q in by_q}
-        queries = sorted(by_q)
-        taken = 0
-        progressed = True
-        while taken < target and progressed:
-            progressed = False
-            for q in queries:
-                if taken >= target:
-                    break
-                lst = by_q[q]
-                idx = cursors[q]
-                # advance past candidates blocked by caps
-                while idx < len(lst):
-                    cand = lst[idx]
-                    if q_cap and q_counts[q] >= q_cap:
-                        idx = len(lst)
-                        break
-                    if rm_cap and rm_counts[cand["retrieved_smiles"]] >= rm_cap:
-                        idx += 1
-                        continue
-                    if rr_cap and rr_counts[cand["retrieval_record_id"]] >= rr_cap:
-                        idx += 1
-                        continue
-                    break
-                cursors[q] = idx
-                if idx >= len(lst):
-                    continue
-                cand = lst[idx]
-                selected.append(cand)
-                q_counts[q] += 1
-                rm_counts[cand["retrieved_smiles"]] += 1
-                rr_counts[cand["retrieval_record_id"]] += 1
-                cursors[q] = idx + 1
-                taken += 1
-                progressed = True
-        per_stratum_selected[s] = taken
+        take = order[:target]
+        selected.extend(take)
+        per_stratum_selected[s] = len(take)
+        if len(take) < target:
+            underfilled[f"{s[0]}|{s[1]}"] = len(order)
 
     audit = {
         "quota": quota,
@@ -135,11 +154,7 @@ def _select_split(
         "excluded_no_stratum": excluded_no_stratum,
         "per_stratum_selected": {f"{c}|{b}": n for (c, b), n in sorted(per_stratum_selected.items())},
         "per_stratum_available": {f"{c}|{b}": n for (c, b), n in sorted(per_stratum_available.items())},
-        "underfilled_strata": {
-            f"{c}|{b}": per_stratum_available[(c, b)]
-            for (c, b) in strata
-            if per_stratum_selected[(c, b)] < (per_stratum_quota + (1 if strata.index((c, b)) < remainder else 0))
-        },
+        "underfilled_strata": underfilled,
     }
     return selected, audit
 
