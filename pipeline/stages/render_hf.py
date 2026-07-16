@@ -41,27 +41,36 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     if not rows:
         raise RuntimeError("no materialized rows to render")
 
+    _LABEL_NAME = {1: "transfer", 0: "not_transfer"}
     by_split: dict[str, list[dict[str, Any]]] = {s: [] for s in SPLITS}
     label_counts: dict[str, Counter] = {s: Counter() for s in SPLITS}
     for row in rows:
         split = row.get("split")
         if split not in by_split:
             continue
-        label = row.get("transfer_label")
+        # binary_label is nullable (1 / 0 / None); continuous_target is the primary signal.
+        blabel = row.get("binary_label")
+        name = _LABEL_NAME.get(blabel)
         by_split[split].append(
             {
                 "prompt": template.render(row=row),
-                "completion": _COMPLETION.get(label, f" {label}"),
-                "transfer_label": label,
+                "completion": _COMPLETION[name] if name else None,  # only hard-binary rows
+                "continuous_target": row.get("continuous_target"),
+                "binary_label": name,  # "transfer" / "not_transfer" / null
                 "query_smiles": row.get("query_smiles"),
                 "retrieved_smiles": row.get("retrieved_smiles"),
+                "retrieved_value": row.get("retrieved_value"),
                 "canonical_endpoint_id": row.get("canonical_endpoint_id"),
+                "assay_concept": row.get("assay_concept"),
+                "tanimoto_bucket": row.get("tanimoto_bucket"),
                 "k_profile": row.get("k_profile"),
+                "candidate_id": row.get("candidate_id"),
             }
         )
-        label_counts[split][label] += 1
+        label_counts[split][name or "null"] += 1
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    _FLOAT = {"continuous_target", "retrieved_value"}
     written = {}
     for split, recs in by_split.items():
         if not recs:
@@ -69,16 +78,23 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         split_dir = args.output_dir / split
         split_dir.mkdir(parents=True, exist_ok=True)
         cols = list(recs[0].keys())
-        table = pa.table({c: pa.array([r[c] for r in recs], type=pa.string()) for c in cols})
-        pq.write_table(table, split_dir / "data.parquet", compression="zstd")
+        arrays = {}
+        for c in cols:
+            vals = [r[c] for r in recs]
+            if c in _FLOAT:
+                arrays[c] = pa.array(vals, type=pa.float64())
+            else:
+                arrays[c] = pa.array([None if v is None else str(v) for v in vals], type=pa.string())
+        pq.write_table(pa.table(arrays), split_dir / "data.parquet", compression="zstd")
         written[split] = len(recs)
 
     info = {
         "stage": "render_hf",
         "dataset_input": str(args.dataset),
         "template": str(args.template),
+        "primary_target": "continuous_target",
         "rows_per_split": written,
-        "label_counts": {s: dict(label_counts[s]) for s in SPLITS if written.get(s)},
+        "binary_label_counts": {s: dict(label_counts[s]) for s in SPLITS if written.get(s)},
         "completion_map": _COMPLETION,
     }
     (args.output_dir / "dataset_info.json").write_text(json.dumps(info, indent=2))
