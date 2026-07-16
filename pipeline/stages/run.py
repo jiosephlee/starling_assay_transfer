@@ -33,9 +33,10 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from pipeline.stages import materialize, pairs, prepare, render_hf, split  # noqa: E402
+from pipeline.stages import expand, materialize, pairs, prepare, render_hf, selection, split  # noqa: E402
 
-STAGES = ("prepare", "split", "pairs", "materialize", "render_hf")
+STAGES = ("prepare", "split", "pairs", "select", "materialize", "render_hf", "expand")
+SELECTED_SPLITS = ("train", "validation", "test")
 DEFAULT_SOURCE_DIR = _REPO_ROOT / "datasets" / "sources"
 
 
@@ -76,24 +77,39 @@ def run_build(config: dict[str, Any], root: Path, source_dir: Path, stages: list
                       test_frac=split_cfg.get("test_frac", 0.1))
         )
 
+    select_cfg = config.get("select", {})
     for profile in profiles:
         pairs_dir = root / "pairs" / build_name / profile
+        select_dir = root / "select" / build_name / profile
         parquet_dir = root / "parquet" / build_name / profile
         hf_dir = root / "hf_parquet" / build_name / profile
+        expand_dir = root / "expand" / build_name / profile
         if "pairs" in stages:
             results["stages"].setdefault("pairs", {})[profile] = pairs.build(
                 Namespace(base=base_dirs, split_dir=split_dir, profile=profile,
-                          output_dir=pairs_dir, seed=pairs_cfg.get("seed", 17),
-                          max_queries=pairs_cfg.get("max_queries", 64))
+                          output_dir=pairs_dir, split_version=split_cfg.get("version", "v2"),
+                          max_queries=pairs_cfg.get("max_queries"))
+            )
+        if "select" in stages:
+            results["stages"].setdefault("select", {})[profile] = selection.build(
+                Namespace(candidates=[pairs_dir], output_dir=select_dir,
+                          train_quota=select_cfg.get("train_quota"),
+                          val_quota=select_cfg.get("val_quota"),
+                          test_quota=select_cfg.get("test_quota"))
             )
         if "materialize" in stages:
+            selected = [select_dir / "selected" / s for s in SELECTED_SPLITS]
             results["stages"].setdefault("materialize", {})[profile] = materialize.build(
-                Namespace(pairs=pairs_dir / "pairs.parquet", base=base_dirs, output_dir=parquet_dir)
+                Namespace(pairs=selected, base=base_dirs, output_dir=parquet_dir)
             )
         if "render_hf" in stages:
             template = Path(hf_cfg.get("template", render_hf.DEFAULT_TEMPLATE))
             results["stages"].setdefault("render_hf", {})[profile] = render_hf.build(
                 Namespace(dataset=parquet_dir / "dataset.parquet", template=template, output_dir=hf_dir)
+            )
+        if "expand" in stages:
+            results["stages"].setdefault("expand", {})[profile] = expand.build(
+                Namespace(candidates=[pairs_dir], output_dir=expand_dir, prefixes=None)
             )
 
     (root / "builds").mkdir(parents=True, exist_ok=True)

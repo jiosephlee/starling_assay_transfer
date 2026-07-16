@@ -1,0 +1,42 @@
+# Tier-1 composed v2 build: the clean unit-light endpoints of q2/q3/q4 under one shared
+# encoder, materialized as v2 directed retrieval-anchored transfer examples
+# (docs/assay_transfer_design_v2.md). Composition unions records; pairs stay within a
+# single canonical endpoint (the firewall). Policy versions are bound from
+# configs/assay_transfer/v2/release.yaml (which reuses the v1 endpoint/metric/species/
+# condition-key contracts).
+build: tier1_fa_fg_fh_v2
+version: v2
+
+sources:
+  - q2
+  - q3
+  - q4
+
+policy:
+  release: configs/assay_transfer/v2/release.yaml
+
+split:
+  version: v2
+  strategy: molecule_disjoint
+  seed: 17
+  train_frac: 0.8
+  val_frac: 0.1
+  test_frac: 0.1
+
+pairs:
+  profiles:
+    - same_endpoint
+    - same_species_same_endpoint
+    - most_specific
+  # Enumeration cap per retrieved record to bound the quadratic candidate universe before
+  # selection (degree control proper lives in the select stage). null -> sampling.yaml.
+  max_queries: 16
+
+# Fixed release sizes (default from sampling.yaml: 200k / 2k / 2k). Overridable per build.
+select:
+  train_quota: null
+  val_quota: null
+  test_quota: null
+
+hf:
+  template: templates/assay_transfer_classification.jinja
