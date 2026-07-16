@@ -67,19 +67,28 @@ class ModelConfig:
     dropout: float = 0.1
     # LayerScale init for residual branches (per-channel learnable scale); <=0 disables.
     layerscale_init: float = 0.0
-    # The retrieval value y_A is always a model input (assay_transfer_design.md 2, 10): the
-    # no-source-value variant is removed. Kept True; the residual gates in data.py/model.py
-    # are excised when data.py is rewritten to the new materialized schema.
+    # The retrieval value y_A is always a model input (assay_transfer_design_v2.md 3): the
+    # retrieval branch carries structure + metadata + y_A; the query branch is structure
+    # only (asymmetric). source_value carries y_A.
     use_source_value: bool = True
     source_value_scale: float = 100.0
+    # v2 primary head: predict the continuous transfer distance D_expected. The binary
+    # transfer head becomes a masked auxiliary (LossConfig.aux_binary_weight > 0).
+    predict_distance: bool = True
 
 
 @dataclass
 class LossConfig:
+    # --- v2 primary continuous distance objective (assay_transfer_design_v2.md 14.1) ---
+    # one of: "huber", "mse"
+    regression_kind: str = "huber"
+    huber_delta: float = 1.0
+    continuous_weight: float = 1.0
+    # Optional masked binary auxiliary (14.2); 0 disables it (continuous-only training).
+    aux_binary_weight: float = 0.0
+    # --- binary head settings (used only when the auxiliary head is active) ---
     # one of: "bce", "focal"
     kind: str = "bce"
-    # positive class is ~26% -> pos_weight ~ 0.74/0.26 ~= 2.85 for plain reweighting,
-    # but a milder 1.85 (negatives/positives capped) is the documented default; tune as needed.
     pos_weight: float = 1.85
     focal_gamma: float = 2.0
     focal_alpha: float = 0.25

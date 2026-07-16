@@ -46,6 +46,38 @@ def binary_metrics(logits: np.ndarray, labels: np.ndarray, threshold: float = 0.
     return out
 
 
+def regression_metrics(preds: np.ndarray, targets: np.ndarray) -> dict[str, float]:
+    """Continuous distance metrics for the v2 primary objective (assay_transfer_design_v2.md 15).
+
+    ``preds`` and ``targets`` are the predicted / target ``D_expected`` distances. Spearman
+    (rank) correlation is reported as ``higher-is-better`` so it can drive best-checkpoint
+    selection with the maximizing BestModelCallback.
+    """
+    preds = np.asarray(preds, dtype=np.float64).reshape(-1)
+    targets = np.asarray(targets, dtype=np.float64).reshape(-1)
+    mask = np.isfinite(preds) & np.isfinite(targets)
+    preds, targets = preds[mask], targets[mask]
+    out: dict[str, float] = {"n": float(preds.size)}
+    if preds.size == 0:
+        return {**out, "rmse": float("nan"), "mae": float("nan"), "r2": float("nan"),
+                "spearman": float("nan"), "pearson": float("nan")}
+    err = preds - targets
+    out["rmse"] = float(np.sqrt(np.mean(err ** 2)))
+    out["mae"] = float(np.mean(np.abs(err)))
+    ss_res = float(np.sum(err ** 2))
+    ss_tot = float(np.sum((targets - targets.mean()) ** 2))
+    out["r2"] = float(1.0 - ss_res / ss_tot) if ss_tot > 0 else float("nan")
+    if preds.size > 1 and np.std(preds) > 0 and np.std(targets) > 0:
+        from scipy.stats import pearsonr, spearmanr
+
+        out["pearson"] = float(pearsonr(preds, targets)[0])
+        out["spearman"] = float(spearmanr(preds, targets)[0])
+    else:
+        out["pearson"] = float("nan")
+        out["spearman"] = float("nan")
+    return out
+
+
 def simple_transfer_metrics(
     logits: np.ndarray, labels: np.ndarray, threshold: float = 0.5
 ) -> dict[str, float]:

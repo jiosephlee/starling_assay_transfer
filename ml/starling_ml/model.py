@@ -189,10 +189,10 @@ class TransferPairModel(nn.Module):
         # Per-field metadata branch (siamese, field-specific).
         self.meta_proj = MetaFieldProjection(n_fields, text_dim, model_cfg.meta_field_proj)
 
-        self.use_source_value = bool(model_cfg.use_source_value)
-        head_in = 2 * model_cfg.mol_out + 2 * self.meta_proj.out_features
-        if self.use_source_value:
-            head_in += 1
+        # Asymmetric head (assay_transfer_design_v2.md 3): retrieval side contributes
+        # structure + metadata + y_A; the query side contributes structure ONLY.
+        self.source_value_scale = float(model_cfg.source_value_scale)
+        head_in = 2 * model_cfg.mol_out + self.meta_proj.out_features + 1  # h_a, h_b, m_a, y_A
         self.input_ln = nn.LayerNorm(head_in)
         self.in_proj = nn.Linear(head_in, model_cfg.d_model)
         self.blocks = nn.ModuleList(
@@ -200,54 +200,68 @@ class TransferPairModel(nn.Module):
             for _ in range(model_cfg.n_blocks)
         )
         self.out_ln = nn.LayerNorm(model_cfg.d_model)
+        # v2 dual head: dist_out is the primary continuous distance; out is the masked
+        # binary auxiliary. Both read the shared trunk output.
+        self.dist_out = nn.Linear(model_cfg.d_model, 1)
         self.out = nn.Linear(model_cfg.d_model, 1)
 
         self.register_buffer("pos_weight", torch.tensor(float(loss_cfg.pos_weight)), persistent=False)
 
     # ---- branches ----
-    def _encode(self, idx: torch.Tensor) -> torch.Tensor:
-        h = self.mol_mlp(self.mol_emb[idx])
-        m = self.meta_proj(self.meta_emb[idx], self.meta_present[idx])
+    def _encode_retrieval(self, a_idx: torch.Tensor, meta_a_idx: torch.Tensor) -> torch.Tensor:
+        h = self.mol_mlp(self.mol_emb[a_idx])
+        m = self.meta_proj(self.meta_emb[meta_a_idx], self.meta_present[meta_a_idx])
         return torch.cat([h, m], dim=-1)
 
-    def _head(self, x: torch.Tensor) -> torch.Tensor:
+    def _encode_query(self, b_idx: torch.Tensor) -> torch.Tensor:
+        return self.mol_mlp(self.mol_emb[b_idx])  # structure only
+
+    def _trunk(self, x: torch.Tensor) -> torch.Tensor:
         x = self.in_proj(self.input_ln(x))
         for block in self.blocks:
             x = block(x)
-        return self.out(self.out_ln(x)).squeeze(-1)
+        return self.out_ln(x)
 
-    def forward(self, a_idx, b_idx, labels=None, source_value=None):
-        za = self._encode(a_idx)
-        zb = self._encode(b_idx)
-        # za/zb are [h | m] per molecule; concat A then B -> [h_a, m_a, h_b, m_b].
-        head_parts = [za, zb]
-        if self.use_source_value:
-            if source_value is None:
-                raise ValueError("source_value is required when model.use_source_value=true")
-            head_parts.append(source_value.to(dtype=za.dtype, device=za.device).unsqueeze(-1))
-        logits = self._head(torch.cat(head_parts, dim=-1))
-        out = {"logits": logits}
-        if labels is not None:
-            out["loss"] = self._loss(logits, labels.float())
+    def forward(self, a_idx, b_idx, meta_a_idx, source_value, distance=None, labels=None):
+        za = self._encode_retrieval(a_idx, meta_a_idx)  # [h_a | m_a]
+        zb = self._encode_query(b_idx)                  # [h_b]
+        y_a = (source_value.to(dtype=za.dtype, device=za.device) / self.source_value_scale).unsqueeze(-1)
+        trunk = self._trunk(torch.cat([za, zb, y_a], dim=-1))
+        distance_pred = F.softplus(self.dist_out(trunk)).squeeze(-1)  # D_expected >= 0
+        logits = self.out(trunk).squeeze(-1)
+        out = {"distance": distance_pred, "logits": logits}
+        if distance is not None:
+            out["loss"] = self._loss(distance_pred, logits, distance, labels)
         return out
 
-    # ---- loss ----
-    def _loss(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    # ---- loss: primary continuous + optional masked binary auxiliary ----
+    def _loss(self, distance_pred, logits, distance_target, labels) -> torch.Tensor:
+        lc = self.loss_cfg
+        target = distance_target.to(dtype=distance_pred.dtype, device=distance_pred.device)
+        if lc.regression_kind == "mse":
+            reg = F.mse_loss(distance_pred, target)
+        else:
+            reg = F.huber_loss(distance_pred, target, delta=lc.huber_delta)
+        total = lc.continuous_weight * reg
+        if lc.aux_binary_weight > 0 and labels is not None:
+            labels = labels.to(dtype=logits.dtype, device=logits.device)
+            mask = torch.isfinite(labels)  # NaN marks a missing hard binary label
+            if mask.any():
+                total = total + lc.aux_binary_weight * self._binary_loss(logits[mask], labels[mask])
+        return total
+
+    def _binary_loss(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         eps = self.loss_cfg.label_smoothing
         if eps > 0:
             targets = targets * (1.0 - eps) + 0.5 * eps
         if self.loss_cfg.kind == "focal":
-            return self._focal_loss(logits, targets)
+            ce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+            p = torch.sigmoid(logits)
+            p_t = p * targets + (1.0 - p) * (1.0 - targets)
+            alpha = self.loss_cfg.focal_alpha
+            alpha_t = alpha * targets + (1.0 - alpha) * (1.0 - targets)
+            return (alpha_t * (1.0 - p_t).pow(self.loss_cfg.focal_gamma) * ce).mean()
         return F.binary_cross_entropy_with_logits(logits, targets, pos_weight=self.pos_weight)
-
-    def _focal_loss(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        ce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
-        p = torch.sigmoid(logits)
-        p_t = p * targets + (1.0 - p) * (1.0 - targets)
-        alpha = self.loss_cfg.focal_alpha
-        alpha_t = alpha * targets + (1.0 - alpha) * (1.0 - targets)
-        loss = alpha_t * (1.0 - p_t).pow(self.loss_cfg.focal_gamma) * ce
-        return loss.mean()
 
 
 def build_model(cfg: Config) -> TransferPairModel:
