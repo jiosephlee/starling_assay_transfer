@@ -1,6 +1,6 @@
 You are comparing two molecules for an intestinal absorption (Fa) assay.
 
-The endpoint is {{ row.endpoint_subtype }} in {{ row.unit_basis }}. Evidence supports transfer when values are {{ row.threshold_display }}.
+The endpoint is {{ row.endpoint_subtype }} in {{ row.unit_basis }}. Classify transfer when values are {{ row.threshold_display }}.
 
 Molecule A (retrieved measurement)
 - SMILES: {{ row.retrieved_smiles }}
@@ -15,9 +15,9 @@ Molecule A (retrieved measurement)
 Molecule B (query)
 - SMILES: {{ row.query_smiles }}
 
-What evidence outcome is expected for transfer from Molecule A to Molecule B?
-(A) transfer-supporting evidence
-(B) non-transfer-supporting evidence
-(C) ambiguous evidence
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+(C) ambiguous
 
 Answer:

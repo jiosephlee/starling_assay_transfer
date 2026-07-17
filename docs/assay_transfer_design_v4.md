@@ -83,12 +83,13 @@ changing the canonical binary benchmark.
 
 ## 5. Prompt and serialized completion
 
-The V4 prompt exposes three evidence choices:
+The V4 prompt retains the V3 transfer-classification framing and adds only an ambiguous
+choice:
 
 ```text
-(A) transfer-supporting evidence
-(B) non-transfer-supporting evidence
-(C) ambiguous evidence
+(A) transfer
+(B) not transfer
+(C) ambiguous
 ```
 
 `completion` is a serialization and inspection aid, not the training target:

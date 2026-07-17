@@ -109,7 +109,8 @@ class MaterializeRenderV3Test(unittest.TestCase):
                              {"transfer": 0.5, "nontransfer": 0.5, "ambiguous": 0.0})
             self.assertEqual(info["top_level_features"],
                              ["prompt", "completion", "target_distribution", "metadata"])
-            self.assertIn("(C) ambiguous evidence", output["prompt"])
+            self.assertIn("Should the measurement transfer", output["prompt"])
+            self.assertIn("(A) transfer\n(B) not transfer\n(C) ambiguous", output["prompt"])
 
     def test_soft_v4_rejects_null_heldout_label(self):
         row = _candidate("bad-val", "validation", 1, "CCCO")

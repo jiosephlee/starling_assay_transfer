@@ -1,6 +1,6 @@
 You are comparing two molecules for oral bioavailability.
 
-Oral bioavailability is the fraction of an oral dose reaching systemic circulation unchanged. For {{ row.metric_type }}, evidence supports transfer when values are {{ row.threshold_display }}.
+Oral bioavailability is the fraction of an oral dose reaching systemic circulation unchanged. For {{ row.metric_type }}, classify transfer when values are {{ row.threshold_display }}.
 
 Molecule A (retrieved measurement)
 - SMILES: {{ row.retrieved_smiles }}
@@ -16,9 +16,9 @@ Molecule A (retrieved measurement)
 Molecule B (query)
 - SMILES: {{ row.query_smiles }}
 
-What evidence outcome is expected for transfer from Molecule A to Molecule B?
-(A) transfer-supporting evidence
-(B) non-transfer-supporting evidence
-(C) ambiguous evidence
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+(C) ambiguous
 
 Answer:
