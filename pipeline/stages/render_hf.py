@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,10 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 from jinja2 import StrictUndefined, Template
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from pipeline.soft_evidence import modal_completion, target_distribution
 from pipeline.v3_policy import file_sha256

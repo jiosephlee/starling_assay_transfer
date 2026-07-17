@@ -111,6 +111,14 @@ class MaterializeRenderV3Test(unittest.TestCase):
                              ["prompt", "completion", "metadata"])
             self.assertIn("Should the measurement transfer", output["prompt"])
             self.assertIn("(A) transfer\n(B) not transfer\n(C) ambiguous", output["prompt"])
+            intern = root / "hf-intern"
+            render_hf.build(_args(dataset=materialized / "dataset.parquet",
+                                  template_dir=Path("templates/assay_transfer_v4_intern"),
+                                  output_dir=intern, soft_evidence=True, template_variant="intern",
+                                  target_policy_version="empirical_vote_distribution_v4"))
+            intern_row = pq.read_table(intern / "train/data.parquet").to_pylist()[0]
+            self.assertEqual(intern_row["completion"], "(C)")
+            self.assertIn("<SMILES>OCC</SMILES>", intern_row["prompt"])
 
     def test_soft_v4_rejects_null_heldout_label(self):
         row = _candidate("bad-val", "validation", 1, "CCCO")
