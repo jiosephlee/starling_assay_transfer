@@ -79,6 +79,7 @@ class V3Policies:
         self.sampling = load_yaml(paths["sampling"])
         self.fingerprint = load_yaml(paths["fingerprint"])
         self.tanimoto = load_yaml(paths["tanimoto"])
+        self.target = load_yaml(paths["target"]) if "target" in paths else None
         self._metric_specs = self._build_metric_specs()
         self._metric_rules = self._build_metric_rules()
 
@@ -125,7 +126,7 @@ class V3Policies:
 
     @property
     def version_bundle(self) -> dict[str, str]:
-        return {
+        versions = {
             "release": self.release["version"],
             "metrics": self.metrics["version"],
             "concepts": self.concepts["version"],
@@ -133,3 +134,6 @@ class V3Policies:
             "fingerprint": self.fingerprint["version"],
             "tanimoto": self.tanimoto["version"],
         }
+        if self.target:
+            versions["target"] = self.target["version"]
+        return versions

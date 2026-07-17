@@ -1,6 +1,6 @@
 build: assay_transfer_binary_v4_fg_v3
-version: v4_fg_v3
-release: configs/assay_transfer/v4_fg_v3/release.yaml
+version: v4_fg_v3_legacy
+release: configs/assay_transfer/binary_v4_fg_v3_legacy/release.yaml
 base_inputs:
   - datasets/base/canonical_endpoints_v3/oral_bioavailability
   - datasets/base/canonical_endpoints_v3/starling_oba

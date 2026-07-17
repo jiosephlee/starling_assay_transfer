@@ -50,6 +50,15 @@ class SelectionV3Test(unittest.TestCase):
         selected = pq.read_table(root / "selected/selected/train/selected.parquet").to_pylist()
         self.assertTrue(all(row["binary_label"] in (0, 1) for row in selected))
 
+    def test_soft_evidence_retains_null_only_for_training(self):
+        rows = [_candidate("t1", "train", "q1", "r1", 1),
+                _candidate("t2", "train", "q2", "r2", None),
+                _candidate("v1", "validation", "q3", "r3", None)]
+        train = selection._eligible_rows(rows[:2], "train", soft_evidence=True)
+        validation = selection._eligible_rows(rows[2:], "validation", soft_evidence=True)
+        self.assertEqual([row["candidate_id"] for row in train], ["t1", "t2"])
+        self.assertEqual(validation, [])
+
     def test_round_robin_spreads_query_degree(self):
         rows = [_candidate(f"h{i}", "train", "hot", f"r{i}", 1) for i in range(20)]
         rows += [_candidate(f"o{i}", "train", f"q{i}", f"r{i}", 1) for i in range(5)]

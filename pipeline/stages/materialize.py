@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize selected v3 candidates with retrieval context and provenance."""
+"""Materialize selected assay-transfer candidates with context and provenance."""
 
 from __future__ import annotations
 
@@ -42,13 +42,16 @@ def _base_indexes(paths: list[Path]) -> tuple[dict[str, dict[str, Any]], dict[tu
     return index, {key: value[1] for key, value in query_choices.items()}
 
 
-def _validate(rows: list[dict[str, Any]]) -> None:
+def _validate(rows: list[dict[str, Any]], allow_null_train: bool = False) -> None:
     if not rows:
         raise RuntimeError("no selected candidates to materialize")
     missing = REQUIRED - set(rows[0])
     if missing:
         raise ValueError(f"selected candidates missing fields: {sorted(missing)}")
-    invalid = [row["candidate_id"] for row in rows if row.get("binary_label") not in (0, 1)]
+    invalid = [row["candidate_id"] for row in rows
+               if row.get("binary_label") not in (0, 1)
+               and not (allow_null_train and row.get("split") == "train"
+                        and row.get("binary_label") is None)]
     if invalid:
         raise ValueError(f"selected candidates contain null/invalid binary labels: {invalid[:3]}")
 
@@ -76,7 +79,8 @@ def _materialize(rows: list[dict[str, Any]], index: dict[str, dict[str, Any]],
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
     selected = _load_selected([Path(path) for path in args.pairs])
-    _validate(selected)
+    allow_null_train = bool(getattr(args, "allow_null_train", False))
+    _validate(selected, allow_null_train)
     index, query_original = _base_indexes([Path(path) for path in args.base])
     rows = _materialize(selected, index, query_original)
     table = pa.Table.from_pylist(rows)
@@ -85,7 +89,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     manifest = {"stage": "materialize_v3", "rows": len(rows),
                 "rows_by_split": dict(Counter(row["split"] for row in rows)),
                 "binary_label_counts": dict(Counter(str(row["binary_label"]) for row in rows)),
-                "retrieval_join_key": "child_id", "columns": table.column_names}
+                "retrieval_join_key": "child_id", "columns": table.column_names,
+                "allow_null_train": allow_null_train}
     (args.output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 
@@ -95,6 +100,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pairs", nargs="+", required=True)
     parser.add_argument("--base", nargs="+", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--allow-null-train", action="store_true")
     return parser.parse_args()
 
 

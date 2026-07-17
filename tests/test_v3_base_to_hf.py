@@ -18,6 +18,7 @@ from pipeline.v3_policy import V3Policies
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / "configs/assay_transfer/v3/release.yaml"
 V4_RELEASE = ROOT / "configs/assay_transfer/v4/release.yaml"
+LEGACY_V4_RELEASE = ROOT / "configs/assay_transfer/binary_v4_legacy/release.yaml"
 
 
 class V3PolicyTest(unittest.TestCase):
@@ -50,8 +51,8 @@ class V3PolicyTest(unittest.TestCase):
         self.assertEqual(sparse["train_all_available"], ["Fa|high", "Fg|high", "Fh|high"])
         self.assertEqual(sparse["heldout_matched_min"], ["Fa|high", "Fg|high"])
 
-    def test_v4_uses_base_v2_and_retains_all_enumerated_train_strata(self):
-        policy = V3Policies(V4_RELEASE)
+    def test_legacy_binary_v4_policy_remains_reproducible(self):
+        policy = V3Policies(LEGACY_V4_RELEASE)
         sparse = policy.sampling["sparse_strata"]
         self.assertEqual(policy.release["base_schema_version"], "canonical_endpoints_v2")
         self.assertEqual(policy.sampling["quotas"], {"train": 0, "validation": 2000, "test": 2000})
@@ -59,6 +60,13 @@ class V3PolicyTest(unittest.TestCase):
         self.assertEqual(sparse["heldout_matched_min"], [])
         self.assertNotIn("heldout_backfill_within_concept", sparse)
         self.assertEqual(policy.sampling["split"], {"train": 0.60, "validation": 0.20, "test": 0.20})
+
+    def test_soft_v4_uses_empirical_distribution_policy(self):
+        policy = V3Policies(V4_RELEASE)
+        self.assertEqual(policy.release["base_schema_version"], "canonical_endpoints_v3")
+        self.assertTrue(policy.release["soft_evidence_primary"])
+        self.assertEqual(policy.target["states"], ["transfer", "nontransfer", "ambiguous"])
+        self.assertEqual(policy.version_bundle["target"], "empirical_vote_distribution_v4")
 
 
 class ExpansionBundleTest(unittest.TestCase):

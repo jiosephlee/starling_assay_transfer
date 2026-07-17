@@ -1,0 +1,7 @@
+version: empirical_vote_distribution_v4
+states: [transfer, nontransfer, ambiguous]
+storage_dtype: float32
+completion_rule: unique_argmax_c_on_tie
+prediction_rule: strict_majority
+training_loss: soft_target_cross_entropy
+weight_by_record_count: false

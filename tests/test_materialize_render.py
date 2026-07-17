@@ -81,6 +81,42 @@ class MaterializeRenderV3Test(unittest.TestCase):
             with self.assertRaises(ValueError):
                 materialize.build(_args(pairs=[selected], base=[base], output_dir=root / "out"))
 
+    def test_soft_v4_renders_distribution_and_c_for_tied_mode(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base = root / "base"
+            base.mkdir()
+            pq.write_table(pa.Table.from_pylist([_retrieval(), _query_record()]), base / "records.parquet")
+            selected = root / "selected"
+            selected.mkdir()
+            row = _candidate("soft", "train", 1, "CCCO")
+            row.update({"binary_label": None, "n_records": 2, "n_transfer": 1,
+                        "n_nontransfer": 1, "n_ambiguous": 0, "transfer_fraction": 0.5,
+                        "nontransfer_fraction": 0.5, "ambiguous_fraction": 0.0,
+                        "majority_margin": None})
+            pq.write_table(pa.Table.from_pylist([row]), selected / "selected.parquet")
+            materialized = root / "materialized"
+            materialize.build(_args(pairs=[selected], base=[base], output_dir=materialized,
+                                    allow_null_train=True))
+            hf = root / "hf"
+            info = render_hf.build(_args(dataset=materialized / "dataset.parquet",
+                                         template_dir=Path("templates/assay_transfer_v4"),
+                                         output_dir=hf, soft_evidence=True,
+                                         target_policy_version="empirical_vote_distribution_v4"))
+            output = pq.read_table(hf / "train/data.parquet").to_pylist()[0]
+            self.assertEqual(output["completion"], "C")
+            self.assertEqual(output["target_distribution"],
+                             {"transfer": 0.5, "nontransfer": 0.5, "ambiguous": 0.0})
+            self.assertEqual(info["top_level_features"],
+                             ["prompt", "completion", "target_distribution", "metadata"])
+            self.assertIn("(C) ambiguous evidence", output["prompt"])
+
+    def test_soft_v4_rejects_null_heldout_label(self):
+        row = _candidate("bad-val", "validation", 1, "CCCO")
+        row["binary_label"] = None
+        with self.assertRaises(ValueError):
+            materialize._validate([row], allow_null_train=True)
+
     def test_hf_schema_and_mcqa_leakage_contract(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

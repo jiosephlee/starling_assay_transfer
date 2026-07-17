@@ -9,6 +9,23 @@ is retained as the exploratory analysis record.
 This workspace contains a generic molecular-transfer data pipeline plus one
 Starling-specific preprocessing adapter.
 
+## Assay Transfer V4
+
+The active V4 contract is documented in
+[`docs/assay_transfer_design_v4.md`](docs/assay_transfer_design_v4.md). It trains an LM
+against empirical transfer, non-transfer, and ambiguous vote fractions while retaining
+the frozen hard A/B validation and test sets.
+
+Build the V4 dataset with:
+
+```bash
+python pipeline/stages/run.py \
+  --config configs/builds/assay_transfer_soft_evidence_v4.yaml
+```
+
+The HF output has `prompt`, modal `completion`, `target_distribution`, and `metadata`.
+Training must use `target_distribution`; the modal completion is not a hard target.
+
 ## Pipeline
 
 1. Build the cleaned Starling dataset:

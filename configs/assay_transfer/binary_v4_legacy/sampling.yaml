@@ -1,6 +1,6 @@
-version: sampling_soft_evidence_v4
-seed: 4878
-split: {train: 0.40, validation: 0.30, test: 0.30}
+version: sampling_v4
+seed: 17
+split: {train: 0.60, validation: 0.20, test: 0.20}
 quotas: {train: 0, validation: 2000, test: 2000}
 strata: [assay_concept, tanimoto_bucket]
 allocation: equal

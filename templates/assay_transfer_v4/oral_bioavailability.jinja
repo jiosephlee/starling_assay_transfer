@@ -1,0 +1,24 @@
+You are comparing two molecules for oral bioavailability.
+
+Oral bioavailability is the fraction of an oral dose reaching systemic circulation unchanged. For {{ row.metric_type }}, evidence supports transfer when values are {{ row.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- SMILES: {{ row.retrieved_smiles }}
+- known value: {{ "%.2f"|format(row.retrieved_value) }} {{ row.unit_basis }}
+- species or population: {{ row.retrieved_context_species_or_population or "not specified" }}
+- report or statistic type: {{ row.retrieved_context_report_or_statistic_type or "not specified" }}
+- dose: {{ row.retrieved_context_dose or "not specified" }}
+- study context: {{ row.retrieved_context_study_or_assay_system or "not specified" }}
+- qualifying conditions: {{ row.retrieved_context_qualifying_conditions or "not specified" }}
+- comparator: {{ row.retrieved_context_comparator or "not specified" }}
+- extra details: {{ row.retrieved_context_extra_details or "not specified" }}
+
+Molecule B (query)
+- SMILES: {{ row.query_smiles }}
+
+What evidence outcome is expected for transfer from Molecule A to Molecule B?
+(A) transfer-supporting evidence
+(B) non-transfer-supporting evidence
+(C) ambiguous evidence
+
+Answer:

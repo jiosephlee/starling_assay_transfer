@@ -1,6 +1,6 @@
 build: assay_transfer_binary_v4
-version: v4
-release: configs/assay_transfer/v4/release.yaml
+version: v4_legacy
+release: configs/assay_transfer/binary_v4_legacy/release.yaml
 base_inputs:
   - datasets/base/canonical_endpoints_v2/oral_bioavailability
   - datasets/base/canonical_endpoints_v2/starling_oba
@@ -9,4 +9,3 @@ base_inputs:
   - datasets/base/canonical_endpoints_v2/hepatic
 hf:
   template_dir: templates/assay_transfer_v3
-

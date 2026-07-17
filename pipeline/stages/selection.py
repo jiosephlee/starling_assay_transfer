@@ -6,7 +6,7 @@ candidate universe from the pairs stage:
 
 - **strata** = ``assay_concept x tanimoto_bucket`` (the only primary selection strata);
 - **quotas** = train 200k / validation 2k / test 2k (from ``sampling.yaml``);
-- **training** requires a valid continuous target (binary label optional);
+- **training** retains null binary labels only for a soft-evidence release;
 - **validation / test** require a non-null hard binary label and are frozen;
 - **degree control**: deterministic round-robin over query molecules within each stratum,
   with optional per-query / per-retrieval-molecule / per-retrieval-record caps, so a
@@ -184,6 +184,12 @@ def _coverage_report(pool: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _eligible_rows(pool: list[dict[str, Any]], split: str, soft_evidence: bool) -> list[dict[str, Any]]:
+    if split == "train" and soft_evidence:
+        return pool
+    return [row for row in pool if row.get("binary_label") is not None]
+
+
 def _selected_audit(rows: list[dict[str, Any]]) -> dict[str, Any]:
     query = Counter(row["query_smiles"] for row in rows)
     retrieval = Counter(row["retrieved_smiles"] for row in rows)
@@ -229,9 +235,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     report: dict[str, Any] = {"stage": "select", "sampling_version": sampling.version,
                               "quotas": quotas, "seed": sampling.seed, "splits": {}}
     configured_targets = getattr(args, "stratum_targets", None)
+    soft_evidence = bool(policies and policies.release.get("soft_evidence_primary"))
     for split in SPLITS:
         pool = by_split.get(split, [])
-        eligible = [r for r in pool if r.get("binary_label") is not None]
+        eligible = _eligible_rows(pool, split, soft_evidence)
         expected = _expected_strata(policies) if policies else None
         targets = _targets_for_split(configured_targets, split)
         selected, audit = _select_split(eligible, quotas[split], sampling, expected, targets)
@@ -243,6 +250,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "eligible_candidates": len(eligible),
             "total_candidates": len(pool),
             "binary_label_coverage": _coverage_report(pool),
+            "soft_evidence_training": soft_evidence and split == "train",
         }
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

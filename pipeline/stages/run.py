@@ -181,7 +181,7 @@ def resume_after_capacity(config: dict[str, Any], root: Path) -> dict[str, Any]:
                {"pairs": pair_report, "capacity": capacity}}
     results["stages"]["select"] = _select(paths, release, _target_totals(targets),
                                              paths["select"], targets)
-    results["stages"]["materialize"] = _materialize(paths)
+    results["stages"]["materialize"] = _materialize(paths, policies)
     results["stages"]["render_hf"] = _render(config, paths)
     caps = pair_report["query_caps"]
     results["stages"]["expand"] = _expand(config, paths, release, caps)
@@ -192,18 +192,24 @@ def resume_after_capacity(config: dict[str, Any], root: Path) -> dict[str, Any]:
     return results
 
 
-def _materialize(paths: dict) -> dict:
+def _materialize(paths: dict, policies: V3Policies) -> dict:
     selected = [paths["select"] / "selected" / name for name in SPLITS]
     return materialize.build(Namespace(pairs=selected, base=[paths["eligible"]],
-                                       output_dir=paths["parquet"]))
+                                       output_dir=paths["parquet"],
+                                       allow_null_train=bool(
+                                           policies.release.get("soft_evidence_primary"))))
 
 
 def _render(config: dict, paths: dict) -> dict:
     template_dir = resolve_path(config["hf"]["template_dir"])
-    schema_version = V3Policies(resolve_path(config["release"])).release["artifact_schema_version"]
+    policies = V3Policies(resolve_path(config["release"]))
+    schema_version = policies.release["artifact_schema_version"]
+    soft_evidence = bool(policies.release.get("soft_evidence_primary"))
+    target_version = policies.target["version"] if policies.target else None
     return render_hf.build(Namespace(dataset=paths["parquet"] / "dataset.parquet",
                                      template_dir=template_dir, output_dir=paths["hf"],
-                                     schema_version=schema_version))
+                                     schema_version=schema_version, soft_evidence=soft_evidence,
+                                     target_policy_version=target_version))
 
 
 def _expand(config: dict, paths: dict, release: Path, caps: dict) -> dict:
@@ -226,7 +232,7 @@ def run_build(config: dict[str, Any], root: Path) -> dict[str, Any]:
     results["stages"]["select"] = _select(paths, release, quotas, paths["select"], targets)
     if _deficient(results["stages"]["select"]):
         raise RuntimeError("final v3 selection underfilled after successful capacity check")
-    results["stages"]["materialize"] = _materialize(paths)
+    results["stages"]["materialize"] = _materialize(paths, policies)
     results["stages"]["render_hf"] = _render(config, paths)
     results["stages"]["expand"] = _expand(config, paths, release, caps)
     results["resolved_query_caps"] = caps
