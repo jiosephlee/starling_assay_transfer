@@ -105,16 +105,15 @@ cross-entropy to V4 rows.
 
 ## 6. Hugging Face dataset contract
 
-Each V4 split has four top-level columns:
+Each V4 split retains the three V3 top-level columns:
 
 | Column | Arrow type | Purpose |
 |---|---|---|
 | `prompt` | `large_string` | Model input with A/B/C choices |
 | `completion` | `string` | Modal serialization with C tie fallback |
-| `target_distribution` | fixed named `struct` | Soft LM target |
 | `metadata` | fixed nested `struct` | Audit, identity, context, and provenance |
 
-`target_distribution` contains exactly:
+`metadata.target_distribution` contains exactly:
 
 ```text
 transfer: float32
@@ -149,16 +148,16 @@ The loss is not multiplied by raw `N`, because records need not be independent.
 
 ## 8. Prediction and evaluation
 
-The public decision rule mirrors the V3 strict-majority rule:
+The public prediction rule matches the serialized completion:
 
 ```text
-predict A if p_A > 0.5
-predict B if p_B > 0.5
-predict C otherwise
+predict argmax(p_A, p_B, p_C)
+predict C for an exact maximum tie
 ```
 
-This is not argmax. For example, `[0.45, 0.45, 0.10]` predicts C because neither A nor B
-has a strict majority, even though C is not the largest component.
+For example, `[0.45, 0.35, 0.20]` predicts A. The V3 strict-majority rule remains the
+dataset eligibility rule for the frozen validation and test examples, not the V4 model
+prediction rule.
 
 On the frozen A/B validation and test benchmark, every C prediction is counted as
 incorrect. Report:
@@ -178,7 +177,7 @@ No validation-fitted temperature or metric-specific recalibration is part of V4.
    are retained while validation and test remain frozen.
 3. Render counts, fractions, target distribution, and modal completion deterministically.
 4. Add the three-choice soft loss and prohibit fallback to hard-completion CE.
-5. Add strict-majority prediction and the required evaluation metrics.
+5. Add A/B/C argmax prediction and the required evaluation metrics.
 6. Publish a new immutable HF dataset version without mutating V3 artifacts.
 
 Every manifest must bind the source candidate hashes, target policy, template, schema,
@@ -204,7 +203,7 @@ renamed in place.
 - No hard-completion loss is applied during V4 training.
 - All eligible no-majority rows occur only in training.
 - Validation and test candidate IDs and binary labels match the frozen V3 benchmark.
-- Strict-majority prediction uses `> 0.5`, not argmax or `>= 0.5`.
+- Prediction uses A/B/C argmax with C as the exact-tie fallback.
 - C predictions are counted as incorrect in binary evaluation.
 - Prompt leakage, molecule isolation, schema, manifest, and deterministic-hash tests pass.
 - No touched function exceeds 60 lines.

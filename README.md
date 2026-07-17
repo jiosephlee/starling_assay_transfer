@@ -23,8 +23,8 @@ python pipeline/stages/run.py \
   --config configs/builds/assay_transfer_soft_evidence_v4.yaml
 ```
 
-The HF output has `prompt`, modal `completion`, `target_distribution`, and `metadata`.
-Training must use `target_distribution`; the modal completion is not a hard target.
+The HF output retains `prompt`, modal `completion`, and `metadata`.
+Training must use `metadata.target_distribution`; the modal completion is not a hard target.
 
 ## Pipeline
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from pipeline.soft_evidence import modal_completion, strict_majority_completion, target_distribution
+from pipeline.soft_evidence import argmax_completion, modal_completion, target_distribution
 
 
 class SoftEvidenceTest(unittest.TestCase):
@@ -18,9 +18,9 @@ class SoftEvidenceTest(unittest.TestCase):
         row = {"n_records": 10, "n_transfer": 4, "n_nontransfer": 4, "n_ambiguous": 2}
         self.assertEqual(modal_completion(row), "C")
 
-    def test_prediction_uses_strict_majority_not_argmax(self):
-        self.assertEqual(strict_majority_completion([0.45, 0.45, 0.10]), "C")
-        self.assertEqual(strict_majority_completion([0.51, 0.39, 0.10]), "A")
+    def test_prediction_uses_argmax(self):
+        self.assertEqual(argmax_completion([0.45, 0.35, 0.20]), "A")
+        self.assertEqual(argmax_completion([0.45, 0.45, 0.10]), "C")
 
     def test_invalid_counts_are_rejected(self):
         row = {"n_records": 3, "n_transfer": 1, "n_nontransfer": 1, "n_ambiguous": 0}

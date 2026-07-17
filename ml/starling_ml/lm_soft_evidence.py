@@ -33,14 +33,11 @@ def soft_evidence_loss(
     raise ValueError(f"unsupported reduction: {reduction}")
 
 
-def strict_majority_predictions(choice_scores: torch.Tensor) -> torch.Tensor:
-    """Return 0=A, 1=B, 2=C using probability > 0.5, never argmax."""
+def argmax_predictions(choice_scores: torch.Tensor) -> torch.Tensor:
+    """Return 0=A, 1=B, 2=C from the largest choice score."""
     if choice_scores.shape[-1] != 3:
         raise ValueError(f"choice scores must end in dimension 3: {choice_scores.shape}")
-    probabilities = choice_scores.softmax(dim=-1)
-    output = torch.full(probabilities.shape[:-1], 2, dtype=torch.long, device=choice_scores.device)
-    output = torch.where(probabilities[..., 0] > 0.5, 0, output)
-    return torch.where(probabilities[..., 1] > 0.5, 1, output)
+    return choice_scores.argmax(dim=-1)
 
 
 def _class_f1(predictions: torch.Tensor, expected: torch.Tensor, class_id: int) -> float:
@@ -59,7 +56,7 @@ def soft_evidence_metrics(
     """Evaluate soft fit and frozen A/B labels, counting every C prediction as wrong."""
     _validate_shapes(choice_scores, targets)
     probabilities = choice_scores.softmax(dim=-1)
-    predictions = strict_majority_predictions(choice_scores)
+    predictions = argmax_predictions(choice_scores)
     expected = torch.where(binary_labels == 1, 0, 1)
     if not torch.isin(binary_labels, torch.tensor([0, 1], device=binary_labels.device)).all():
         raise ValueError("binary evaluation labels must be 0 or 1")

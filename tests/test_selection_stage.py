@@ -59,6 +59,30 @@ class SelectionV3Test(unittest.TestCase):
         self.assertEqual([row["candidate_id"] for row in train], ["t1", "t2"])
         self.assertEqual(validation, [])
 
+    def test_frozen_heldout_reuses_exact_candidate_ids(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            frozen = root / "selected" / "validation"
+            frozen.mkdir(parents=True)
+            rows = [_candidate("v2", "validation", "q2", "r2", 0),
+                    _candidate("v1", "validation", "q1", "r1", 1)]
+            for row in rows:
+                row["canonical_endpoint_key"] = "endpoint"
+            pq.write_table(pa.Table.from_pylist(list(reversed(rows))), frozen / "selected.parquet")
+            selected = selection._frozen_heldout(rows, root, "validation")
+            self.assertEqual([row["candidate_id"] for row in selected], ["v1", "v2"])
+
+    def test_frozen_heldout_rejects_missing_candidate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            frozen = root / "selected" / "test"
+            frozen.mkdir(parents=True)
+            row = _candidate("missing", "test", "q", "r", 0)
+            row["canonical_endpoint_key"] = "endpoint"
+            pq.write_table(pa.Table.from_pylist([row]), frozen / "selected.parquet")
+            with self.assertRaises(ValueError):
+                selection._frozen_heldout([], root, "test")
+
     def test_round_robin_spreads_query_degree(self):
         rows = [_candidate(f"h{i}", "train", "hot", f"r{i}", 1) for i in range(20)]
         rows += [_candidate(f"o{i}", "train", f"q{i}", f"r{i}", 1) for i in range(5)]

@@ -105,10 +105,10 @@ class MaterializeRenderV3Test(unittest.TestCase):
                                          target_policy_version="empirical_vote_distribution_v4"))
             output = pq.read_table(hf / "train/data.parquet").to_pylist()[0]
             self.assertEqual(output["completion"], "C")
-            self.assertEqual(output["target_distribution"],
+            self.assertEqual(output["metadata"]["target_distribution"],
                              {"transfer": 0.5, "nontransfer": 0.5, "ambiguous": 0.0})
             self.assertEqual(info["top_level_features"],
-                             ["prompt", "completion", "target_distribution", "metadata"])
+                             ["prompt", "completion", "metadata"])
             self.assertIn("Should the measurement transfer", output["prompt"])
             self.assertIn("(A) transfer\n(B) not transfer\n(C) ambiguous", output["prompt"])
 

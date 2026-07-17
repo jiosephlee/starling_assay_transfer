@@ -63,10 +63,14 @@ class V3PolicyTest(unittest.TestCase):
 
     def test_soft_v4_uses_empirical_distribution_policy(self):
         policy = V3Policies(V4_RELEASE)
+        legacy = V3Policies(ROOT / "configs/assay_transfer/binary_v4_fg_v3_legacy/release.yaml")
         self.assertEqual(policy.release["base_schema_version"], "canonical_endpoints_v3")
         self.assertTrue(policy.release["soft_evidence_primary"])
         self.assertEqual(policy.target["states"], ["transfer", "nontransfer", "ambiguous"])
         self.assertEqual(policy.version_bundle["target"], "empirical_vote_distribution_v4")
+        self.assertEqual(policy.candidate_identity_versions, legacy.version_bundle)
+        self.assertIn("assay_transfer_binary_v4_fg_v3",
+                      policy.release["frozen_evaluation_selection"])
 
 
 class ExpansionBundleTest(unittest.TestCase):

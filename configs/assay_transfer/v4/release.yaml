@@ -4,6 +4,14 @@ base_schema_version: canonical_endpoints_v3
 binary_primary: false
 soft_evidence_primary: true
 condition_profile: same_endpoint
+frozen_evaluation_selection: datasets/select/assay_transfer_binary_v4_fg_v3/same_endpoint
+candidate_identity_policy_versions:
+  release: assay_transfer_v4_fg_v3
+  metrics: metric_thresholds_v3
+  concepts: assay_concepts_v3
+  sampling: sampling_v4_fg_v3
+  fingerprint: fingerprint_v1
+  tanimoto: tanimoto_bucket_v1
 policies:
   metrics: configs/assay_transfer/v3/metrics.yaml
   concepts: configs/assay_transfer/v3/concepts.yaml

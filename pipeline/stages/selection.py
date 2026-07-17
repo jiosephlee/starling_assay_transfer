@@ -40,6 +40,8 @@ from pipeline.policy import load_sampling_policy  # noqa: E402
 from pipeline.v3_policy import V3Policies, resolve_path  # noqa: E402
 
 SPLITS = ("train", "validation", "test")
+FROZEN_COMPARE_FIELDS = ("split", "retrieval_record_id", "query_smiles",
+                         "canonical_endpoint_key", "binary_label")
 
 
 def _load_candidates(paths: list[Path]) -> list[dict[str, Any]]:
@@ -190,6 +192,31 @@ def _eligible_rows(pool: list[dict[str, Any]], split: str, soft_evidence: bool) 
     return [row for row in pool if row.get("binary_label") is not None]
 
 
+def _frozen_heldout(pool: list[dict[str, Any]], source: Path, split: str) -> list[dict[str, Any]]:
+    path = source / "selected" / split / "selected.parquet"
+    frozen = pq.read_table(path).to_pylist()
+    current = {row["candidate_id"]: row for row in pool}
+    if len(current) != len(pool):
+        raise ValueError(f"duplicate candidate IDs in current {split} pool")
+    selected = []
+    for old in frozen:
+        new = current.get(old["candidate_id"])
+        if new is None:
+            raise ValueError(f"frozen {split} candidate missing: {old['candidate_id']}")
+        mismatch = [name for name in FROZEN_COMPARE_FIELDS if old.get(name) != new.get(name)]
+        if mismatch:
+            raise ValueError(f"frozen {split} candidate changed fields {mismatch}: {old['candidate_id']}")
+        selected.append(new)
+    return selected
+
+
+def _apply_frozen_audit(audit: dict[str, Any], rows: list[dict[str, Any]], source: Path) -> None:
+    strata = Counter((row["assay_concept"], row["tanimoto_bucket"]) for row in rows)
+    audit.update({"quota": len(rows), "selected": len(rows), "underfilled_strata": {},
+                  "per_stratum_selected": {f"{c}|{b}": n for (c, b), n in sorted(strata.items())},
+                  "frozen_evaluation_source": str(source)})
+
+
 def _selected_audit(rows: list[dict[str, Any]]) -> dict[str, Any]:
     query = Counter(row["query_smiles"] for row in rows)
     retrieval = Counter(row["retrieved_smiles"] for row in rows)
@@ -236,12 +263,17 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                               "quotas": quotas, "seed": sampling.seed, "splits": {}}
     configured_targets = getattr(args, "stratum_targets", None)
     soft_evidence = bool(policies and policies.release.get("soft_evidence_primary"))
+    frozen_value = policies.release.get("frozen_evaluation_selection") if policies else None
+    frozen_source = resolve_path(frozen_value) if frozen_value else None
     for split in SPLITS:
         pool = by_split.get(split, [])
         eligible = _eligible_rows(pool, split, soft_evidence)
         expected = _expected_strata(policies) if policies else None
         targets = _targets_for_split(configured_targets, split)
         selected, audit = _select_split(eligible, quotas[split], sampling, expected, targets)
+        if frozen_source and split in ("validation", "test"):
+            selected = _frozen_heldout(eligible, frozen_source, split)
+            _apply_frozen_audit(audit, selected, frozen_source)
         out_dir = args.output_dir / "selected" / split
         _write_split(selected, out_dir, schema)
         report["splits"][split] = {

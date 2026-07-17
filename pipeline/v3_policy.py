@@ -137,3 +137,8 @@ class V3Policies:
         if self.target:
             versions["target"] = self.target["version"]
         return versions
+
+    @property
+    def candidate_identity_versions(self) -> dict[str, str]:
+        frozen = self.release.get("candidate_identity_policy_versions")
+        return dict(frozen) if frozen else self.version_bundle

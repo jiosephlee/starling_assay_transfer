@@ -7,9 +7,9 @@ import unittest
 import torch
 
 from starling_ml.lm_soft_evidence import (
+    argmax_predictions,
     soft_evidence_loss,
     soft_evidence_metrics,
-    strict_majority_predictions,
 )
 
 
@@ -20,17 +20,17 @@ class LmSoftEvidenceTest(unittest.TestCase):
         expected = -(targets * scores.log_softmax(dim=-1)).sum()
         self.assertTrue(torch.allclose(soft_evidence_loss(scores, targets), expected))
 
-    def test_prediction_abstains_without_strict_majority(self):
-        probabilities = torch.tensor([[0.45, 0.45, 0.10], [0.60, 0.20, 0.20]])
+    def test_prediction_uses_argmax(self):
+        probabilities = torch.tensor([[0.45, 0.40, 0.15], [0.20, 0.20, 0.60]])
         scores = probabilities.log()
-        self.assertEqual(strict_majority_predictions(scores).tolist(), [2, 0])
+        self.assertEqual(argmax_predictions(scores).tolist(), [0, 2])
 
     def test_invalid_target_is_rejected(self):
         with self.assertRaises(ValueError):
             soft_evidence_loss(torch.zeros(1, 3), torch.tensor([[0.6, 0.6, -0.2]]))
 
     def test_metrics_count_c_as_incorrect(self):
-        probabilities = torch.tensor([[0.45, 0.45, 0.10], [0.70, 0.20, 0.10]])
+        probabilities = torch.tensor([[0.20, 0.20, 0.60], [0.70, 0.20, 0.10]])
         metrics = soft_evidence_metrics(probabilities.log(), probabilities,
                                         torch.tensor([1, 1]))
         self.assertAlmostEqual(metrics["accuracy"], 0.5)

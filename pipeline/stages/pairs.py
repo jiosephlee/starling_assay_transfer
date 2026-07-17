@@ -187,7 +187,7 @@ def _candidate_stream(rows: list[dict[str, Any]], policies: V3Policies,
                 if row["source_id"] not in sources:
                     stats[f"cross_source|{row['canonical_endpoint_key']}"] += 1
                 yield _candidate(row, query, similarity, bucket, evidence[query], sources,
-                                 metric, policies.version_bundle)
+                                 metric, policies.candidate_identity_versions)
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:

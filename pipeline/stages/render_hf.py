@@ -26,6 +26,12 @@ CONTEXT_NAMES = (
 )
 
 
+def _target_type() -> pa.StructType:
+    return pa.struct([pa.field("transfer", pa.float32()),
+                      pa.field("nontransfer", pa.float32()),
+                      pa.field("ambiguous", pa.float32())])
+
+
 def _metadata_type(soft_evidence: bool = False) -> pa.StructType:
     strings = ("schema_version", "candidate_id", "split", "assay_concept",
                "canonical_endpoint_key", "endpoint_family", "endpoint_subtype", "unit_basis",
@@ -48,8 +54,11 @@ def _metadata_type(soft_evidence: bool = False) -> pa.StructType:
     context = pa.struct([pa.field(name, pa.string()) for name in CONTEXT_NAMES])
     provenance = pa.struct([pa.field(name, pa.string()) for name in
                             ("parent_provenance_id", "record_id", "input_sha256", "child_id")])
-    return pa.struct(fields + [pa.field("evidence", evidence), pa.field("retrieval_context", context),
-                               pa.field("provenance", provenance)])
+    nested = [pa.field("evidence", evidence), pa.field("retrieval_context", context),
+              pa.field("provenance", provenance)]
+    if soft_evidence:
+        nested.append(pa.field("target_distribution", _target_type()))
+    return pa.struct(fields + nested)
 
 
 HF_SCHEMA = pa.schema([pa.field("prompt", pa.large_string()), pa.field("completion", pa.string()),
@@ -58,11 +67,6 @@ HF_SCHEMA = pa.schema([pa.field("prompt", pa.large_string()), pa.field("completi
 
 def _hf_schema(soft_evidence: bool) -> pa.Schema:
     fields = [pa.field("prompt", pa.large_string()), pa.field("completion", pa.string())]
-    if soft_evidence:
-        target = pa.struct([pa.field("transfer", pa.float32()),
-                            pa.field("nontransfer", pa.float32()),
-                            pa.field("ambiguous", pa.float32())])
-        fields.append(pa.field("target_distribution", target))
     fields.append(pa.field("metadata", _metadata_type(soft_evidence)))
     return pa.schema(fields)
 
@@ -104,6 +108,7 @@ def _metadata(row: dict[str, Any], template_id: str, schema_version: str,
                  "provenance": _provenance(row)})
     if soft_evidence:
         meta["target_policy_version"] = target_policy_version
+        meta["target_distribution"] = target_distribution(row)
     return meta
 
 
@@ -122,8 +127,6 @@ def _render(row: dict[str, Any], templates: dict[str, Template], variant: str = 
     record = {"prompt": templates[concept].render(row=row), "completion": labels[completion],
               "metadata": _metadata(row, template_id, schema_version, soft_evidence,
                                     target_policy_version)}
-    if soft_evidence:
-        record["target_distribution"] = target_distribution(row)
     return record
 
 
@@ -154,7 +157,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                        path, compression="zstd")
         written[split], hashes[split] = len(records), file_sha256(path)
         labels[split] = dict(Counter(record["completion"] for record in records))
-    features = ["prompt", "completion", "target_distribution", "metadata"] if soft_evidence else ["prompt", "completion", "metadata"]
+    features = ["prompt", "completion", "metadata"]
     completion_map = ({"rule": "unique_argmax_c_on_tie"} if soft_evidence else
                       ({"1": "(A)", "0": "(B)"} if variant == "intern" else {"1": "A", "0": "B"}))
     info = {"stage": "render_hf", "schema_version": schema_version,

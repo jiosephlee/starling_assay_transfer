@@ -34,9 +34,7 @@ def target_distribution(row: Mapping[str, Any]) -> dict[str, float]:
 
 def modal_completion(row: Mapping[str, Any]) -> str:
     counts = evidence_counts(row)
-    maximum = max(counts)
-    winners = [index for index, count in enumerate(counts) if count == maximum]
-    return COMPLETIONS[winners[0]] if len(winners) == 1 else "C"
+    return _completion_for_values(counts)
 
 
 def validate_probabilities(values: Sequence[float], tolerance: float = 1e-6) -> tuple[float, ...]:
@@ -50,10 +48,11 @@ def validate_probabilities(values: Sequence[float], tolerance: float = 1e-6) -> 
     return probabilities
 
 
-def strict_majority_completion(values: Sequence[float]) -> str:
-    transfer, nontransfer, _ = validate_probabilities(values)
-    if transfer > 0.5:
-        return "A"
-    if nontransfer > 0.5:
-        return "B"
-    return "C"
+def argmax_completion(values: Sequence[float]) -> str:
+    return _completion_for_values(validate_probabilities(values))
+
+
+def _completion_for_values(values: Sequence[float]) -> str:
+    maximum = max(values)
+    winners = [index for index, value in enumerate(values) if value == maximum]
+    return COMPLETIONS[winners[0]] if len(winners) == 1 else "C"
