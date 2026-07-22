@@ -36,6 +36,19 @@ class LmSoftEvidenceTest(unittest.TestCase):
         self.assertAlmostEqual(metrics["accuracy"], 0.5)
         self.assertAlmostEqual(metrics["c_prediction_rate"], 0.5)
 
+    def test_binary_metrics_report_reliability_without_c_rate(self):
+        probabilities = torch.tensor([[0.8, 0.2], [0.3, 0.7]])
+        targets = torch.tensor([[0.7, 0.3], [0.4, 0.6]])
+        metrics = soft_evidence_metrics(probabilities.log(), targets,
+                                        torch.tensor([1, 0]))
+        self.assertAlmostEqual(metrics["accuracy"], 1.0)
+        self.assertAlmostEqual(metrics["macro_f1"], 1.0)
+        self.assertAlmostEqual(metrics["reliability"], 0.01, places=6)
+        self.assertNotIn("c_prediction_rate", metrics)
+
+    def test_binary_exact_tie_predicts_a(self):
+        self.assertEqual(argmax_predictions(torch.tensor([[1.0, 1.0]])).item(), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

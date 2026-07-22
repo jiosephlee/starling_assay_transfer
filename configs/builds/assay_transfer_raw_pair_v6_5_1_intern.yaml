@@ -1,0 +1,12 @@
+build: assay_transfer_raw_pair_v6_5_1_intern
+version: v6_5_1
+release: configs/assay_transfer/v6_5_1/release_intern.yaml
+source: datasets/eligible/assay_transfer_soft_evidence_v6_5/records.parquet
+output: datasets/hf_parquet/assay_transfer_raw_pair_v6_5_1_intern
+# v6.5.1: per-concept Jinja prompt templates; flat train (SFT owns packing); source records = v6.5.
+prompt_template_dir: templates/assay_transfer_v6_5_1_intern
+listnet: false
+train_pairs: 4000000
+expected_records: 138787
+expected_split: {train: 116041, validation: 11276, test: 11470}
+splits: [train, validation, test, validation_ranking, test_ranking]

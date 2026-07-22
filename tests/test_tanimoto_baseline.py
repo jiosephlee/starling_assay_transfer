@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+import tempfile
 import unittest
 
 import numpy as np
@@ -44,6 +45,26 @@ class TanimotoBaselineTest(unittest.TestCase):
              "transfer_precision": 0.9},
         ]
         self.assertEqual(baseline.choose_threshold(rows)["threshold"], 0.3)
+
+    def test_configurable_output_stem_and_report_heading(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output_dir = Path(temporary)
+            paths = baseline.output_paths(output_dir, "assay_transfer_v4_fg_v3_tanimoto")
+            evaluation = [{
+                "split": "validation", "slice_type": "overall", "slice_value": "all",
+                "threshold": 0.5, "n": 1, "actual_transfer": 1,
+                "predicted_transfer": 1, "macro_f1": 1.0, "accuracy": 1.0,
+                "transfer_precision": 1.0, "transfer_recall": 1.0,
+            }]
+            baseline.write_markdown(
+                paths["markdown"], {"threshold": 0.5, "macro_f1": 1.0, "accuracy": 1.0},
+                evaluation, "Assay Transfer V4-on-V3 Weighted-Tanimoto Baseline",
+                paths["baseline"].name,
+            )
+            report = paths["markdown"].read_text()
+        self.assertEqual(paths["sweep"].name, "assay_transfer_v4_fg_v3_tanimoto_threshold_sweep.tsv")
+        self.assertIn("# Assay Transfer V4-on-V3 Weighted-Tanimoto Baseline", report)
+        self.assertIn("`assay_transfer_v4_fg_v3_tanimoto_baseline.tsv`", report)
 
     def test_all_functions_are_at_most_sixty_lines(self):
         path = Path(baseline.__file__)

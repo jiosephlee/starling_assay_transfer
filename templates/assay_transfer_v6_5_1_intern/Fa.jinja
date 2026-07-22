@@ -1,0 +1,28 @@
+You are comparing two molecules for an intestinal absorption (Fa) assay.
+
+The endpoint is {{ retrieval.endpoint_subtype }} in {{ retrieval.unit_basis }}. Classify transfer when values are {{ retrieval.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(retrieval.scalar_value) }} {{ retrieval.unit_basis }}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- biological context: {{ retrieval.context_biological_context or "not specified" }}
+- medium: {{ retrieval.context_medium or "not specified" }}
+- formulation or solid form: {{ retrieval.context_formulation_or_solid_form or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- biological context: {{ query.context_biological_context or "not specified" }}
+- medium: {{ query.context_medium or "not specified" }}
+- formulation or solid form: {{ query.context_formulation_or_solid_form or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+- extra details: {{ query.context_extra_details or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

@@ -1,0 +1,79 @@
+{
+  "artifacts": {
+    "README.md": "30a6a4994e78b755a8c71d764f57ae3c7d2255a6fc0a538e17b77f7e0fbacbc6",
+    "data/train-00000-of-00001.parquet": "24c177015213635766ac554655e6444719a6ab927489641132647a90ded4334d"
+  },
+  "canonical_base_yields": {
+    "accepted_base_children": 1490,
+    "accepted_parents": 1093,
+    "normalized_candidates": 27713,
+    "raw_parents": 27713,
+    "scalar_children_emitted": 4380
+  },
+  "columns": {
+    "accompanying_interval_lower": "double",
+    "accompanying_interval_upper": "double",
+    "assay_system": "large_string",
+    "canonical_endpoint_key": "large_string",
+    "child_id": "large_string",
+    "confidence": "large_string",
+    "direction": "large_string",
+    "endpoint_family": "large_string",
+    "endpoint_subtype": "large_string",
+    "extra_details": "large_string",
+    "gut_wall_process": "large_string",
+    "input_sha256": "large_string",
+    "intestinal_site": "large_string",
+    "kinetic_parameter": "large_string",
+    "measured_value": "double",
+    "molecule_name": "large_string",
+    "paragraph_idx": "large_string",
+    "parent_provenance_id": "large_string",
+    "pmid": "large_string",
+    "qualifying_conditions": "large_string",
+    "record_id": "large_string",
+    "scalar_is_approximate": "bool",
+    "scalar_value": "double",
+    "smiles": "large_string",
+    "source_id": "large_string",
+    "source_name": "large_string",
+    "source_row_number": "int64",
+    "species_exact": "large_string",
+    "substrate_status": "large_string",
+    "support_text": "large_string",
+    "target": "large_string",
+    "transporter_or_enzyme": "large_string",
+    "unit_basis": "large_string",
+    "unit_normalized": "large_string",
+    "variation_type": "large_string",
+    "variation_value": "double"
+  },
+  "condition_key_included": false,
+  "export_version": "hf_cleaned_v2",
+  "input_records": {
+    "manifest_sha256": "d69cde527e24d2c94b0870040c55a1f7a12c0308406dc9ff17f3d5ad4fbdeb0e",
+    "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v1/gut_wall/records.parquet",
+    "sha256": "fd41246b21c7209e47f89f20dcfa936b266ceb3f851bf3b772483d88301cbc6a"
+  },
+  "omitted_columns": [
+    {
+      "column": "extraction_id",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "global_identifier",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "auc_window",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "defining_timepoint",
+      "reason": "all_null_in_dataset"
+    }
+  ],
+  "rows": 1490,
+  "source_id": "q3",
+  "source_name": "gut_wall"
+}

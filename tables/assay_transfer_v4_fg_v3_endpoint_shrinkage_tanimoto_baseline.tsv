@@ -1,0 +1,17 @@
+min_train_rows	split	slice_type	slice_value	threshold_strategy	n_endpoints	n_global_fallback	n	actual_transfer	predicted_transfer	macro_f1	accuracy	transfer_precision	transfer_recall
+50	validation	overall	all	per_endpoint	135	53	2000	773	1202	0.575434	0.575500	0.468386	0.728331
+50	validation	assay_concept	oral_bioavailability	per_endpoint	2	0	400	149	206	0.612597	0.617500	0.490291	0.677852
+50	validation	assay_concept	oral_exposure	per_endpoint	43	6	400	179	252	0.620219	0.622500	0.555556	0.782123
+50	validation	assay_concept	Fa	per_endpoint	18	9	400	136	243	0.541236	0.542500	0.403292	0.720588
+50	validation	assay_concept	Fg	per_endpoint	9	5	400	135	256	0.482238	0.482500	0.359375	0.681481
+50	validation	assay_concept	Fh	per_endpoint	63	33	400	174	245	0.611624	0.612500	0.538776	0.758621
+50	validation	tanimoto_bucket	low	per_endpoint	110	18	1000	269	206	0.509922	0.645000	0.291262	0.223048
+50	validation	tanimoto_bucket	high	per_endpoint	79	35	1000	504	996	0.341333	0.506000	0.505020	0.998016
+50	test	overall	all	per_endpoint	138	49	2000	726	1242	0.557887	0.558000	0.436393	0.746556
+50	test	assay_concept	oral_bioavailability	per_endpoint	2	0	400	138	205	0.584054	0.592500	0.439024	0.652174
+50	test	assay_concept	oral_exposure	per_endpoint	44	3	400	174	257	0.590038	0.592500	0.521401	0.770115
+50	test	assay_concept	Fa	per_endpoint	18	9	400	129	259	0.494545	0.495000	0.359073	0.720930
+50	test	assay_concept	Fg	per_endpoint	9	4	400	121	260	0.501375	0.502500	0.350000	0.752066
+50	test	assay_concept	Fh	per_endpoint	65	33	400	164	261	0.605961	0.607500	0.513410	0.817073
+50	test	tanimoto_bucket	low	per_endpoint	111	26	1000	258	245	0.528547	0.645000	0.302041	0.286822
+50	test	tanimoto_bucket	high	per_endpoint	87	23	1000	468	997	0.325061	0.471000	0.469408	1.000000

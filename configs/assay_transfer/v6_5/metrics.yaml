@@ -1,0 +1,45 @@
+version: metric_thresholds_v6_5
+thresholds:
+  bounded_percentage: {transform: identity, domain: [0.0, 100.0], transfer_max: 10.0, not_transfer_min: 30.0, display: "within 10 percentage points / at least 30 percentage points apart"}
+  bounded_fraction: {transform: identity, domain: [0.0, 1.0], transfer_max: 0.10, not_transfer_min: 0.30, display: "within 0.10 / at least 0.30 apart"}
+  dimensionless_ratio: {transform: log10, domain: positive, transfer_max: 0.176091259056, not_transfer_min: 0.477121254720, display: "within 1.5-fold / at least 3-fold apart"}
+  positive_scalar: {transform: log10, domain: positive, transfer_max: 0.301029995664, not_transfer_min: 0.698970004336, display: "within 2-fold / at least 5-fold apart"}
+  time_hours: {transform: time_hours, domain: positive, transfer_max: 1.0, not_transfer_min: 3.0, display: "within 1 hour / at least 3 hours apart"}
+rules:
+  bounded_percentage:
+    - [oral_bioavailability, absolute]
+    - [oral_bioavailability, corrected]
+    - [oral_bioavailability, systemic_availability]
+    - [intestinal_absorption, fraction_absorbed]
+    - [dissolution, fraction_dissolved]
+    - [gi_stability, parent_remaining]
+    - [gut_wall_escape, fg]
+    - [hepatic_escape, extraction_ratio]
+    - [cyp_metabolism, enzyme_contribution]
+    - [ugt_metabolism, enzyme_contribution]
+    - [metabolic_stability, hepatocyte_stability]
+    - [metabolic_stability, microsomal_stability]
+    - [metabolic_stability, parent_drug_metabolic_stability]
+  dimensionless_ratio:
+    - [intestinal_permeability, efflux_ratio]
+    - [intestinal_transport, efflux_ratio]
+    - [oral_exposure, oral_iv_ratio]
+    - [oral_exposure_change, auc_ratio]
+  time_hours:
+    - [oral_exposure, tmax]
+  positive_scalar:
+    - [oral_exposure, "*"]
+    - [intestinal_permeability, papp]
+    - [intestinal_permeability, peff]
+    - [solubility, equilibrium]
+    - [solubility, kinetic]
+    - [intestinal_metabolism, clint]
+    - [intestinal_metabolism, km]
+    - [intestinal_metabolism, vmax]
+    - [hepatic_clearance, intrinsic_clearance]
+    - [hepatic_clearance, hepatic_clearance]
+    - [hepatic_metabolism, half_life]
+    - [cyp_metabolism, km]
+    - [cyp_metabolism, vmax]
+    - [ugt_metabolism, km]
+    - [ugt_metabolism, vmax]

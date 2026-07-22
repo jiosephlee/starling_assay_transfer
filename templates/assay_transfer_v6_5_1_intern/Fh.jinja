@@ -1,0 +1,28 @@
+You are comparing two molecules for a hepatic (Fh) assay.
+
+The endpoint is {{ retrieval.endpoint_subtype }} in {{ retrieval.unit_basis }}. Classify transfer when values are {{ retrieval.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(retrieval.scalar_value) }} {{ retrieval.unit_basis }}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- molecular form: {{ retrieval.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ retrieval.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- molecular form: {{ query.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ query.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+- extra details: {{ query.context_extra_details or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

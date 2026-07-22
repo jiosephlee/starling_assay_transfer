@@ -1,0 +1,12 @@
+build: assay_transfer_raw_pair_v6_mlp
+version: v6
+source: datasets/eligible/assay_transfer_soft_evidence_v4/records.parquet
+intern_benchmark: datasets/hf_parquet/assay_transfer_raw_pair_v6_intern
+output: datasets/parquet/assay_transfer_raw_pair_v6_mlp
+train_groups: 500000
+group_size: 40
+train_rows: 20000000
+split_seed_prefix: "4878:v6-fresh:"
+direction_seed_prefix: "4878:v6-direction:"
+sampler_seed_prefix: "4878:v6-mlp-probe:"
+contrastive_minimum_target_spread: 0.000001

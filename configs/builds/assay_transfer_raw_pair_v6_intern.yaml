@@ -1,0 +1,7 @@
+build: assay_transfer_raw_pair_v6_intern
+version: v6
+release: configs/assay_transfer/v6/release.yaml
+source: datasets/eligible/assay_transfer_soft_evidence_v4/records.parquet
+output: datasets/hf_parquet/assay_transfer_raw_pair_v6_intern
+train_groups: 500000
+splits: [train, validation, test, validation_ranking, test_ranking]

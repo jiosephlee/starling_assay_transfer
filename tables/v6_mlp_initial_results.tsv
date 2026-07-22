@@ -1,0 +1,4 @@
+variant	best_step	validation_ndcg_at_10	test_ndcg_at_10	test_spearman	test_top1_regret	test_best_in_top10_regret	test_accuracy	test_macro_f1	test_soft_nll	test_brier
+direct_soft_only	5000	0.425832	0.439455	0.458819	4.652349	1.415062	0.621000	0.600410	0.717370	0.328818
+direct_soft_plus_listnet	5000	0.428588	0.461547	0.456979	4.736679	1.371286	0.615000	0.593889	0.716483	0.326786
+contrastive	4000	0.384520	0.381343	0.321645	5.418612	1.508642	NA	NA	NA	NA

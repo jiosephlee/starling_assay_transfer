@@ -1,0 +1,4 @@
+method	train_tuning	validation_accuracy	validation_macro_f1	validation_transfer_precision	test_accuracy	test_macro_f1	test_transfer_precision
+majority	predict_not_transfer_from_train_majority	0.613500	0.380229	0.000000	0.637000	0.389126	0.000000
+tanimoto_tuned_global	100_global_train_thresholds_selected_at_0.1414141414	0.573000	0.572589	0.465236	0.561000	0.560148	0.435919
+tanimoto_tuned_per_endpoint	100_train_thresholds_per_477_endpoint_with_global_fallback	0.572000	0.571916	0.465388	0.560500	0.560297	0.437855

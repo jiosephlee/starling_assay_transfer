@@ -26,6 +26,38 @@ python pipeline/stages/run.py \
 The HF output retains `prompt`, modal `completion`, and `metadata`.
 Training must use `metadata.target_distribution`; the modal completion is not a hard target.
 
+## Assay Transfer V5
+
+The active A/B-only variance-temperature contract is documented in
+[`docs/assay_transfer_design_v5.md`](docs/assay_transfer_design_v5.md). Build both the
+standard and Intern artifacts from the frozen V4 membership with:
+
+```bash
+python pipeline/stages/run.py \
+  --config configs/builds/assay_transfer_variance_soft_v5.yaml
+```
+
+V5 stores a two-state target distribution, its evidence-derived temperature, and an
+explicit tie-anchor flag. Exact count and model-logit ties deterministically choose A.
+
+## Assay Transfer V6 Designs
+
+The active V6/V6.5 research contracts replace query-value aggregates with directed raw
+record-to-record supervision inside each condition key:
+
+- [`docs/assay_transfer_design_v6_intern.md`](docs/assay_transfer_design_v6_intern.md) defines Intern soft A/B prediction plus
+  four-candidate ListNet training and frozen 20,000-comparison validation/test rankings.
+- [`docs/assay_transfer_design_v6_mlp.md`](docs/assay_transfer_design_v6_mlp.md) defines the shared SMILES/assay encoder design,
+  cached-embedding 100M soft-prediction MLP comparison on the V6.5 universe.
+
+Both contracts exclude same-molecule pairs and prohibit cross-condition labels, negatives,
+and ranking lists.
+
+The V6.5 MLP artifact is built with `scripts/build_v6_mlp_raw_pair.py`. Its 100M
+MoLFormer/PubMedBERT ablation is prepared and launched with the
+`ml/scripts/*v6_mlp_100m*` commands. Official metrics use W&B project
+`assay-transfer-soft` and group `assay-transfer-raw-pair-v6-5-soft`.
+
 ## Pipeline
 
 1. Build the cleaned Starling dataset:

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+import pyarrow.parquet as pq
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -212,6 +213,39 @@ def _render(config: dict, paths: dict) -> dict:
                                      target_policy_version=target_version))
 
 
+def _render_v5_variant(config: dict, root: Path, variant: str) -> dict:
+    build_name = config["build"] + ("_intern" if variant == "intern" else "")
+    source = resolve_path(config["frozen_materialized_source"])
+    template_key = "intern_template_dir" if variant == "intern" else "template_dir"
+    target = V3Policies(resolve_path(config["release"])).target
+    return render_hf.build(Namespace(
+        dataset=source,
+        template_dir=resolve_path(config["hf"][template_key]),
+        output_dir=root / "hf_parquet" / build_name,
+        template_variant=variant,
+        schema_version="assay_transfer_variance_soft_v5",
+        soft_evidence=False,
+        variance_soft_binary=True,
+        target_policy_version=target["version"],
+    ))
+
+
+def _run_frozen_v5(config: dict[str, Any], root: Path) -> dict[str, Any]:
+    source = resolve_path(config["frozen_materialized_source"])
+    if not source.exists():
+        raise FileNotFoundError(f"frozen V4 materialized source does not exist: {source}")
+    source_rows = pq.read_table(source, columns=["candidate_id"]).num_rows
+    results = {"build": config["build"], "release": str(resolve_path(config["release"])),
+               "frozen_materialized_source": str(source), "source_rows": source_rows,
+               "stages": {}}
+    results["stages"]["render_hf"] = _render_v5_variant(config, root, "standard")
+    results["stages"]["render_hf_intern"] = _render_v5_variant(config, root, "intern")
+    output = root / "builds" / f"{config['build']}.run.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(results, indent=2, default=str))
+    return results
+
+
 def _expand(config: dict, paths: dict, release: Path, caps: dict) -> dict:
     return expand_v3.build(Namespace(eligible=paths["eligible"], split_dir=paths["split"],
                                      selection_dir=paths["select"], release=str(release),
@@ -220,6 +254,8 @@ def _expand(config: dict, paths: dict, release: Path, caps: dict) -> dict:
 
 
 def run_build(config: dict[str, Any], root: Path) -> dict[str, Any]:
+    if config.get("frozen_materialized_source"):
+        return _run_frozen_v5(config, root)
     build_name, release = config["build"], resolve_path(config["release"])
     policies, paths = V3Policies(release), _paths(root, build_name)
     results: dict[str, Any] = {"build": build_name, "release": str(release), "stages": {}}

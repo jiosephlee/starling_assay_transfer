@@ -1,0 +1,300 @@
+{
+  "artifact_schema_version": "canonical_endpoints_v2",
+  "config_sha256": "a5ed487272af62dbfcc8bbce8a45ead71664d809c564d95d6186e0f77ab01c23",
+  "endpoint_coverage": {
+    "assigned_scalar_children": 10803,
+    "scalar_assignment_rate": 0.2477865957153998,
+    "unique_canonical_endpoint_keys": 116
+  },
+  "endpoint_resolver_version": "canonical_endpoint_resolver_v1",
+  "input": {
+    "mtime_ns": 1783921299927375131,
+    "path": "/data1/joseph/starling_assay_transfer/datasets/_source/intestinal_absorption/extractions.csv",
+    "rows": 85061,
+    "schema": [
+      "pmid",
+      "extraction_id",
+      "global_identifier",
+      "confidence",
+      "paragraph_idx",
+      "support_text",
+      "endpoint_category",
+      "assay_system",
+      "reported_value",
+      "reported_units",
+      "condition_medium",
+      "biological_context",
+      "formulation_or_solid_form",
+      "qualifying_conditions",
+      "extra_details",
+      "smiles"
+    ],
+    "sha256": "8960778a88ffd3dd35a32457f98c9544fdd1724e8f1222bc6852039cbfc1a949",
+    "size": 35365649
+  },
+  "output_artifacts": {
+    "endpoint_inventory.parquet": {
+      "rows": 116,
+      "schema": {
+        "auc_window": "null",
+        "canonical_endpoint_key": "large_string",
+        "count": "int64",
+        "defining_timepoint": "large_string",
+        "direction": "large_string",
+        "endpoint_family": "large_string",
+        "endpoint_subtype": "large_string",
+        "kinetic_parameter": "null",
+        "source_id": "large_string",
+        "source_name": "large_string",
+        "target": "null",
+        "unit_basis": "large_string"
+      },
+      "sha256": "b405470131cc031d1640a0bd378d601687082c711e66e8d819e69f0e50026c42",
+      "size": 9622
+    },
+    "parent_ledger.parquet": {
+      "rows": 85061,
+      "schema": {
+        "accepted_child_count": "int64",
+        "child_ids": "list<element: string>",
+        "input_sha256": "large_string",
+        "parent_provenance_id": "large_string",
+        "parent_status": "large_string",
+        "rejected_child_or_fragment_count": "int64",
+        "scalar_children_emitted": "int64",
+        "source_id": "large_string",
+        "source_name": "large_string",
+        "source_row_number": "int64"
+      },
+      "sha256": "5403464100695130cb9c3310fb69f364947d337be8f42ca83d207da200ceaf1a",
+      "size": 5598173
+    },
+    "records.parquet": {
+      "rows": 10803,
+      "schema": {
+        "accompanying_interval_lower": "double",
+        "accompanying_interval_upper": "double",
+        "assay_system": "large_string",
+        "assay_system_normalized": "large_string",
+        "auc_window": "null",
+        "authoritative_smiles": "large_string",
+        "biological_context": "large_string",
+        "biological_context_normalized": "large_string",
+        "canonical_endpoint_key": "large_string",
+        "canonical_smiles": "large_string",
+        "child_id": "large_string",
+        "condition_medium": "large_string",
+        "condition_medium_normalized": "large_string",
+        "confidence": "large_string",
+        "defining_timepoint": "large_string",
+        "direction": "large_string",
+        "emission_index": "int64",
+        "endpoint_alias_normalized": "large_string",
+        "endpoint_alias_raw": "large_string",
+        "endpoint_category": "large_string",
+        "endpoint_category_normalized": "large_string",
+        "endpoint_family": "large_string",
+        "endpoint_subtype": "large_string",
+        "extra_details": "large_string",
+        "extraction_id": "large_string",
+        "formulation_or_solid_form": "large_string",
+        "formulation_or_solid_form_normalized": "large_string",
+        "global_identifier": "large_string",
+        "input_sha256": "large_string",
+        "kinetic_parameter": "null",
+        "local_measurement_context": "large_string",
+        "measurement_concentration": "null",
+        "measurement_label": "large_string",
+        "measurement_raw": "large_string",
+        "measurement_text_span": "large_string",
+        "measurement_timepoint": "large_string",
+        "paragraph_idx": "large_string",
+        "parent_provenance_id": "large_string",
+        "pmid": "large_string",
+        "qualifying_conditions": "large_string",
+        "qualifying_conditions_normalized": "large_string",
+        "record_id": "large_string",
+        "reported_units": "large_string",
+        "reported_units_normalized": "large_string",
+        "reported_value": "large_string",
+        "scalar_is_approximate": "bool",
+        "scalar_value": "double",
+        "smiles": "large_string",
+        "smiles_comparison_status": "large_string",
+        "source_id": "large_string",
+        "source_name": "large_string",
+        "source_row_number": "int64",
+        "source_smiles": "large_string",
+        "span_end": "int64",
+        "span_start": "int64",
+        "species_exact": "large_string",
+        "support_text": "large_string",
+        "target": "null",
+        "unit_basis": "large_string",
+        "unit_normalized": "large_string",
+        "unit_raw": "large_string",
+        "variation_type": "large_string",
+        "variation_value": "double"
+      },
+      "sha256": "8647035dc03efe5b889bb5507b78f462be1c49f3062a2aa9805e0388f5ef4ecc",
+      "size": 2492136
+    },
+    "rejections.parquet": {
+      "rows": 74710,
+      "schema": {
+        "accompanying_interval_lower": "double",
+        "accompanying_interval_upper": "double",
+        "authoritative_smiles": "large_string",
+        "canonical_smiles": "large_string",
+        "child_id": "large_string",
+        "emission_index": "double",
+        "endpoint_alias_raw": "large_string",
+        "extraction_id": "large_string",
+        "global_identifier": "large_string",
+        "input_sha256": "large_string",
+        "local_measurement_context": "large_string",
+        "measurement_concentration": "large_string",
+        "measurement_label": "large_string",
+        "measurement_raw": "large_string",
+        "measurement_text_span": "large_string",
+        "measurement_timepoint": "large_string",
+        "parent_provenance_id": "large_string",
+        "pmid": "large_string",
+        "primary_rejection_reason": "large_string",
+        "record_id": "large_string",
+        "rejection_reason": "large_string",
+        "rejection_reasons": "list<element: string>",
+        "rejection_stage": "large_string",
+        "scalar_is_approximate": "bool",
+        "scalar_value": "double",
+        "source_id": "large_string",
+        "source_name": "large_string",
+        "source_row_number": "int64",
+        "source_smiles": "large_string",
+        "span_end": "double",
+        "span_start": "double",
+        "unit_normalized": "large_string",
+        "unit_raw": "large_string",
+        "variation_type": "large_string",
+        "variation_value": "double"
+      },
+      "sha256": "e3caa1888491c7e8eedd1ba3df1d2016e8b1c3ddb4a79bd72cde3f9116ec1e60",
+      "size": 9214195
+    }
+  },
+  "output_sha256": {
+    "endpoint_inventory.parquet": "b405470131cc031d1640a0bd378d601687082c711e66e8d819e69f0e50026c42",
+    "parent_ledger.parquet": "5403464100695130cb9c3310fb69f364947d337be8f42ca83d207da200ceaf1a",
+    "records.parquet": "8647035dc03efe5b889bb5507b78f462be1c49f3062a2aa9805e0388f5ef4ecc",
+    "rejections.parquet": "e3caa1888491c7e8eedd1ba3df1d2016e8b1c3ddb4a79bd72cde3f9116ec1e60"
+  },
+  "parent_status_counts": {
+    "endpoint_rejected": 32786,
+    "retained_once": 10797,
+    "scalar_rejected": 24126,
+    "split": 3,
+    "structurally_rejected": 17349
+  },
+  "pipeline_version": "source_normalization_v2",
+  "reconciliation": {
+    "accepted_plus_rejected_scalar_children": 43598,
+    "exact": true,
+    "input_unchanged": true,
+    "ledger_rows": 85061,
+    "raw_parent_rows": 85061
+  },
+  "references": {
+    "smiles_mapping": {
+      "identical_duplicate_rows": 0,
+      "mapping_rows": 5650322,
+      "mtime_ns": 1783110203955792584,
+      "path": "/data1/joseph/starling_assay_transfer/datasets/_source/final_smiles_mapping_v2.parquet",
+      "requested_identifiers": 14074,
+      "resolved_identifiers": 13833,
+      "rows": 5650322,
+      "schema": {
+        "global_identifier": "large_string",
+        "smiles": "large_string"
+      },
+      "selected_duplicate_rows": 0,
+      "sha256": "98ae43b6d9c61b77f0a95e4dce681010694b163a02e7a313667592d985496a0b",
+      "size": 54852240,
+      "unique_identifiers": 5650322
+    },
+    "tdc_exclusion": {
+      "canonical_unique": 192,
+      "included_splits": [
+        "valid",
+        "test"
+      ],
+      "mtime_ns": 1782758903371519209,
+      "path": "/data1/joseph/starling_assay_transfer/datasets/exclusions/tdc_bioavailability_ma_v3/tdc_bioavailability_ma_smiles.parquet",
+      "raw_unique": 192,
+      "rows": 192,
+      "schema": {
+        "Y": "int64",
+        "canonical_smiles": "large_string",
+        "raw_smiles": "large_string",
+        "source_file": "string",
+        "source_row_number": "int32",
+        "split": "string",
+        "task": "string",
+        "valid_smiles": "bool"
+      },
+      "sha256": "8cb7619a0763829a8364f0486e5af41fa2ff02f961dd6b76f5d98aa86e5812bb",
+      "size": 38271,
+      "source_rows": 640,
+      "splits": [
+        "test",
+        "valid"
+      ]
+    }
+  },
+  "rejections": {
+    "by_reason": {
+      "ambiguous_multiple_measurements": 1000,
+      "bound_only_measurement": 2521,
+      "comparison_only_fold_change": 2101,
+      "incompatible_or_missing_unit_basis": 6243,
+      "invalid_structure": 2861,
+      "missing_defining_timepoint": 3747,
+      "missing_endpoint_direction": 13807,
+      "missing_global_identifier": 7305,
+      "missing_measurement": 27,
+      "missing_solubility_subtype_or_unit": 8985,
+      "qualitative_or_unparseable_measurement": 17458,
+      "range_or_interval_only": 1423,
+      "tdc_molecule_match": 6670,
+      "unknown_endpoint_alias": 13,
+      "unlabeled_multiple_measurements": 36,
+      "unresolved_smiles_mapping": 464,
+      "wildcard_structure": 49
+    },
+    "by_stage": {
+      "endpoint_assignment": 32795,
+      "scalar_fragment": 24566,
+      "structural": 17349
+    }
+  },
+  "runtime_versions": {
+    "pandas": "3.0.2",
+    "pyarrow": "25.0.0",
+    "python": "3.13.12",
+    "rdkit": "2026.03.3"
+  },
+  "scalar_parser_version": "scalar_measurement_parser_v1",
+  "source_id": "q2",
+  "source_name": "intestinal_absorption",
+  "split_expansion": {
+    "extra_scalar_children": 12,
+    "parents_with_multiple_scalars": 12,
+    "partially_retained_parents": 0
+  },
+  "stage_yields": {
+    "accepted_base_children": 10803,
+    "accepted_parents": 10800,
+    "normalized_candidates": 85061,
+    "raw_parents": 85061,
+    "scalar_children_emitted": 43598
+  }
+}

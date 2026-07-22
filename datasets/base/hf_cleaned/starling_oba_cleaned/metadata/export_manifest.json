@@ -1,0 +1,92 @@
+{
+  "artifacts": {
+    "README.md": "0c9977fc0006bc9a0279eaa0dfb4bdfdea5e8ab64717893a72f843dd2dd06d5e",
+    "data/train-00000-of-00001.parquet": "6395abb4112a4d325afd6c0da5d67d3ef5f32b8ff712ddcbae3a7bb2f93632fa"
+  },
+  "canonical_base_yields": {
+    "accepted_base_children": 27640,
+    "accepted_parents": 27640,
+    "normalized_candidates": 49164,
+    "raw_parents": 49164,
+    "scalar_children_emitted": 49133
+  },
+  "columns": {
+    "bioavailability_report_type": "large_string",
+    "canonical_endpoint_key": "large_string",
+    "child_id": "large_string",
+    "comparator": "large_string",
+    "condition_key_repro": "large_string",
+    "dose": "large_string",
+    "endpoint_family": "large_string",
+    "endpoint_subtype": "large_string",
+    "extra_details": "large_string",
+    "input_sha256": "large_string",
+    "molecule_name": "large_string",
+    "oral_bioavailability_value": "double",
+    "oral_exposure_mode": "large_string",
+    "parent_provenance_id": "large_string",
+    "pmid": "large_string",
+    "qualifying_conditions": "large_string",
+    "record_id": "large_string",
+    "scalar_is_approximate": "bool",
+    "scalar_value": "double",
+    "smiles": "large_string",
+    "source_id": "large_string",
+    "source_name": "large_string",
+    "source_row_number": "int64",
+    "species_exact": "large_string",
+    "species_or_population": "large_string",
+    "species_or_population_normalized": "large_string",
+    "support_text": "large_string",
+    "unit_basis": "large_string",
+    "unit_normalized": "large_string"
+  },
+  "condition_key_included": false,
+  "export_version": "hf_cleaned_v2",
+  "input_records": {
+    "manifest_sha256": "ad9b94b5428e0d1dd614193b5999975d647027c17a5a5c799d5a8894c2dd2821",
+    "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v1/starling_oba/records.parquet",
+    "sha256": "07e0ee7315c349da1b8cb645bc5cba97a94b504b56b227076b75f6a4f59620fe"
+  },
+  "omitted_columns": [
+    {
+      "column": "direction",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "target",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "kinetic_parameter",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "auc_window",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "defining_timepoint",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "variation_value",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "variation_type",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "accompanying_interval_lower",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "accompanying_interval_upper",
+      "reason": "all_null_in_dataset"
+    }
+  ],
+  "rows": 27640,
+  "source_id": "starling",
+  "source_name": "starling_oba"
+}

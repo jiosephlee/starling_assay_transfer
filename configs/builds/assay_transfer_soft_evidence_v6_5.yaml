@@ -1,0 +1,11 @@
+build: assay_transfer_soft_evidence_v6_5
+version: v6_5
+release: configs/assay_transfer/v6_5/release.yaml
+base_inputs:
+  - datasets/base/canonical_endpoints_v3/oral_bioavailability
+  - datasets/base/canonical_endpoints_v3/starling_oba
+  - datasets/base/canonical_endpoints_v3/intestinal_absorption
+  - datasets/base/canonical_endpoints_v3/gut_wall
+  - datasets/base/canonical_endpoints_v3/hepatic
+hf:
+  template_dir: templates/assay_transfer_v4

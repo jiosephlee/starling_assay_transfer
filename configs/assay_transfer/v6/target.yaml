@@ -1,0 +1,10 @@
+version: continuous_raw_distance_v6
+distance: abs(comparison_value_retrieval - comparison_value_query)
+logit: log(9) * (transfer_max + not_transfer_min - 2 * distance) / (not_transfer_min - transfer_max)
+clip: [0.1, 0.9]
+states: [transfer, nontransfer]
+listnet_target: target_z
+listnet_target_temperature: 1.0
+listnet_model_temperature: 1.0
+listnet_loss_weight: 0.1
+format_loss_weight: 0.1

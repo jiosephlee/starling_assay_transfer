@@ -126,6 +126,40 @@ class MaterializeRenderV3Test(unittest.TestCase):
         with self.assertRaises(ValueError):
             materialize._validate([row], allow_null_train=True)
 
+    def test_variance_soft_v5_renders_binary_target_and_tie_anchor(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            base = root / "base"
+            base.mkdir()
+            pq.write_table(pa.Table.from_pylist([_retrieval(), _query_record()]),
+                           base / "records.parquet")
+            selected = root / "selected"
+            selected.mkdir()
+            row = _candidate("v5-tie", "train", 1, "CCCO")
+            row.update({"binary_label": None, "n_records": 5, "n_transfer": 0,
+                        "n_nontransfer": 0, "n_ambiguous": 5,
+                        "transfer_fraction": 0.0, "nontransfer_fraction": 0.0,
+                        "ambiguous_fraction": 1.0, "majority_margin": None})
+            pq.write_table(pa.Table.from_pylist([row]), selected / "selected.parquet")
+            materialized = root / "materialized"
+            materialize.build(_args(pairs=[selected], base=[base], output_dir=materialized,
+                                    allow_null_train=True))
+            output_dir = root / "hf"
+            info = render_hf.build(_args(
+                dataset=materialized / "dataset.parquet",
+                template_dir=Path("templates/assay_transfer_v4"), output_dir=output_dir,
+                variance_soft_binary=True,
+                target_policy_version="variance_temperature_binary_v5"))
+            output = pq.read_table(output_dir / "train/data.parquet").to_pylist()[0]
+            self.assertEqual(output["completion"], "A")
+            self.assertEqual(output["metadata"]["target_distribution"],
+                             {"transfer": 0.5, "nontransfer": 0.5})
+            self.assertTrue(output["metadata"]["completion_is_tie_anchor"])
+            self.assertAlmostEqual(output["metadata"]["target_temperature"],
+                                   2 * (5 ** 0.5), places=6)
+            self.assertNotIn("(C)", output["prompt"])
+            self.assertEqual(info["schema_version"], "assay_transfer_binary_v3")
+
     def test_hf_schema_and_mcqa_leakage_contract(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

@@ -1,4 +1,4 @@
-"""Tune and evaluate the assay-transfer V3 weighted-Tanimoto baseline."""
+"""Tune and evaluate an assay-transfer weighted-Tanimoto baseline."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ import pyarrow.parquet as pq
 
 DEFAULT_SELECTED = Path("datasets/select/assay_transfer_binary_v3/same_endpoint/selected")
 DEFAULT_OUTPUT = Path("tables")
+DEFAULT_OUTPUT_STEM = "assay_transfer_v3_tanimoto"
+DEFAULT_REPORT_TITLE = "Assay Transfer V3 Weighted-Tanimoto Baseline"
 CONCEPTS = ("oral_bioavailability", "oral_exposure", "Fa", "Fg", "Fh")
 BUCKETS = ("low", "high")
 
@@ -19,13 +21,15 @@ BUCKETS = ("low", "high")
 def load_split(selected_dir: Path, split: str) -> dict[str, np.ndarray]:
     """Load and validate columns required by the baseline and its slices."""
     path = selected_dir / split / "selected.parquet"
-    columns = ["tanimoto", "binary_label", "assay_concept", "tanimoto_bucket"]
+    columns = ["tanimoto", "binary_label", "assay_concept", "tanimoto_bucket",
+               "canonical_endpoint_key"]
     table = pq.read_table(path, columns=columns)
     data = {
         "score": table["tanimoto"].to_numpy(zero_copy_only=False).astype(np.float64),
         "label": table["binary_label"].to_numpy(zero_copy_only=False).astype(np.int8),
         "concept": np.asarray(table["assay_concept"].to_pylist(), dtype=object),
         "bucket": np.asarray(table["tanimoto_bucket"].to_pylist(), dtype=object),
+        "endpoint": np.asarray(table["canonical_endpoint_key"].to_pylist(), dtype=object),
     }
     validate_split(data, split)
     return data
@@ -135,10 +139,11 @@ def _formatted_row(row: dict) -> dict:
             for key, value in row.items()}
 
 
-def write_markdown(path: Path, best: dict, evaluation: list[dict]) -> None:
+def write_markdown(path: Path, best: dict, evaluation: list[dict],
+                   report_title: str, baseline_filename: str) -> None:
     overall = [row for row in evaluation if row["slice_type"] == "overall"]
     lines = [
-        "# Assay Transfer V3 Weighted-Tanimoto Baseline", "",
+        f"# {report_title}", "",
         "The stored weighted Tanimoto score is thresholded as transfer when score `>= t`.",
         "Exactly 100 thresholds from 0 through 1 were evaluated on train; the cutoff was",
         "selected by macro-F1, then accuracy, transfer precision, and the smaller threshold.", "",
@@ -150,7 +155,7 @@ def write_markdown(path: Path, best: dict, evaluation: list[dict]) -> None:
     for row in overall:
         lines.append(_markdown_metric_row(row))
     lines.extend(["", "Detailed overall and slice metrics are in "
-                  "`assay_transfer_v3_tanimoto_baseline.tsv`."])
+                  f"`{baseline_filename}`."])
     path.write_text("\n".join(lines) + "\n")
 
 
@@ -160,16 +165,28 @@ def _markdown_metric_row(row: dict) -> str:
             f"{row['transfer_recall']:.6f} |")
 
 
-def run(selected_dir: Path, output_dir: Path, count: int = 100) -> tuple[dict, list[dict]]:
+def output_paths(output_dir: Path, output_stem: str) -> dict[str, Path]:
+    """Return the three report paths derived from a configurable output stem."""
+    return {
+        "sweep": output_dir / f"{output_stem}_threshold_sweep.tsv",
+        "baseline": output_dir / f"{output_stem}_baseline.tsv",
+        "markdown": output_dir / f"{output_stem}_baseline.md",
+    }
+
+
+def run(selected_dir: Path, output_dir: Path, count: int = 100,
+        output_stem: str = DEFAULT_OUTPUT_STEM,
+        report_title: str = DEFAULT_REPORT_TITLE) -> tuple[dict, list[dict]]:
     train = load_split(selected_dir, "train")
     sweep = sweep_thresholds(train, count)
     best = choose_threshold(sweep)
     evaluation = []
     for split in ("validation", "test"):
         evaluation.extend(evaluation_rows(split, load_split(selected_dir, split), best["threshold"]))
-    write_tsv(output_dir / "assay_transfer_v3_tanimoto_threshold_sweep.tsv", sweep)
-    write_tsv(output_dir / "assay_transfer_v3_tanimoto_baseline.tsv", evaluation)
-    write_markdown(output_dir / "assay_transfer_v3_tanimoto_baseline.md", best, evaluation)
+    paths = output_paths(output_dir, output_stem)
+    write_tsv(paths["sweep"], sweep)
+    write_tsv(paths["baseline"], evaluation)
+    write_markdown(paths["markdown"], best, evaluation, report_title, paths["baseline"].name)
     return best, evaluation
 
 
@@ -178,12 +195,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--selected-dir", type=Path, default=DEFAULT_SELECTED)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--threshold-count", type=int, default=100)
+    parser.add_argument("--output-stem", default=DEFAULT_OUTPUT_STEM)
+    parser.add_argument("--report-title", default=DEFAULT_REPORT_TITLE)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    best, rows = run(args.selected_dir, args.output_dir, args.threshold_count)
+    best, rows = run(args.selected_dir, args.output_dir, args.threshold_count,
+                     args.output_stem, args.report_title)
     print(f"selected threshold={best['threshold']:.10f}")
     for row in rows:
         if row["slice_type"] == "overall":

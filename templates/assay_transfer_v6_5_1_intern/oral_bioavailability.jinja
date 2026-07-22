@@ -1,0 +1,30 @@
+You are comparing two molecules for oral bioavailability.
+
+Oral bioavailability is the fraction of an oral dose reaching systemic circulation unchanged. For {{ retrieval.metric_type }}, classify transfer when values are {{ retrieval.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- known value: {{ "%.2f"|format(retrieval.scalar_value) }} {{ retrieval.unit_basis }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- report or statistic type: {{ retrieval.context_report_or_statistic_type or "not specified" }}
+- dose: {{ retrieval.context_dose or "not specified" }}
+- study context: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- comparator: {{ retrieval.context_comparator or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- report or statistic type: {{ query.context_report_or_statistic_type or "not specified" }}
+- dose: {{ query.context_dose or "not specified" }}
+- study context: {{ query.context_study_or_assay_system or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+- comparator: {{ query.context_comparator or "not specified" }}
+- extra details: {{ query.context_extra_details or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

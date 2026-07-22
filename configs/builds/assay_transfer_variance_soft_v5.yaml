@@ -1,0 +1,7 @@
+build: assay_transfer_variance_soft_v5
+version: v5
+release: configs/assay_transfer/v5/release.yaml
+frozen_materialized_source: datasets/parquet/assay_transfer_soft_evidence_v4/same_endpoint/dataset.parquet
+hf:
+  template_dir: templates/assay_transfer_v5
+  intern_template_dir: templates/assay_transfer_v5_intern

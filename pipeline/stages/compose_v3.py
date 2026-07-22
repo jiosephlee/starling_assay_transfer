@@ -81,7 +81,7 @@ def _eligible_row(row: dict[str, Any], policies: V3Policies) -> tuple[dict[str, 
     if not row.get("canonical_smiles") or not row.get("canonical_endpoint_key"):
         return None, "missing_identity"
     value = float(row["scalar_value"])
-    transformed = metric.transform_value(value)
+    transformed = metric.transform_value(value, row.get("unit_basis"))
     if transformed is None:
         return None, "invalid_metric_domain"
     out = {key: row.get(key) for key in REQUIRED}

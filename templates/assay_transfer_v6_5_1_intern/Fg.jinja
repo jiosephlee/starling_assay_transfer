@@ -1,0 +1,28 @@
+You are comparing two molecules for a gut-wall (Fg) assay.
+
+The endpoint is {{ retrieval.endpoint_subtype }} in {{ retrieval.unit_basis }}. Classify transfer when values are {{ retrieval.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(retrieval.scalar_value) }} {{ retrieval.unit_basis }}
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- transporter or enzyme: {{ retrieval.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ retrieval.context_substrate_status or "not specified" }}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ retrieval.context_intestinal_site or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+- transporter or enzyme: {{ query.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ query.context_substrate_status or "not specified" }}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ query.context_intestinal_site or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

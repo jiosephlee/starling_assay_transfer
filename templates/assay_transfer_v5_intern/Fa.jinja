@@ -1,0 +1,22 @@
+You are comparing two molecules for an intestinal absorption (Fa) assay.
+
+The endpoint is {{ row.endpoint_subtype }} in {{ row.unit_basis }}. Classify transfer when values are {{ row.threshold_display }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ row.retrieved_original_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(row.retrieved_value) }} {{ row.unit_basis }}
+- assay system: {{ row.retrieved_context_study_or_assay_system or "not specified" }}
+- biological context: {{ row.retrieved_context_biological_context or "not specified" }}
+- medium: {{ row.retrieved_context_medium or "not specified" }}
+- formulation or solid form: {{ row.retrieved_context_formulation_or_solid_form or "not specified" }}
+- qualifying conditions: {{ row.retrieved_context_qualifying_conditions or "not specified" }}
+- extra details: {{ row.retrieved_context_extra_details or "not specified" }}
+
+Molecule B (query)
+- <SMILES>{{ row.query_original_smiles }}</SMILES>
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

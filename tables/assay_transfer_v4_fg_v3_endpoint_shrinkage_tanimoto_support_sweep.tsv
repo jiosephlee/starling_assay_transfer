@@ -1,0 +1,7 @@
+min_train_rows	n_endpoint_thresholds	split	slice_type	slice_value	threshold_strategy	n_endpoints	n_global_fallback	n	actual_transfer	predicted_transfer	macro_f1	accuracy	transfer_precision	transfer_recall
+25	208	validation	overall	all	per_endpoint	135	42	2000	773	1205	0.573948	0.574000	0.467220	0.728331
+50	176	validation	overall	all	per_endpoint	135	53	2000	773	1202	0.575434	0.575500	0.468386	0.728331
+100	150	validation	overall	all	per_endpoint	135	66	2000	773	1204	0.574444	0.574500	0.467608	0.728331
+200	120	validation	overall	all	per_endpoint	135	78	2000	773	1202	0.574434	0.574500	0.467554	0.727038
+500	77	validation	overall	all	per_endpoint	135	131	2000	773	1200	0.573422	0.573500	0.466667	0.724450
+1000	56	validation	overall	all	per_endpoint	135	185	2000	773	1198	0.574411	0.574500	0.467446	0.724450

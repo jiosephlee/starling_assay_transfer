@@ -36,6 +36,9 @@ def stable_hash(payload: Any) -> str:
     return hashlib.sha1(text.encode()).hexdigest()
 
 
+_TIME_TO_HOURS = {"hour": 1.0, "minute": 1.0 / 60.0, "day": 24.0}
+
+
 @dataclass(frozen=True)
 class MetricSpec:
     name: str
@@ -45,8 +48,16 @@ class MetricSpec:
     display: str
     domain: Any = None
 
-    def transform_value(self, value: float) -> Optional[float]:
-        if not math.isfinite(value) or not self.valid_native(value):
+    def transform_value(self, value: float, unit_basis: Optional[str] = None) -> Optional[float]:
+        if not math.isfinite(value):
+            return None
+        if self.transform == "time_hours":
+            factor = _TIME_TO_HOURS.get(unit_basis)
+            if factor is None:  # non-time units (percent/ha/hb/...) are not transferable
+                return None
+            value *= factor
+            return value if self.valid_native(value) else None
+        if not self.valid_native(value):
             return None
         return math.log10(value) if self.transform == "log10" else value
 

@@ -1,0 +1,10 @@
+version: variance_temperature_binary_v5
+states: [transfer, nontransfer]
+count_logits: [n_transfer, n_nontransfer]
+temperature: sqrt(N) * (1 + n_ambiguous / N)
+temperature_scale: 1.0
+storage_dtype: float32
+completion_rule: count_argmax_a_on_exact_tie
+prediction_rule: argmax_a_on_exact_logit_tie
+training_loss: full_vocabulary_soft_target_cross_entropy
+weight_by_record_count: false

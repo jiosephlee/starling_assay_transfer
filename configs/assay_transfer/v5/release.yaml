@@ -1,0 +1,23 @@
+version: assay_transfer_variance_soft_v5
+artifact_schema_version: assay_transfer_variance_soft_v5
+base_schema_version: canonical_endpoints_v3
+binary_primary: true
+soft_evidence_primary: true
+condition_profile: same_endpoint
+frozen_training_selection: datasets/select/assay_transfer_soft_evidence_v4/same_endpoint
+frozen_evaluation_selection: datasets/select/assay_transfer_soft_evidence_v4/same_endpoint
+candidate_identity_policy_versions:
+  release: assay_transfer_soft_evidence_v4
+  metrics: metric_thresholds_v3
+  concepts: assay_concepts_v3
+  sampling: sampling_soft_evidence_v4
+  fingerprint: fingerprint_v1
+  tanimoto: tanimoto_bucket_v1
+policies:
+  metrics: configs/assay_transfer/v3/metrics.yaml
+  concepts: configs/assay_transfer/v3/concepts.yaml
+  sampling: configs/assay_transfer/v4/sampling.yaml
+  fingerprint: configs/assay_transfer/v2/fingerprint.yaml
+  tanimoto: configs/assay_transfer/v2/tanimoto_bucket.yaml
+  majority: configs/assay_transfer/v2/majority_label.yaml
+  target: configs/assay_transfer/v5/target.yaml

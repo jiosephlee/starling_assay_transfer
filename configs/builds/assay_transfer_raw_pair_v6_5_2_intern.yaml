@@ -1,0 +1,13 @@
+build: assay_transfer_raw_pair_v6_5_2_intern
+version: v6_5_2
+release: configs/assay_transfer/v6_5_2/release_intern.yaml
+source: datasets/eligible/assay_transfer_soft_evidence_v6_5/records.parquet
+output: datasets/hf_parquet/assay_transfer_raw_pair_v6_5_2_intern
+# v6.5.2: per-concept templates with FULL context restored + threshold line removed; 2M train
+# for a clean comparison against v6.5. Source records = v6.5.
+prompt_template_dir: templates/assay_transfer_v6_5_2_intern
+listnet: false
+train_pairs: 2000000
+expected_records: 138787
+expected_split: {train: 116041, validation: 11276, test: 11470}
+splits: [train, validation, test, validation_ranking, test_ranking]

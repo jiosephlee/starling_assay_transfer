@@ -1,0 +1,11 @@
+build: assay_transfer_raw_pair_v6_5_intern
+version: v6_5
+release: configs/assay_transfer/v6_5/release_intern.yaml
+source: datasets/eligible/assay_transfer_soft_evidence_v6_5/records.parquet
+output: datasets/hf_parquet/assay_transfer_raw_pair_v6_5_intern
+# v6_5 drops ListNet: flat per-pair train split, SFT owns packing (no offline packing plan).
+listnet: false
+train_pairs: 2000000
+expected_records: 138787
+expected_split: {train: 116041, validation: 11276, test: 11470}
+splits: [train, validation, test, validation_ranking, test_ranking]

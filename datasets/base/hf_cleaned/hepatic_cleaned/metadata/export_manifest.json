@@ -1,0 +1,79 @@
+{
+  "artifacts": {
+    "README.md": "0e7470ddb84f002b2f693596d3822887f07d8ba813a7c0cdd3b7f8d02e87ecce",
+    "data/train-00000-of-00001.parquet": "ce4ae0e6874538206c43c4d93b4b3ed78a7a9d29dc85abdb2708bc8f1286054f"
+  },
+  "canonical_base_yields": {
+    "accepted_base_children": 17637,
+    "accepted_parents": 17506,
+    "normalized_candidates": 67943,
+    "raw_parents": 67943,
+    "scalar_children_emitted": 24804
+  },
+  "columns": {
+    "accompanying_interval_lower": "double",
+    "accompanying_interval_upper": "double",
+    "assay_system": "large_string",
+    "canonical_endpoint_key": "large_string",
+    "child_id": "large_string",
+    "confidence": "large_string",
+    "defining_timepoint": "large_string",
+    "endpoint_family": "large_string",
+    "endpoint_subtype": "large_string",
+    "enzyme_or_pathway": "large_string",
+    "extra_details": "large_string",
+    "input_sha256": "large_string",
+    "kinetic_parameter": "large_string",
+    "metric_type": "large_string",
+    "molecular_form": "large_string",
+    "paragraph_idx": "large_string",
+    "parent_provenance_id": "large_string",
+    "pmid": "large_string",
+    "qualifying_conditions": "large_string",
+    "record_id": "large_string",
+    "reported_units": "large_string",
+    "reported_value": "double",
+    "scalar_is_approximate": "bool",
+    "scalar_value": "double",
+    "smiles": "large_string",
+    "source_id": "large_string",
+    "source_name": "large_string",
+    "source_row_number": "int64",
+    "species": "large_string",
+    "species_exact": "large_string",
+    "support_text": "large_string",
+    "target": "large_string",
+    "unit_basis": "large_string",
+    "unit_normalized": "large_string",
+    "variation_type": "large_string",
+    "variation_value": "double"
+  },
+  "condition_key_included": false,
+  "export_version": "hf_cleaned_v2",
+  "input_records": {
+    "manifest_sha256": "728962c727ed9d55050c9d95bb20c9284781f3040126b1e0e7b3b86a8f0febe9",
+    "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v1/hepatic/records.parquet",
+    "sha256": "d175c8bbdac54b3f529b8ec93d913dd1695667fd873d2b4074b32cdca1187fcd"
+  },
+  "omitted_columns": [
+    {
+      "column": "extraction_id",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "global_identifier",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "direction",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "auc_window",
+      "reason": "all_null_in_dataset"
+    }
+  ],
+  "rows": 17637,
+  "source_id": "q4",
+  "source_name": "hepatic"
+}

@@ -1,0 +1,48 @@
+You are comparing two molecules for an oral exposure measurement.
+
+The endpoint is {{ retrieval.endpoint_subtype }} in {{ retrieval.unit_basis }}.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- known value: {{ "%.6g"|format(retrieval.scalar_value) }} {{ retrieval.unit_basis }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- report or statistic type: {{ retrieval.context_report_or_statistic_type or "not specified" }}
+- dose: {{ retrieval.context_dose or "not specified" }}
+- study or assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- biological context: {{ retrieval.context_biological_context or "not specified" }}
+- medium: {{ retrieval.context_medium or "not specified" }}
+- formulation or solid form: {{ retrieval.context_formulation_or_solid_form or "not specified" }}
+- transporter or enzyme: {{ retrieval.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ retrieval.context_substrate_status or "not specified" }}
+- intestinal site: {{ retrieval.context_intestinal_site or "not specified" }}
+- molecular form: {{ retrieval.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ retrieval.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- comparator: {{ retrieval.context_comparator or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- report or statistic type: {{ query.context_report_or_statistic_type or "not specified" }}
+- dose: {{ query.context_dose or "not specified" }}
+- study or assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- measured process: {{ query.context_measured_process or "not specified" }}
+- biological context: {{ query.context_biological_context or "not specified" }}
+- medium: {{ query.context_medium or "not specified" }}
+- formulation or solid form: {{ query.context_formulation_or_solid_form or "not specified" }}
+- transporter or enzyme: {{ query.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ query.context_substrate_status or "not specified" }}
+- intestinal site: {{ query.context_intestinal_site or "not specified" }}
+- molecular form: {{ query.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ query.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+- comparator: {{ query.context_comparator or "not specified" }}
+- extra details: {{ query.context_extra_details or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

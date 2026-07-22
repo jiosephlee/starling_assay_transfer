@@ -1,0 +1,12 @@
+version: assay_transfer_raw_pair_v6_5_intern
+artifact_schema_version: assay_transfer_raw_pair_v6_intern
+base_schema_version: canonical_endpoints_v3
+eligible_source: datasets/eligible/assay_transfer_soft_evidence_v6_5/records.parquet
+eligible_source_sha256: ae58b7d29a6b6c53afd73b214e5f226910619497360e394e6afd2bb54531565f
+split_seed_prefix: "4878:v6-fresh:"
+direction_seed_prefix: "4878:v6-direction:"
+intern_model: jiosephlee/Intern-S1-mini-lm
+intern_revision: fcb667c380ae01f57693a45b4b5c2d331052a107
+max_tokens: 4096
+listnet: false
+hub_dataset_id: jiosephlee/assay-transfer-raw-pair-v6.5-intern

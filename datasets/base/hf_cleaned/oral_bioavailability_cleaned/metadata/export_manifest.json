@@ -1,0 +1,97 @@
+{
+  "artifacts": {
+    "README.md": "49ff05f1da86f8bbaddb1f2132085878e9083e78c86dd954031811ff56a05607",
+    "data/train-00000-of-00001.parquet": "517b2a09e65cc5fb47ed22a6a784fbb05a2dac93b7331fd4232b1ebe1f86ac12"
+  },
+  "canonical_base_yields": {
+    "accepted_base_children": 61448,
+    "accepted_parents": 61448,
+    "normalized_candidates": 119192,
+    "raw_parents": 119192,
+    "scalar_children_emitted": 75213
+  },
+  "columns": {
+    "auc_window": "large_string",
+    "canonical_endpoint_key": "large_string",
+    "child_id": "large_string",
+    "comparator_exposure": "large_string",
+    "confidence": "large_string",
+    "endpoint_family": "large_string",
+    "endpoint_subtype": "large_string",
+    "exposure_measure": "large_string",
+    "extra_details": "large_string",
+    "input_sha256": "large_string",
+    "oral_dose": "large_string",
+    "paragraph_idx": "large_string",
+    "parameter_units": "large_string",
+    "parameter_value": "double",
+    "parent_provenance_id": "large_string",
+    "pmid": "large_string",
+    "qualifying_conditions": "large_string",
+    "record_id": "large_string",
+    "scalar_is_approximate": "bool",
+    "scalar_value": "double",
+    "smiles": "large_string",
+    "source_id": "large_string",
+    "source_name": "large_string",
+    "source_row_number": "int64",
+    "species_exact": "large_string",
+    "statistic_type": "large_string",
+    "study_context": "large_string",
+    "support_text": "large_string",
+    "unit_basis": "large_string",
+    "unit_normalized": "large_string"
+  },
+  "condition_key_included": false,
+  "export_version": "hf_cleaned_v2",
+  "input_records": {
+    "manifest_sha256": "7d15209130b50ebd5a1e6c8e636a385bfbdcff6e17aa0160c471848aa6e524c5",
+    "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v1/oral_bioavailability/records.parquet",
+    "sha256": "084eb921288cc729f829adc48987037b4ec103dcf549de35fa47487d71541c87"
+  },
+  "omitted_columns": [
+    {
+      "column": "extraction_id",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "global_identifier",
+      "reason": "internal_identifier"
+    },
+    {
+      "column": "direction",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "target",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "kinetic_parameter",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "defining_timepoint",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "variation_value",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "variation_type",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "accompanying_interval_lower",
+      "reason": "all_null_in_dataset"
+    },
+    {
+      "column": "accompanying_interval_upper",
+      "reason": "all_null_in_dataset"
+    }
+  ],
+  "rows": 61448,
+  "source_id": "q1",
+  "source_name": "oral_bioavailability"
+}
