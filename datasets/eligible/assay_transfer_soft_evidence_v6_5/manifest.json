@@ -1,0 +1,54 @@
+{
+  "stage": "compose_v3",
+  "schema_version": "assay_transfer_soft_evidence_v4",
+  "policy_versions": {
+    "release": "assay_transfer_soft_evidence_v6_5",
+    "metrics": "metric_thresholds_v6_5",
+    "concepts": "assay_concepts_v3",
+    "sampling": "sampling_soft_evidence_v4",
+    "fingerprint": "fingerprint_v1",
+    "tanimoto": "tanimoto_bucket_v1",
+    "target": "empirical_vote_distribution_v4"
+  },
+  "base_inputs": [
+    {
+      "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v3/oral_bioavailability",
+      "records_sha256": "e4c73fc2bf5e86a9bc1be8e3cb84d4ea63ef6bdc933b93c89c54f58b9c7f1385",
+      "rows": 77214
+    },
+    {
+      "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v3/starling_oba",
+      "records_sha256": "ca7e699bb9d9b3d9473a10e2e252aa4e1767223118adc47bf6b3773bf5fe3cd2",
+      "rows": 27640
+    },
+    {
+      "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v3/intestinal_absorption",
+      "records_sha256": "7f5fd291a4e0b896195581fa6669ed8f285d9c9a318b1227780b200b300fe0bd",
+      "rows": 10803
+    },
+    {
+      "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v3/gut_wall",
+      "records_sha256": "b7e33e979b5ff1976b221d14279981f008e830b004b1c59603248c54da537e99",
+      "rows": 1982
+    },
+    {
+      "path": "/data1/joseph/starling_assay_transfer/datasets/base/canonical_endpoints_v3/hepatic",
+      "records_sha256": "6d32bfe59e1df1e00cea1cfb5e770103f2bc024ab200d9ac3df7525e20fb9bfd",
+      "rows": 22326
+    }
+  ],
+  "eligible_records": 138787,
+  "rejected_records": 1178,
+  "records_by_concept": {
+    "oral_bioavailability": 28465,
+    "oral_exposure": 75413,
+    "Fa": 10691,
+    "Fg": 1975,
+    "Fh": 22243
+  },
+  "rejections_by_reason": {
+    "invalid_metric_domain": 1169,
+    "unsupported_metric": 9
+  },
+  "records_sha256": "ae58b7d29a6b6c53afd73b214e5f226910619497360e394e6afd2bb54531565f"
+}

@@ -5,11 +5,15 @@ __pycache__/
 .ruff_cache/
 
 # Ignore large generated data under datasets/, but keep the small seed inputs
-# needed to run the KNN eval callback (record splits, cleaned base, exclusions).
+# needed to run the KNN eval callback (record splits, cleaned base, exclusions)
+# plus the v6_5 soft-evidence layer composed from canonical_endpoints_v3.
 datasets/*
 !datasets/base/
 !datasets/starling_eval/
 !datasets/exclusions/
+!datasets/eligible/
+datasets/eligible/*
+!datasets/eligible/assay_transfer_soft_evidence_v6_5/
 datasets/base/canonical_endpoints_v1/
 *.log
 *.out
