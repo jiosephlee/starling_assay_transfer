@@ -1,0 +1,32 @@
+You are comparing two molecules for a hepatic clearance / metabolic stability (Fh) assay.
+
+Values reported under different assay systems (e.g. hepatocytes vs. liver microsomes vs.
+recombinant enzyme) are not directly comparable, so both records below share the same assay
+system by construction. {{ retrieval.transfer_criterion_text }}
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- molecular form: {{ retrieval.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ retrieval.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- molecular form: {{ query.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ query.context_enzyme_or_pathway or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

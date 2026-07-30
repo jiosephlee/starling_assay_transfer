@@ -1,0 +1,36 @@
+You are comparing two molecules for an intestinal absorption (Fa) assay.
+
+{{ retrieval.transfer_criterion_text }}
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+{%- if retrieval.context_direction %}
+- direction: {{ retrieval.context_direction }}
+{%- endif %}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- biological context: {{ retrieval.context_biological_context or "not specified" }}
+- medium: {{ retrieval.context_medium or "not specified" }}
+- formulation or solid form: {{ retrieval.context_formulation_or_solid_form or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+{%- if query.context_direction %}
+- direction: {{ query.context_direction }}
+{%- endif %}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- biological context: {{ query.context_biological_context or "not specified" }}
+- medium: {{ query.context_medium or "not specified" }}
+- formulation or solid form: {{ query.context_formulation_or_solid_form or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

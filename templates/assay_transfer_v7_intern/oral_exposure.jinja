@@ -1,0 +1,29 @@
+You are comparing two molecules for an oral systemic exposure endpoint.
+
+{{ retrieval.transfer_criterion_text }}
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+- dose: {{ retrieval.context_dose or "not specified" }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- study or assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- comparator: {{ retrieval.context_comparator or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+- dose: {{ query.context_dose or "not specified" }}
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- study or assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:
