@@ -1,0 +1,7 @@
+baseline	eval	split	n	threshold	accuracy	macro_f1	transfer_precision	ndcg_at_10	spearman	top1_regret	best_in_top10_regret	mean_top10_relevance
+majority	binary	validation	2000		0.500000	0.333333	NA					
+tanimoto_train_tuned	binary	validation	2000	0.105000	0.502000	0.500944	0.502203					
+majority	binary	test	2000		0.500000	0.333333	NA					
+tanimoto_train_tuned	binary	test	2000	0.105000	0.481500	0.481189	0.480547					
+morgan_tanimoto	ranking	validation_ranking	20000					0.179467	0.012020	7.252969	0.746555	-3.999989
+morgan_tanimoto	ranking	test_ranking	20000					0.254785	0.011178	7.903173	0.654363	-3.737097
