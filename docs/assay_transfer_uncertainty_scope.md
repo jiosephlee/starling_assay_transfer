@@ -78,5 +78,5 @@ signal is `variation_value`.
 
 ## Files touched (when implemented)
 `pipeline/stages/compose_v3.py` (kept columns), `templates/assay_transfer_v6_5_intern/default.jinja`
-(+ per-concept templates if used), optionally `pipeline/v6_intern.py::target_for`, then the standard
+(+ per-concept templates if used), optionally `pipeline/pair_core.py::target_for`, then the standard
 build/verify/upload path. Recompose is required (eligible schema gains the columns).

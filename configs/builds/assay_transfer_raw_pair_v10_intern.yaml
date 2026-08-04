@@ -1,0 +1,13 @@
+build: assay_transfer_raw_pair_v10_intern
+version: v10
+release: configs/assay_transfer/v10/release_intern.yaml
+source: datasets/eligible/assay_transfer_starling_txagent_v9/records.parquet
+calibration: configs/assay_transfer/v10/pairwise_distance_quantiles.json
+output: datasets/hf_parquet/assay_transfer_raw_pair_v10_intern
+# Flat Intern SFT pairs; construction is best-effort and currently admits 951,439 of 1.25M.
+prompt_template_dir: templates/assay_transfer_v8_intern
+listnet: false
+train_pairs: 1250000
+expected_records: 199595
+expected_split: {train: 158747, validation: 38235, test: 38447}
+splits: [train, validation, test, validation_ranking, test_ranking]

@@ -8,7 +8,7 @@ def _row(key, smiles, value, concept="Fa"):
            "assay_concept": concept, "unit_basis": "percent", "comparison_value": value,
            "transfer_max": 10.0, "not_transfer_min": 30.0,
            "scalar_is_approximate": False}
-    row.update({"context_" + name: None for name in __import__("pipeline.v6_intern", fromlist=["CONTEXT_FIELDS"]).CONTEXT_FIELDS})
+    row.update({"context_" + name: None for name in __import__("pipeline.pair_core", fromlist=["CONTEXT_FIELDS"]).CONTEXT_FIELDS})
     return row
 
 

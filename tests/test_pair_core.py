@@ -1,6 +1,7 @@
 import math
 
-from pipeline.v6_intern import oriented_pair, render_prompt, target_for
+from pipeline.pair_core import (TARGET_SMOOTHING, TARGET_TEMPERATURE, oriented_pair,
+                                render_prompt, target_for)
 
 
 def _row(child_id: str, value: float, smiles: str = "C") -> dict:
@@ -16,11 +17,20 @@ def _row(child_id: str, value: float, smiles: str = "C") -> dict:
     return row
 
 
+def _smoothed(sigmoid: float) -> float:
+    """v6.5's affine squash. Only .5 is a fixed point, so eps and 1-eps are the asymptotic
+    range of target_a, not its value at the transfer_max / not_transfer_min boundaries."""
+    return TARGET_SMOOTHING + (1.0 - 2.0 * TARGET_SMOOTHING) * sigmoid
+
+
 def test_target_boundaries_are_frozen():
+    # z is +/-log(9) at the two boundaries and 0 at the midpoint, so at T=1 the raw sigmoid is
+    # exactly .9 / .5 / .1 there. target_a is that, squashed.
+    assert TARGET_TEMPERATURE == 1.0
     query = _row("q", 40.0)
-    assert math.isclose(target_for(query, _row("a", 50.0))["target_a"], .9)
-    assert math.isclose(target_for(query, _row("m", 60.0))["target_a"], .5)
-    assert math.isclose(target_for(query, _row("b", 70.0))["target_a"], .1)
+    assert math.isclose(target_for(query, _row("a", 50.0))["target_a"], _smoothed(.9))
+    assert math.isclose(target_for(query, _row("m", 60.0))["target_a"], _smoothed(.5))
+    assert math.isclose(target_for(query, _row("b", 70.0))["target_a"], _smoothed(.1))
 
 
 def test_direction_is_unique_and_query_value_is_hidden():

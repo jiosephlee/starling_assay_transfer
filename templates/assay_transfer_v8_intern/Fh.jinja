@@ -1,0 +1,36 @@
+You are comparing two molecules for a hepatic clearance / metabolic stability (Fh) assay.
+
+Both records below share the same assay system. Estimate how well the known measurement for
+Molecule A transfers to Molecule B. Greater expected agreement relative to typical variation in
+this assay context means stronger transfer.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+- species or population: {{ retrieval.context_species_or_population or "not specified" }}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- molecular form: {{ retrieval.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ retrieval.context_enzyme_or_pathway or "not specified" }}
+{%- if retrieval.context_qualifying_conditions %}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions }}
+{%- endif %}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+- species or population: {{ query.context_species_or_population or "not specified" }}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- molecular form: {{ query.context_molecular_form or "not specified" }}
+- enzyme or pathway: {{ query.context_enzyme_or_pathway or "not specified" }}
+{%- if query.context_qualifying_conditions %}
+- qualifying conditions: {{ query.context_qualifying_conditions }}
+{%- endif %}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

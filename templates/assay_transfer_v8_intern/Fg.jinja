@@ -1,0 +1,42 @@
+You are comparing two molecules for a gut-wall availability / intestinal efflux transport (Fg) assay.
+
+Both records below share the same assay system. Estimate how well the known measurement for
+Molecule A transfers to Molecule B. Greater expected agreement relative to typical variation in
+this assay context means stronger transfer.
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+{%- if retrieval.context_direction %}
+- direction: {{ retrieval.context_direction }}
+{%- endif %}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ retrieval.context_intestinal_site or "not specified" }}
+- transporter or enzyme: {{ retrieval.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ retrieval.context_substrate_status or "not specified" }}
+{%- if retrieval.context_qualifying_conditions %}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions }}
+{%- endif %}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+{%- if query.context_direction %}
+- direction: {{ query.context_direction }}
+{%- endif %}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ query.context_intestinal_site or "not specified" }}
+- transporter or enzyme: {{ query.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ query.context_substrate_status or "not specified" }}
+{%- if query.context_qualifying_conditions %}
+- qualifying conditions: {{ query.context_qualifying_conditions }}
+{%- endif %}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

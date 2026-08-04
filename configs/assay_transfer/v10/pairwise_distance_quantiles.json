@@ -1,0 +1,1746 @@
+{
+  "buckets": {
+    "[\"direct_hf\",\"oral_bioavailability\",\"%\",\"__unknown__\"]": {
+      "distance_p05": 0.0644595830348711,
+      "distance_p95": 2.675072695947151,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"direct_hf\",\"oral_bioavailability\",\"%\",\"absolute\"]": {
+      "distance_p05": 0.06038623935455804,
+      "distance_p95": 2.7500906497481203,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"direct_hf\",\"oral_bioavailability\",\"%\",\"extent_f\"]": {
+      "distance_p05": 0.007677294434888349,
+      "distance_p95": 2.782555095728774,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"direct_hf\",\"oral_bioavailability\",\"%\",\"systemic_availability\"]": {
+      "distance_p05": 0.036274323426591065,
+      "distance_p95": 2.7188399618170984,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"%\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.033123984439672,
+      "distance_p95": 2.384863944085949,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"cm/s\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 1.361455101556351e-05,
+      "distance_p95": 0.003638505889102706,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"cm/s\",\"caco_2\",\"human\"]": {
+      "distance_p05": 1.2188127177400463e-05,
+      "distance_p95": 0.0030043997658439426,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"cm/s\",\"llc-pk1\",\"__unknown__\"]": {
+      "distance_p05": 0.03656661207838821,
+      "distance_p95": 3.4258852560552135,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"cm/s\",\"mdck\",\"__unknown__\"]": {
+      "distance_p05": 0.00010300932400232244,
+      "distance_p95": 0.02976114705446679,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"cm/s\",\"permeability\",\"__unknown__\"]": {
+      "distance_p05": 0.008033334497131193,
+      "distance_p95": 4.620046898021682,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 496
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"fold\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.006994019165375794,
+      "distance_p95": 3.7040616917295535,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 820
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"nmol/mg\u00b7min\u00b7protein\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.0020583368597087764,
+      "distance_p95": 4.043417510580514,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"pg/cm^2\u00b7min\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.019917138848328256,
+      "distance_p95": 3.063721550326484,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 861
+    },
+    "[\"fa\",\"caco2_mdck_pampa_permeability\",\"pmol/cm^2\u00b7min\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.00293898260406536,
+      "distance_p95": 5.169002449959162,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fa\",\"caco2_mdck_permeability\",\"cm/s\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.003733856662293024,
+      "distance_p95": 1.998738416830983,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"caco2_mdck_permeability\",\"cm/s\",\"caco_2\",\"human\"]": {
+      "distance_p05": 2.214249631735275e-05,
+      "distance_p95": 0.003980964670151365,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 820
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"dialysis release\",\"__unknown__\"]": {
+      "distance_p05": 0.05946747380147019,
+      "distance_p95": 2.5571013734632184,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 990
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"dialysis\",\"__unknown__\"]": {
+      "distance_p05": 0.08765210233947354,
+      "distance_p95": 2.5959125176567257,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.08316265341691263,
+      "distance_p95": 2.71398120862502,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"dissolution\",\"human\"]": {
+      "distance_p05": 0.05431043280963728,
+      "distance_p95": 2.6014697315816258,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"dissolution/permeation\",\"__unknown__\"]": {
+      "distance_p05": 0.06749381899375649,
+      "distance_p95": 2.5960409325462384,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"release\",\"__unknown__\"]": {
+      "distance_p05": 0.06201237773057758,
+      "distance_p95": 2.6500989623162328,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"dissolution\",\"%\",\"usp_2 dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.08383948375969726,
+      "distance_p95": 2.7443634981356317,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8385
+    },
+    "[\"fa\",\"dissolution\",\"/h\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.01681858333199223,
+      "distance_p95": 3.8485123309431284,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fa\",\"dissolution\",\"h\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.054983213826331104,
+      "distance_p95": 2.9902620839450167,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1953
+    },
+    "[\"fa\",\"dissolution\",\"mg/cm^2\u00b7min\",\"intrinsic dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.0014191121102481064,
+      "distance_p95": 3.459869151426456,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2926
+    },
+    "[\"fa\",\"dissolution\",\"min\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.013399847490750825,
+      "distance_p95": 2.0638673497165096,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"dissolution\",\"\u00b5g/cm^2\u00b7min\",\"intrinsic dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.007360970661163697,
+      "distance_p95": 2.93578453252386,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1081
+    },
+    "[\"fa\",\"dissolution\",\"\u00b5g/mL\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.008453789553249737,
+      "distance_p95": 3.4870065190202455,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2926
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"bioavailability\",\"human\"]": {
+      "distance_p05": 0.028390753099294817,
+      "distance_p95": 2.532597130222594,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 780
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.05027408404657504,
+      "distance_p95": 2.836894742628166,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"caco_2\",\"human\"]": {
+      "distance_p05": 0.015711137667210984,
+      "distance_p95": 2.8509351171530004,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4095
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"human absorption\",\"human\"]": {
+      "distance_p05": 0.03045654983335085,
+      "distance_p95": 2.86291568433498,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 861
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"human intestinal absorption\",\"human\"]": {
+      "distance_p05": 0.11284971387276946,
+      "distance_p95": 2.8212428468192363,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"in situ gastric absorption\",\"rat\"]": {
+      "distance_p05": 0.06622171667536945,
+      "distance_p95": 3.1693153980690805,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 703
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intestinal absorption\",\"__unknown__\"]": {
+      "distance_p05": 0.11154612694815536,
+      "distance_p95": 2.716148191187583,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 703
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intestinal absorption\",\"rat\"]": {
+      "distance_p05": 0.08364762193705691,
+      "distance_p95": 2.984710131754067,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 990
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intestinal administration\",\"rat\"]": {
+      "distance_p05": 0.03596773048845993,
+      "distance_p95": 3.3672718396623034,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1275
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intestinal loop\",\"mouse\"]": {
+      "distance_p05": 0.11221519041538787,
+      "distance_p95": 2.7066070146544883,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intestinal loop\",\"rat\"]": {
+      "distance_p05": 0.06975739161215215,
+      "distance_p95": 2.739915326099531,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"intraduodenal\",\"rat\"]": {
+      "distance_p05": 0.01838852156644388,
+      "distance_p95": 3.074044928833797,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"literature report\",\"human\"]": {
+      "distance_p05": 0.0,
+      "distance_p95": 2.7848136320669163,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3321
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral absorption\",\"human\"]": {
+      "distance_p05": 0.05767125853278579,
+      "distance_p95": 2.6240422632417535,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral absorption\",\"rat\"]": {
+      "distance_p05": 0.043840307707314737,
+      "distance_p95": 2.765046179020402,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1431
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"__unknown__\"]": {
+      "distance_p05": 0.08413395850001222,
+      "distance_p95": 2.6638778028964905,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"dog\"]": {
+      "distance_p05": 0.06146461377548238,
+      "distance_p95": 2.704443006121225,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6670
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"human\"]": {
+      "distance_p05": 0.07040114022839292,
+      "distance_p95": 2.7200440542788136,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"mouse\"]": {
+      "distance_p05": 0.05982382027436175,
+      "distance_p95": 2.7500384082055125,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"pig\"]": {
+      "distance_p05": 0.046611667165814684,
+      "distance_p95": 2.5194753192485706,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral dosing\",\"rat\"]": {
+      "distance_p05": 0.06905961117693415,
+      "distance_p95": 2.62396701276614,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral pharmacokinetics\",\"human\"]": {
+      "distance_p05": 0.11723522207520345,
+      "distance_p95": 2.7175124477032178,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 630
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"oral pharmacokinetics\",\"rat\"]": {
+      "distance_p05": 0.07611433167428455,
+      "distance_p95": 3.1168818820619557,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 903
+    },
+    "[\"fa\",\"fraction_absorbed\",\"%\",\"tracer absorption\",\"human\"]": {
+      "distance_p05": 0.11406939928246163,
+      "distance_p95": 2.704712200764148,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fa\",\"gi_stability\",\"%\",\"gastrointestinal contents\",\"rat\"]": {
+      "distance_p05": 0.04259319883753813,
+      "distance_p95": 4.163275420198115,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fa\",\"gi_stability\",\"%\",\"gastrointestinal stability\",\"__unknown__\"]": {
+      "distance_p05": 0.056036823137049066,
+      "distance_p95": 2.7897067414880063,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fa\",\"gi_stability\",\"%\",\"incubation\",\"__unknown__\"]": {
+      "distance_p05": 0.07648927070239049,
+      "distance_p95": 2.6594930494726015,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"fa\",\"gi_stability\",\"%\",\"solution stability\",\"__unknown__\"]": {
+      "distance_p05": 0.032682259683394756,
+      "distance_p95": 2.4093088969637337,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1035
+    },
+    "[\"fa\",\"gi_stability\",\"%\",\"stability\",\"__unknown__\"]": {
+      "distance_p05": 0.04921180541343557,
+      "distance_p95": 2.6950700494063784,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2211
+    },
+    "[\"fa\",\"gi_stability\",\"min\",\"buffer stability\",\"__unknown__\"]": {
+      "distance_p05": 0.002194954894520617,
+      "distance_p95": 4.447307859532948,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fa\",\"human_intestinal_absorption\",\"%\",\"human intestinal absorption\",\"human\"]": {
+      "distance_p05": 0.06872151013951153,
+      "distance_p95": 2.8150783553054937,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 528
+    },
+    "[\"fa\",\"human_intestinal_absorption\",\"%\",\"oral absorption\",\"human\"]": {
+      "distance_p05": 0.0,
+      "distance_p95": 2.8671260469975763,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fa\",\"intestinal_absorption\",\"%\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.07158990063669549,
+      "distance_p95": 2.7403616691479353,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fa\",\"intestinal_absorption\",\"%\",\"intestinal perfusion\",\"rat\"]": {
+      "distance_p05": 0.07989418441561215,
+      "distance_p95": 2.7076139098450938,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6903
+    },
+    "[\"fa\",\"intestinal_absorption\",\"/h\",\"intestinal absorption\",\"__unknown__\"]": {
+      "distance_p05": 0.010790188278109299,
+      "distance_p95": 2.4790457568956095,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fa\",\"intestinal_absorption\",\"/h\",\"intestinal loop\",\"rat\"]": {
+      "distance_p05": 0.006658875589092788,
+      "distance_p95": 3.7431367612922863,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 703
+    },
+    "[\"fa\",\"intestinal_absorption\",\"/h\",\"intestinal perfusion\",\"__unknown__\"]": {
+      "distance_p05": 0.030681129414131265,
+      "distance_p95": 3.369849065397182,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1540
+    },
+    "[\"fa\",\"intestinal_absorption\",\"/h\",\"intestinal perfusion\",\"rat\"]": {
+      "distance_p05": 0.018209140963667263,
+      "distance_p95": 2.8206504581305727,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"intestinal_absorption\",\"nmol/mg\u00b7min\",\"gi tissue\",\"rat\"]": {
+      "distance_p05": 0.03570811854993023,
+      "distance_p95": 2.80487271209703,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"caco_2\",\"human\"]": {
+      "distance_p05": 0.00034030830077311745,
+      "distance_p95": 4.972184623514456,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2278
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"diffusion chamber\",\"rat\"]": {
+      "distance_p05": 0.057936861089225876,
+      "distance_p95": 2.9077062159155282,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9180
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"intestinal loop\",\"rat\"]": {
+      "distance_p05": 0.013235538581841351,
+      "distance_p95": 4.046928783667456,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 496
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"intestinal perfusion\",\"__unknown__\"]": {
+      "distance_p05": 9.481665048476356e-05,
+      "distance_p95": 0.19104014302109817,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"intestinal perfusion\",\"human\"]": {
+      "distance_p05": 0.0024125495203251393,
+      "distance_p95": 0.31664712454267446,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"intestinal perfusion\",\"rat\"]": {
+      "distance_p05": 7.19182623645991e-05,
+      "distance_p95": 0.13560701919608656,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"intestinal tissue\",\"rat\"]": {
+      "distance_p05": 0.019465719172878017,
+      "distance_p95": 3.171487904264027,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3081
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"isolated intestinal perfusion\",\"rat\"]": {
+      "distance_p05": 0.006162284543229074,
+      "distance_p95": 3.8473716904004416,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 406
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"membrane\",\"rat\"]": {
+      "distance_p05": 0.006860863511366316,
+      "distance_p95": 3.414006634776839,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"pampa\",\"__unknown__\"]": {
+      "distance_p05": 0.05156705044944918,
+      "distance_p95": 3.452519987283324,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"permeability\",\"__unknown__\"]": {
+      "distance_p05": 0.0026938764661944927,
+      "distance_p95": 4.0287164516890694,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 406
+    },
+    "[\"fa\",\"intestinal_effective_permeability\",\"cm/s\",\"single-pass perfusion\",\"rat\"]": {
+      "distance_p05": 0.08349498168072829,
+      "distance_p95": 2.659408399141012,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 496
+    },
+    "[\"fa\",\"solubility\",\"%\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.013044237052026056,
+      "distance_p95": 2.371442296058337,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fa\",\"solubility\",\"%\",\"lipolysis\",\"__unknown__\"]": {
+      "distance_p05": 0.020244377153818105,
+      "distance_p95": 2.416672522737041,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fa\",\"solubility\",\"%\",\"solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.025294189842809685,
+      "distance_p95": 1.3046476866291314,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8515
+    },
+    "[\"fa\",\"solubility\",\"mL\",\"bcs volume\",\"__unknown__\"]": {
+      "distance_p05": 0.05313527519710147,
+      "distance_p95": 3.8895021444278424,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fa\",\"solubility\",\"mg/g\",\"lipid solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.01493732388587425,
+      "distance_p95": 3.0395628434834707,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"fa\",\"solubility\",\"mg/g\",\"solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.005425480815074045,
+      "distance_p95": 3.000857234785944,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"apparent solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.0022679871457518385,
+      "distance_p95": 1.11665904077248,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2278
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"biorelevant solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.001120916510392582,
+      "distance_p95": 4.627876094098035,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1081
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"dissolution\",\"__unknown__\"]": {
+      "distance_p05": 0.00016128386840791334,
+      "distance_p95": 1.5610751871259905,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 7021
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"fassif solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.0007731811817769847,
+      "distance_p95": 1.6393038317861448,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1128
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"fassif\",\"__unknown__\"]": {
+      "distance_p05": 0.0008473575311660331,
+      "distance_p95": 1.602340711638896,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1378
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"fassif\",\"human\"]": {
+      "distance_p05": 0.007001298065536562,
+      "distance_p95": 5.358509826629618,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"fessif\",\"__unknown__\"]": {
+      "distance_p05": 0.0010308920489963203,
+      "distance_p95": 5.226259549283275,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"intrinsic solubility\",\"__unknown__\"]": {
+      "distance_p05": 3.480005406248633e-06,
+      "distance_p95": 0.019650949294011174,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4656
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"kinetic solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.0010011088054299952,
+      "distance_p95": 3.6036181514862555,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 861
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"literature report\",\"__unknown__\"]": {
+      "distance_p05": 0.00045398661336449935,
+      "distance_p95": 4.665575026885622,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"phase solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.000608814293583932,
+      "distance_p95": 4.837025654858784,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 5886
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"sgf solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.00210672681132778,
+      "distance_p95": 3.27993611123439,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 703
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"solubility\",\"__unknown__\"]": {
+      "distance_p05": 5.643683600609569e-06,
+      "distance_p95": 0.13615875305814132,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"solubility\",\"mg/mL\",\"solubility\",\"human\"]": {
+      "distance_p05": 7.693863834948024e-05,
+      "distance_p95": 1.8518074230193526,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fa\",\"solubility\",\"\u00b5M\",\"intestinal contents\",\"human\"]": {
+      "distance_p05": 0.03265777685023588,
+      "distance_p95": 3.4001411097788496,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fa\",\"solubility\",\"\u00b5M\",\"kinetic solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.036758063019938926,
+      "distance_p95": 3.5912627570480335,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fa\",\"solubility\",\"\u00b5M\",\"phase solubility\",\"__unknown__\"]": {
+      "distance_p05": 0.010585124863008272,
+      "distance_p95": 3.848067698545308,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 861
+    },
+    "[\"fa\",\"solubility\",\"\u00b5M\",\"solubility\",\"__unknown__\"]": {
+      "distance_p05": 1.1097188689797113e-10,
+      "distance_p95": 0.12252872232076167,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fg\",\"bidirectional_permeability\",\"cm/s\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.001978181684273558,
+      "distance_p95": 0.3717423490203513,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9870
+    },
+    "[\"fg\",\"bidirectional_permeability\",\"ratio\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.009098039645799598,
+      "distance_p95": 3.6192001710990724,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8001
+    },
+    "[\"fg\",\"efflux_or_secretory_transport\",\"%\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.09062660623323852,
+      "distance_p95": 2.710651975200914,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2016
+    },
+    "[\"fg\",\"efflux_or_secretory_transport\",\"ratio\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.005296378874744619,
+      "distance_p95": 1.786018402247007,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fg\",\"efflux_or_secretory_transport\",\"ratio\",\"mdck\",\"__unknown__\"]": {
+      "distance_p05": 0.00259647119319976,
+      "distance_p95": 0.9600062766177183,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9730
+    },
+    "[\"fg\",\"uptake_or_absorptive_transport\",\"%\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.09943622018086982,
+      "distance_p95": 2.6450034568111374,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 946
+    },
+    "[\"fg\",\"uptake_or_absorptive_transport\",\"cm/s\",\"caco_2\",\"__unknown__\"]": {
+      "distance_p05": 0.02561173172171468,
+      "distance_p95": 2.7721650573074985,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2211
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"__unknown__\",\"human\"]": {
+      "distance_p05": 0.0536344089139891,
+      "distance_p95": 2.4433452949706136,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2415
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 0.030861791231225778,
+      "distance_p95": 2.623252254654191,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 630
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"liver microsomes and recombinant enzyme\",\"human host\"]": {
+      "distance_p05": 0.053337958593815106,
+      "distance_p95": 3.1758142413866324,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 946
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.06835824922065614,
+      "distance_p95": 2.2501257035132647,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"pbpk model\",\"human\"]": {
+      "distance_p05": 0.05040743344035871,
+      "distance_p95": 2.5203716720179354,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"recombinant enzyme\",\"__unknown__\"]": {
+      "distance_p05": 0.022920427805115735,
+      "distance_p95": 2.6099467753493655,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.05199635074919963,
+      "distance_p95": 2.6080274875782687,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"cyp_metabolism\",\"%\",\"recombinant microsomes\",\"human gene\"]": {
+      "distance_p05": 0.059402570924925124,
+      "distance_p95": 2.5418774535316864,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fh\",\"cyp_metabolism\",\"/min\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.001543808606752945,
+      "distance_p95": 3.7657902800437912,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"fh\",\"cyp_metabolism\",\"pmol/mg\u00b7min\u00b7protein\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.00496212147229208,
+      "distance_p95": 4.933196133660492,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fh\",\"cyp_metabolism\",\"\u00b5M\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.00526446423536085,
+      "distance_p95": 3.2512322957665285,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1326
+    },
+    "[\"fh\",\"cyp_metabolism\",\"\u00b5M\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.014529751742786267,
+      "distance_p95": 2.5978187580392635,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 903
+    },
+    "[\"fh\",\"extraction_ratio\",\"%\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.07684374729152078,
+      "distance_p95": 2.766374902494752,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 741
+    },
+    "[\"fh\",\"extraction_ratio\",\"%\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.06562651729228552,
+      "distance_p95": 2.7169378159006206,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1176
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"clinical study\",\"human\"]": {
+      "distance_p05": 0.00691136758702883,
+      "distance_p95": 3.5564742828516054,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2701
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"in vivo study\",\"human\"]": {
+      "distance_p05": 0.00011042501821141786,
+      "distance_p95": 0.05149302640895434,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 7021
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.00896806801065092,
+      "distance_p95": 3.6982903747148446,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"intravenous dosing\",\"human\"]": {
+      "distance_p05": 0.08666042102855213,
+      "distance_p95": 2.7795905238921867,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.0032222139875902906,
+      "distance_p95": 4.280382590215105,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2278
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"perfused liver\",\"__unknown__\"]": {
+      "distance_p05": 0.010373608728048248,
+      "distance_p95": 4.125814715783192,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2211
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.02108701619409098,
+      "distance_p95": 1.3880791997462805,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min\",\"population pk model\",\"human\"]": {
+      "distance_p05": 0.01677712404497566,
+      "distance_p95": 2.680481108665872,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 903
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"clinical study\",\"human\"]": {
+      "distance_p05": 4.374313350663189e-05,
+      "distance_p95": 0.018534675014870914,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 7626
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 0.012606064922204984,
+      "distance_p95": 0.6342020290758791,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"hepatocytes\",\"rat\"]": {
+      "distance_p05": 0.05891667140300273,
+      "distance_p95": 2.7583714338678558,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2926
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"in vivo study\",\"dog\"]": {
+      "distance_p05": 0.0,
+      "distance_p95": 3.0405230804443657,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"in vivo study\",\"human\"]": {
+      "distance_p05": 0.018610761505056906,
+      "distance_p95": 3.0470892246006813,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8911
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.016930426230340967,
+      "distance_p95": 2.2711597177633682,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"infusion\",\"rat\"]": {
+      "distance_p05": 0.03110801367777865,
+      "distance_p95": 3.0340535888357207,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 630
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"intravenous dosing\",\"human\"]": {
+      "distance_p05": 0.07525953479021574,
+      "distance_p95": 2.9181601920493336,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 780
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"intravenous dosing\",\"rat\"]": {
+      "distance_p05": 0.0007440594297677222,
+      "distance_p95": 0.10031489473831642,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1326
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"ivive\",\"human\"]": {
+      "distance_p05": 2.561480571172226e-06,
+      "distance_p95": 4.183704201517901,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 406
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"liver microsomes\",\"dog\"]": {
+      "distance_p05": 0.0,
+      "distance_p95": 4.917978906943442,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.003920842323438843,
+      "distance_p95": 0.3045318232615253,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.0021479929945924566,
+      "distance_p95": 0.10114083482573871,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6555
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.008322448378471785,
+      "distance_p95": 4.3616401049116895,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 946
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"substrate loss method\",\"__unknown__\"]": {
+      "distance_p05": 0.08028596530025167,
+      "distance_p95": 2.6654940479683553,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1540
+    },
+    "[\"fh\",\"hepatic_clearance\",\"mL/min/kg\",\"well-stirred model\",\"human\"]": {
+      "distance_p05": 0.024882892291379716,
+      "distance_p95": 2.7676896111649247,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 780
+    },
+    "[\"fh\",\"hepatic_first_pass_metabolism\",\"%\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.06622172515403196,
+      "distance_p95": 2.7619553368089367,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 703
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"%\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.09919714314617968,
+      "distance_p95": 2.7022955078738446,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1326
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"%\",\"recombinant cells\",\"insect host\"]": {
+      "distance_p05": 0.08293275950132532,
+      "distance_p95": 2.7288483648088304,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 528
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"%\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.01989982870141986,
+      "distance_p95": 3.6167107526400346,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 496
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"L/h\",\"population pk model\",\"human\"]": {
+      "distance_p05": 4.4187231978946613e-05,
+      "distance_p95": 5.100287432773495,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1275
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"mL/cells\u00b7h\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 5.812373672744202e-13,
+      "distance_p95": 5.744562646528625,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 528
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"mL/min\",\"__unknown__\",\"__unknown__\"]": {
+      "distance_p05": 0.00013761970263611038,
+      "distance_p95": 0.36150471798399786,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 946
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"mL/min\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.001443795776610421,
+      "distance_p95": 3.3212747099313846,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2628
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"mL/min\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.007808971604846074,
+      "distance_p95": 3.2471343552532232,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3916
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"mL/min\u00b7nmol\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.00840104937950953,
+      "distance_p95": 3.910479052663519,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1770
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/cells\u00b7min\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 3.240180382731278e-14,
+      "distance_p95": 1.409478466487995,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/cells\u00b7min\",\"hepatocytes\",\"mouse\"]": {
+      "distance_p05": 1.0043598056542093e-12,
+      "distance_p95": 2.5108995141305264,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1378
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/cells\u00b7min\",\"hepatocytes\",\"rat\"]": {
+      "distance_p05": 2.6989755133280117e-14,
+      "distance_p95": 0.13494877566375835,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.0027368405068636903,
+      "distance_p95": 3.9626133156953682,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"__unknown__\",\"__unknown__\"]": {
+      "distance_p05": 0.0004722567799826568,
+      "distance_p95": 3.899292391059166,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1431
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"clinical study\",\"human\"]": {
+      "distance_p05": 0.0019816281552292444,
+      "distance_p95": 2.776131819788295,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1225
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"hepatocytes\",\"dog\"]": {
+      "distance_p05": 0.010009677319694073,
+      "distance_p95": 4.522791222786039,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 0.00014195452934184343,
+      "distance_p95": 4.527154943468779,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"hepatocytes\",\"rat\"]": {
+      "distance_p05": 1.2844636853080164e-05,
+      "distance_p95": 1.3519128760819747,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 5886
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"in vivo study\",\"__unknown__\"]": {
+      "distance_p05": 0.005302553212949946,
+      "distance_p95": 3.997075262674177,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"in vivo study\",\"human\"]": {
+      "distance_p05": 1.8628868631781827e-05,
+      "distance_p95": 5.126720534072249,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2346
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.00046266852075126064,
+      "distance_p95": 4.009790802639079,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2346
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver cytosol\",\"human\"]": {
+      "distance_p05": 7.778169872933553e-06,
+      "distance_p95": 0.5650062595698933,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver cytosol\",\"rat\"]": {
+      "distance_p05": 4.159136061555978e-08,
+      "distance_p95": 5.567777123047773,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 465
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"__unknown__\"]": {
+      "distance_p05": 0.0008216753536844988,
+      "distance_p95": 5.5944827094989185,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"cynomolgus monkey\"]": {
+      "distance_p05": 4.64550912223657e-05,
+      "distance_p95": 3.7958183134704417,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1225
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"dog\"]": {
+      "distance_p05": 1.2200624277731667e-07,
+      "distance_p95": 0.00027653830597538457,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 9.074090484688637e-09,
+      "distance_p95": 0.00011581196852403359,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"monkey\"]": {
+      "distance_p05": 0.00097413509384134,
+      "distance_p95": 1.9510311648629384,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 7503
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"mouse\"]": {
+      "distance_p05": 0.00016906438006855916,
+      "distance_p95": 0.153061786247457,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"pig\"]": {
+      "distance_p05": 0.000254240512272569,
+      "distance_p95": 0.8689964951718341,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1378
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"rabbit\"]": {
+      "distance_p05": 0.00015715314574062767,
+      "distance_p95": 1.0510532669533794,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2145
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 2.171241700211625e-06,
+      "distance_p95": 0.040034717570217725,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"microsomes\",\"human\"]": {
+      "distance_p05": 1.172770068134464e-05,
+      "distance_p95": 0.31076169184048014,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3828
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"microsomes\",\"mouse\"]": {
+      "distance_p05": 0.0005123282208996039,
+      "distance_p95": 4.315260590672784,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 630
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"microsomes\",\"rat\"]": {
+      "distance_p05": 0.00047861203404721465,
+      "distance_p95": 5.4913737560272,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1770
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.0007554645820347398,
+      "distance_p95": 1.7010854582130133,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 780
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"recombinant enzyme\",\"__unknown__\"]": {
+      "distance_p05": 0.006872238914163406,
+      "distance_p95": 3.3895530103283793,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2211
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 2.1674144879681385e-05,
+      "distance_p95": 0.4876677440836464,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"recombinant microsomes\",\"human gene\"]": {
+      "distance_p05": 6.557702760356022e-05,
+      "distance_p95": 0.837029114953499,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"s9 fraction\",\"human\"]": {
+      "distance_p05": 8.919696353628778e-07,
+      "distance_p95": 1.693617099044607,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"s9 fraction\",\"mouse\"]": {
+      "distance_p05": 4.2234136571349765e-05,
+      "distance_p95": 5.906277749820527,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 595
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"s9 fraction\",\"rat\"]": {
+      "distance_p05": 0.0007636335248512466,
+      "distance_p95": 3.307825219329455,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2485
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min/mg protein\",\"substrate depletion assay\",\"rat\"]": {
+      "distance_p05": 0.011424205173485908,
+      "distance_p95": 3.8116044546680525,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2211
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min\u00b7nmol\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.013438393156834873,
+      "distance_p95": 3.4818359808083907,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 780
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min\u00b7pmol\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.004536515688549231,
+      "distance_p95": 3.588465403936253,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min\u00b7pmol\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.00022603964770945802,
+      "distance_p95": 2.1845240089444298,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"intrinsic_clearance\",\"\u00b5L/min\u00b7pmol\",\"recombinant microsomes\",\"human gene\"]": {
+      "distance_p05": 0.0037581156756851153,
+      "distance_p95": 4.318606362063813,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2016
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"__unknown__\",\"__unknown__\"]": {
+      "distance_p05": 0.004756917375377785,
+      "distance_p95": 4.296307435265788,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 351
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"clinical study\",\"human\"]": {
+      "distance_p05": 0.01604079179625415,
+      "distance_p95": 2.1354304078763366,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8001
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"hepatocytes\",\"human\"]": {
+      "distance_p05": 0.00570954808420834,
+      "distance_p95": 3.557452507224412,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4278
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"hepatocytes\",\"mouse\"]": {
+      "distance_p05": 0.02262914388579266,
+      "distance_p95": 3.263786431732347,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 300
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"hepatocytes\",\"rat\"]": {
+      "distance_p05": 0.021767170940589557,
+      "distance_p95": 3.1717128356083832,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1035
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"in vivo study\",\"human\"]": {
+      "distance_p05": 0.0071486827648455575,
+      "distance_p95": 2.80439309119269,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6105
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"in vivo study\",\"rat\"]": {
+      "distance_p05": 0.03460809797653818,
+      "distance_p95": 3.612899196833181,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1326
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"liver microsomes\",\"dog\"]": {
+      "distance_p05": 0.019868647312554607,
+      "distance_p95": 3.6599502153187435,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1326
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.009961122307528231,
+      "distance_p95": 1.6246973603667112,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"liver microsomes\",\"mouse\"]": {
+      "distance_p05": 0.014687449460678943,
+      "distance_p95": 2.536113371481469,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.0062874173450961,
+      "distance_p95": 1.724205076879758,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"perfused liver\",\"rat\"]": {
+      "distance_p05": 0.006983328168611574,
+      "distance_p95": 3.7716082522650414,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4851
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.04218471434695381,
+      "distance_p95": 2.067051003000762,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1653
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"recombinant microsomes\",\"human gene\"]": {
+      "distance_p05": 0.011692140090490527,
+      "distance_p95": 3.1462486061683164,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"s9 fraction\",\"human\"]": {
+      "distance_p05": 0.01981539885366478,
+      "distance_p95": 3.1030914604838467,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fh\",\"metabolic_half_life\",\"h\",\"s9 fraction\",\"rat\"]": {
+      "distance_p05": 0.0315604151074064,
+      "distance_p95": 2.6469155952799692,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"fh\",\"microsomal_stability\",\"%\",\"liver microsomes\",\"dog\"]": {
+      "distance_p05": 0.11290131688766389,
+      "distance_p95": 2.6086442854334804,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 378
+    },
+    "[\"fh\",\"microsomal_stability\",\"%\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.0714717953303487,
+      "distance_p95": 2.6413489578607123,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"microsomal_stability\",\"%\",\"liver microsomes\",\"mouse\"]": {
+      "distance_p05": 0.05800642747300222,
+      "distance_p95": 2.629431357351191,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1891
+    },
+    "[\"fh\",\"microsomal_stability\",\"%\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.07684448524185743,
+      "distance_p95": 2.571334698477541,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 5886
+    },
+    "[\"fh\",\"microsomal_stability\",\"min\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.06718869166984912,
+      "distance_p95": 3.175785492928206,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2485
+    },
+    "[\"fh\",\"microsomal_stability\",\"min\",\"liver microsomes\",\"mouse\"]": {
+      "distance_p05": 0.016267378897890088,
+      "distance_p95": 2.6778608339603687,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 820
+    },
+    "[\"fh\",\"microsomal_stability\",\"min\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.020381993190547384,
+      "distance_p95": 3.474053148930355,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1128
+    },
+    "[\"fh\",\"s9_stability\",\"%\",\"s9 fraction\",\"human\"]": {
+      "distance_p05": 0.08230433794464975,
+      "distance_p95": 2.5962686814276754,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 666
+    },
+    "[\"fh\",\"substrate_depletion\",\"%\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.07672057933302871,
+      "distance_p95": 2.6652001572475683,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1128
+    },
+    "[\"fh\",\"substrate_depletion\",\"%\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.06027328344612681,
+      "distance_p95": 2.633478845953848,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1225
+    },
+    "[\"fh\",\"substrate_depletion\",\"%\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.07794484522982463,
+      "distance_p95": 2.6882852349578075,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1596
+    },
+    "[\"fh\",\"ugt_metabolism\",\"%\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.07695833993497389,
+      "distance_p95": 2.6453372232593235,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4656
+    },
+    "[\"fh\",\"ugt_metabolism\",\"%\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.03761346128596903,
+      "distance_p95": 2.9236943457583724,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"fh\",\"ugt_metabolism\",\"nmol/mg\u00b7min\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.04237118834595787,
+      "distance_p95": 3.2943598938982213,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"fh\",\"ugt_metabolism\",\"nmol/mg\u00b7min\u00b7protein\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.002529573438161851,
+      "distance_p95": 3.002413953090254,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 5356
+    },
+    "[\"fh\",\"ugt_metabolism\",\"nmol/mg\u00b7min\u00b7protein\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.009220016036330925,
+      "distance_p95": 2.8994799097185653,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"fh\",\"ugt_metabolism\",\"nmol/mg\u00b7min\u00b7protein\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.0017551810345651814,
+      "distance_p95": 0.7455634230549466,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1176
+    },
+    "[\"fh\",\"ugt_metabolism\",\"pmol/mg\u00b7min\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.04051731375872912,
+      "distance_p95": 3.567303839171589,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1485
+    },
+    "[\"fh\",\"ugt_metabolism\",\"pmol/mg\u00b7min\u00b7protein\",\"liver microsomes\",\"human\"]": {
+      "distance_p05": 0.010825276882766905,
+      "distance_p95": 3.411505733044039,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2775
+    },
+    "[\"fh\",\"ugt_metabolism\",\"pmol/mg\u00b7min\u00b7protein\",\"liver microsomes\",\"rat\"]": {
+      "distance_p05": 0.012594960723011028,
+      "distance_p95": 4.018998884502879,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9730
+    },
+    "[\"fh\",\"ugt_metabolism\",\"pmol/mg\u00b7min\u00b7protein\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.006515022776888413,
+      "distance_p95": 3.0671163628124196,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 903
+    },
+    "[\"fh\",\"ugt_metabolism\",\"\u00b5M\",\"recombinant enzyme\",\"human gene\"]": {
+      "distance_p05": 0.0012574024467539402,
+      "distance_p95": 3.0392131612075874,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6670
+    },
+    "[\"oral_exposure\",\"auc\",\"%\"]": {
+      "distance_p05": 0.035718883659184034,
+      "distance_p95": 2.5116156031735635,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc\",\"fold\"]": {
+      "distance_p05": 0.013729376672233777,
+      "distance_p95": 3.315644466344469,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc\",\"h\u00b7ng/mL\u00b7mg\"]": {
+      "distance_p05": 0.019056767040142343,
+      "distance_p95": 3.9316133468204546,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 435
+    },
+    "[\"oral_exposure\",\"auc\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 3.6894037036107995e-06,
+      "distance_p95": 0.015342575247246623,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc\",\"\u00b5mol\u00b7h/L\"]": {
+      "distance_p05": 2.938835883654179e-05,
+      "distance_p95": 0.37320322296670333,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_12\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.008213500891117427,
+      "distance_p95": 3.4940378340172433,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_12h\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.00010050370679594998,
+      "distance_p95": 2.695320183346633,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"oral_exposure\",\"auc0_24h\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.0015029189866476494,
+      "distance_p95": 3.084985714955048,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 7503
+    },
+    "[\"oral_exposure\",\"auc0_48\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.002189188135798852,
+      "distance_p95": 4.344237851775532,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1711
+    },
+    "[\"oral_exposure\",\"auc0_inf\",\"%\"]": {
+      "distance_p05": 0.04490875150358964,
+      "distance_p95": 2.288720085530134,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_inf\",\"fold\"]": {
+      "distance_p05": 0.033584589490222846,
+      "distance_p95": 3.5543690543819144,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8515
+    },
+    "[\"oral_exposure\",\"auc0_inf\",\"\u00b5mol\u00b7h/L\"]": {
+      "distance_p05": 2.4964837558690318e-05,
+      "distance_p95": 0.1046869137717952,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_last\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 6.32368496572923e-05,
+      "distance_p95": 0.4809364615679413,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_last\",\"\u00b5mol\u00b7h/L\"]": {
+      "distance_p05": 0.0004408739955336147,
+      "distance_p95": 0.06884472360093219,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3655
+    },
+    "[\"oral_exposure\",\"auc0_t\",\"%\"]": {
+      "distance_p05": 0.018736730869308,
+      "distance_p95": 1.2545257970538635,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_t\",\"fold\"]": {
+      "distance_p05": 0.021830651116829126,
+      "distance_p95": 3.4568836043498927,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1891
+    },
+    "[\"oral_exposure\",\"auc0_t\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 1.1263725130313998e-06,
+      "distance_p95": 0.0059889680559513155,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_t\",\"\u00b5mol\u00b7h/L\"]": {
+      "distance_p05": 2.1678008858683813e-08,
+      "distance_p95": 0.0010387835448697267,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc0_tau\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.001507947726291631,
+      "distance_p95": 3.5549542658591085,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9591
+    },
+    "[\"oral_exposure\",\"auc0_tlast\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.026529088776699284,
+      "distance_p95": 4.074344004717764,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1711
+    },
+    "[\"oral_exposure\",\"auc24\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.014568591998015,
+      "distance_p95": 4.043351836096049,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2145
+    },
+    "[\"oral_exposure\",\"auc_inf\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.0022925715449369864,
+      "distance_p95": 3.815219085743925,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2556
+    },
+    "[\"oral_exposure\",\"auc_ss\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.0015060827137905958,
+      "distance_p95": 3.3891075998555715,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auc_tau\",\"%\"]": {
+      "distance_p05": 0.031547079917540945,
+      "distance_p95": 1.2877914265856085,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 946
+    },
+    "[\"oral_exposure\",\"auc_tau\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.000524524660396874,
+      "distance_p95": 1.2588325165335608,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"aucinf\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.0013435875588034244,
+      "distance_p95": 1.9098444382892696,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auclast\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.001759033265081535,
+      "distance_p95": 2.9281670126239274,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"auct\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 0.00032449869125922954,
+      "distance_p95": 2.932855860997282,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4950
+    },
+    "[\"oral_exposure\",\"auc\u221e\",\"ng\u00b7h/mL\"]": {
+      "distance_p05": 2.1306928214833845e-05,
+      "distance_p95": 1.7845337322588426,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2926
+    },
+    "[\"oral_exposure\",\"bioavailability\",\"%\"]": {
+      "distance_p05": 0.0699899361507037,
+      "distance_p95": 2.6665863375444285,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"bioavailability\",\"fold\"]": {
+      "distance_p05": 0.0027763460823714446,
+      "distance_p95": 0.8023640178053468,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4005
+    },
+    "[\"oral_exposure\",\"cmax\",\"%\"]": {
+      "distance_p05": 0.039275674650212825,
+      "distance_p95": 2.0710003734459286,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"cmax\",\"fold\"]": {
+      "distance_p05": 0.009368053629119487,
+      "distance_p95": 1.2648746010037162,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"cmax\",\"ng/mL\"]": {
+      "distance_p05": 3.1363639155989453e-07,
+      "distance_p95": 0.00087688713564637,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"cmax\",\"ng/mL\u00b7mg\"]": {
+      "distance_p05": 0.0027523299411561183,
+      "distance_p95": 4.2088039675171975,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1378
+    },
+    "[\"oral_exposure\",\"cmax\",\"\u00b5M\"]": {
+      "distance_p05": 1.1975011868753612e-08,
+      "distance_p95": 0.00018839537734868436,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"cmin\",\"ng/mL\"]": {
+      "distance_p05": 6.317762231308871e-05,
+      "distance_p95": 4.229041484968464,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 9730
+    },
+    "[\"oral_exposure\",\"concentration_time_profile\",\"ng/mL\"]": {
+      "distance_p05": 0.0031900936868556533,
+      "distance_p95": 2.740380116005166,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 4095
+    },
+    "[\"oral_exposure\",\"concentration_time_profile\",\"\u00b5g/mL\"]": {
+      "distance_p05": 0.020541877416764002,
+      "distance_p95": 3.329532386402301,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1176
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"%\"]": {
+      "distance_p05": 0.05970527400790675,
+      "distance_p95": 2.403704101039841,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1891
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"h\u00b7kg/L\"]": {
+      "distance_p05": 0.004754687439279793,
+      "distance_p95": 2.644557153727418,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"h\u00b7ng/kg\u00b7mL\u00b7mg\"]": {
+      "distance_p05": 6.222204789321767e-05,
+      "distance_p95": 1.687959715247207,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 1653
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"h\u00b7ng/mL\"]": {
+      "distance_p05": 0.003718961931962986,
+      "distance_p95": 3.681418593674926,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 8911
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"h\u00b7\u00b5g/L\u00b7mg\"]": {
+      "distance_p05": 0.013504736539962685,
+      "distance_p95": 4.751782880224083,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 561
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"h\u00b7\u00b5g/mL\"]": {
+      "distance_p05": 0.09379778490552773,
+      "distance_p95": 2.675104524816718,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 325
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"ng/kg\u00b7mL\u00b7mg\"]": {
+      "distance_p05": 0.00031033355275403133,
+      "distance_p95": 2.805204733414217,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 406
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"ng/mL\"]": {
+      "distance_p05": 0.0013682156132193602,
+      "distance_p95": 3.87661090412152,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 2850
+    },
+    "[\"oral_exposure\",\"dose_normalized_exposure\",\"ng/mL\u00b7mg\"]": {
+      "distance_p05": 0.019159587596814496,
+      "distance_p95": 3.3112557264194655,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"other_oral_exposure\",\"%\"]": {
+      "distance_p05": 0.05225338806415098,
+      "distance_p95": 2.4339078124617712,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"other_oral_exposure\",\"fold\"]": {
+      "distance_p05": 0.008618195556591147,
+      "distance_p95": 3.050841227033263,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"other_oral_exposure\",\"mg/L\"]": {
+      "distance_p05": 0.011243512869523027,
+      "distance_p95": 3.590768425413979,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 3160
+    },
+    "[\"oral_exposure\",\"other_oral_exposure\",\"ng/mL\"]": {
+      "distance_p05": 0.004789334158385215,
+      "distance_p95": 3.6117105709022654,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    },
+    "[\"oral_exposure\",\"other_oral_exposure\",\"\u00b5g/mL\"]": {
+      "distance_p05": 0.017240719944884155,
+      "distance_p95": 3.492162848410579,
+      "reference_method": "all_unordered_record_pairs",
+      "reference_pair_count": 6216
+    },
+    "[\"oral_exposure\",\"tmax\",\"h\"]": {
+      "distance_p05": 0.01641310833773485,
+      "distance_p95": 1.5608866029185828,
+      "reference_method": "deterministic_hash_sample_with_replacement",
+      "reference_pair_count": 10000
+    }
+  },
+  "lower_percentile": 5,
+  "percentile_scope": "within_pair_bucket",
+  "reference_pair_cap": 10000,
+  "schema_version": "pairwise_distance_quantiles_v1",
+  "source_policy_sha256": "3fd9d2b47b14e1f3edebd45c5670a240dd8f8f8c4ac87559c6cbf3fbcd5c7bb4",
+  "target_probability_at_lower": 0.95,
+  "target_probability_at_upper": 0.05,
+  "upper_percentile": 95
+}

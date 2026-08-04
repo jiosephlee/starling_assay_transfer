@@ -10,8 +10,8 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from pipeline.pair_core import molecule_splits, record_key
 from pipeline.v3_policy import file_sha256
-from pipeline.v6_intern import molecule_splits, record_key
 from pipeline.v6_mlp import (compact_pair, condition_stats, iter_mlp_groups,
                              membership_hash, model_record)
 

@@ -111,7 +111,7 @@ clipped:  0.90   0.90   0.90   <- ranking information destroyed
 
 Because ListNet is gone (Delta 2), the pointwise soft target is now the *only* place ranking
 strength is taught, so that flattening is especially harmful. V6.5 replaces the clip with a
-monotonic affine squash (`target_for` in `pipeline/v6_intern.py`):
+monotonic affine squash (`target_for` in `pipeline/pair_core.py`):
 
 ```text
 q_A = eps + (1 - 2*eps) * sigmoid(z / T)     # eps = TARGET_SMOOTHING = 0.1, T = TARGET_TEMPERATURE = 1
@@ -135,10 +135,10 @@ overflow on extreme distances.
 - Compose: `pipeline.stages.compose_v3` with `configs/assay_transfer/v6_5/release.yaml`
   → `datasets/eligible/assay_transfer_soft_evidence_v6_5/records.parquet`
   (expect `eligible_records: 138787`, 19 new `invalid_metric_domain` rejections).
-- Build: `scripts/build_v6_intern_raw_pair.py` (flat by default; `--listnet` restores the V6
+- Build: `scripts/build_raw_pair.py` (flat by default; `--listnet` restores the V6
   path) with `--expected-records 138787 --expected-split train=116041,validation=11276,test=11470`
   → `datasets/hf_parquet/assay_transfer_raw_pair_v6_5_intern`.
-- Verify: `scripts/verify_v6_intern_raw_pair.py` (packing/group invariants gated behind
+- Verify: `scripts/verify_raw_pair.py` (packing/group invariants gated behind
   `--listnet`; the default flat path checks per-row correctness, unique `pair_id`, no
   cross-subset pair reuse, and the 2,000 / 20,000 benchmark cardinalities).
 
@@ -150,7 +150,7 @@ in line with cmax/auc, while every other endpoint's fraction is unchanged versus
 V6.5.1 is a prompt-only + size revision of V6.5; the **eligible source records, targets,
 `target_z`, pair selection, and benchmark membership are identical to V6.5**. Two changes:
 
-1. **Per-concept Jinja prompt templates.** `render_prompt` (`pipeline/v6_intern.py`) now renders
+1. **Per-concept Jinja prompt templates.** `render_prompt` (`pipeline/pair_core.py`) now renders
    one template per assay concept from `templates/assay_transfer_v6_5_1_intern/{concept}.jinja`
    (loaded via `jinja2` `FileSystemLoader` + `StrictUndefined`), replacing the single hard-coded
    string. Each template frames the concept explicitly and surfaces only that concept's relevant

@@ -1,4 +1,13 @@
-"""Deterministic V6 raw-record pair construction and Intern prompt rendering."""
+"""Deterministic raw-record pair construction and Intern prompt rendering.
+
+Shared by every assay-transfer dataset generation (v6 through v8) and by the MLP branch in
+``pipeline/v6_mlp.py``. The vN build scripts monkey-patch module attributes here (``eligible``,
+``render_prompt``, ``iter_list_groups``, ``SPLIT_SIZES``/``SPLIT_RECORDS``) rather than forking
+the core, so the functions below deliberately resolve those names as module globals at call time.
+
+Every salt literal is frozen: changing one re-randomizes splits, pair orientations, and pair ids
+across all published artifacts.
+"""
 
 from __future__ import annotations
 

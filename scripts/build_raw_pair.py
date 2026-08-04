@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build deterministic V6 raw-pair Parquets from immutable V4 eligible records."""
+"""Build deterministic raw-pair Parquets from immutable V4 eligible records.
+
+Defaults target the V6/V6.5 artifact; the v7/v7.1/v8 wrappers reuse ``build()`` after
+monkey-patching this module's ``_ordinary``/``_ranking``/``_split_records``/``_write_train_flat``.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +15,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from pipeline.v6_intern import (condition_index, iter_list_groups, molecule_splits,
+from pipeline.pair_core import (condition_index, iter_list_groups, molecule_splits,
                                 propose_records, record_key, row_for, stable_hash,
                                 target_for, unordered_pair_id)
 from pipeline.v3_policy import file_sha256

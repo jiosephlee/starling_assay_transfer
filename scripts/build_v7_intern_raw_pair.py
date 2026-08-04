@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Build v7 raw-pair Parquets from the TxAgent-sourced eligible records.
 
-Thin wrapper around ``pipeline.v6_intern`` / ``scripts/build_v6_intern_raw_pair.py`` --
+Thin wrapper around ``pipeline.pair_core`` / ``scripts/build_raw_pair.py`` --
 same pairing/labeling/rendering logic, unchanged. The only difference from the v6.5 driver:
 this source's eligible-record count and unique-molecule count differ from v6.5's frozen dataset,
-so ``pipeline.v6_intern.SPLIT_SIZES``/``SPLIT_RECORDS`` (hardcoded to v6.5's exact counts,
+so ``pipeline.pair_core.SPLIT_SIZES``/``SPLIT_RECORDS`` (hardcoded to v6.5's exact counts,
 not parameterized) are monkey-patched here to v7's own frozen quotas before calling ``build()``.
 
 v7's quotas were derived once (not re-derived per run) by running
-``pipeline.v6_intern._heldout_subset`` against the real v7 molecule-weight distribution, holding
+``pipeline.pair_core._heldout_subset`` against the real v7 molecule-weight distribution, holding
 validation/test at 1250 molecules each (same absolute size as v6.5, per user decision) and
 picking the natural achievable record total nearest each pool's proportional average. See
 ``pipeline/source_normalization/starling_txagent_eligible.py`` for the eligible-records adapter.
 
-Also, ``scripts.build_v6_intern_raw_pair._ordinary``/``_ranking`` hardcode their heldout-benchmark
+Also, ``scripts.build_raw_pair._ordinary``/``_ranking`` hardcode their heldout-benchmark
 row targets (``2000 = 5 concepts * 2 labels * 200``, ``1000`` distinct ranking anchors) as
 v6.5-dataset-specific assumptions, not parameters. TxAgent's current Fg normalization snapshot has
 zero valid records (all 27,671 ``fg`` rows fail with ``missing_canonical_unit``/
@@ -21,7 +21,7 @@ zero valid records (all 27,671 ``fg`` rows fail with ``missing_canonical_unit``/
 concepts. Local copies below compute/parameterize these targets instead of assuming v6.5's numbers
 (125/concept/label = 1,000/split; 500 ranking anchors x 20 candidates = 10,000/split).
 
-``pipeline.v6_intern.eligible()`` only checks ``canonical_endpoint_key`` equality (plus different
+``pipeline.pair_core.eligible()`` only checks ``canonical_endpoint_key`` equality (plus different
 molecule) -- it ignores ``pair_bucket_key`` (TxAgent's condition key: source_id + canonical_endpoint
 + canonical_unit + source-specific context fields such as assay system, dose bin, species) entirely
 when deciding which records may be paired, even though every eligible row already carries it. Left
@@ -33,11 +33,49 @@ microsomal-system value -- different, non-comparable assay systems, with nothing
 Train diversity: ``_ordinary`` already caps ``retrieval_degree[...] < 8`` so no single molecule
 dominates as a retrieval partner in eval, but the train path (``iter_list_groups``/``_span_four``)
 has no equivalent cap at all. Local copies below thread a shared, global ``retrieval_degree``
-counter through train generation with the same cap.
+counter through train generation with the same cap. It also had no cap on the query/anchor side --
+``iter_list_groups``'s round-robin simply cycles every record in a concept forever, so a molecule
+with many raw eligible records (e.g. a heavily-studied reference compound) could be selected as the
+query tens of thousands of times, starving the group budget away from everything else. A second,
+independent ``query_degree`` counter (``TRAIN_QUERY_DEGREE_CAP = 6``, same value as the retrieval
+cap, tracked separately -- so a given record can appear at most 6 times as query + 6 times as
+retrieval = 12 times total) is threaded through ``_iter_list_groups_capped`` below to bound this
+too. Note both caps are keyed by raw ``record_key`` (child_id), not ``canonical_smiles`` -- a
+molecule with many distinct eligible records is not deduplicated across those records.
+
+Source/bucket diversity: TxAgent's ``source_id`` maps 1:1 onto ``assay_concept``
+(``SOURCE_TO_CONCEPT`` in ``starling_txagent_eligible.py`` -- ``fa``/``fg``/``fh``/``oral_exposure``/
+``direct_hf`` each own exactly one concept), so the existing concept-level round-robin already
+balances source representation for free. Bucket diversity was not free, though: query selection
+used to round-robin over a flat, per-concept list of *records*, so a mega ``pair_bucket_key`` with
+thousands of records still got proportionally thousands of times more query-attempt volume than a
+small bucket, even after both were individually degree-capped. ``_iter_list_groups_capped`` now
+round-robins two levels deep -- concept, then ``pair_bucket_key`` within that concept, then record
+within that bucket -- so every bucket gets one query attempt per concept pass regardless of how many
+records it contains. Buckets with fewer than 2 records (never pairable) are dropped up front. Note
+this round-robin is only locally fair (per pass, among currently-live buckets), not globally fair
+over the whole run: a bucket's total lifespan is still bounded by how many distinct records it has
+(each record capped at ``TRAIN_QUERY_DEGREE_CAP`` query uses before the bucket's per-record budgets
+run out), so a concept/bucket with far more distinct records can still end up contributing more
+total rows over a long run even though every live bucket gets an equal number of attempts per pass.
+
+Bucket coverage: ``_span_four_capped``'s caller previously discarded any attempt that didn't produce
+exactly 4 chosen retrievals. Since a query can only find *other* molecules sharing its own
+``pair_bucket_key``, this structurally excluded every bucket with fewer than 5 total records (query
++ 4 distinct partners) -- 2,656 of the 5,017 pair_bucket_keys with >=2 molecules (53%), confirmed
+against the frozen eligible-records artifact. ``_iter_list_groups_capped`` now accepts a
+``min_group_size`` (default 1) and only discards an attempt that yields zero chosen retrievals,
+so small buckets can still contribute partial (1-3 member) groups in the default flat/pairwise
+build. ``--listnet`` mode keeps the strict exactly-4 requirement (``min_group_size=4``) since a
+ListNet group's ranking loss assumes a fixed width. Because average group size can now drop below 4
+in flat mode, ``_write_train_flat_variable`` (a local copy of
+``build_raw_pair._write_train_flat``) requests a generous ``wanted_groups = wanted_pairs``
+upper bound from the generator instead of assuming every group yields exactly 4 rows, so the flat
+train split doesn't under-shoot ``--train-pairs`` merely because more groups are now partial.
 
 Decisiveness: every row (all splits) gets an ``is_decisive`` boolean
 (``distance <= transfer_max or distance >= not_transfer_min``, reusing the boundary logic already
-written -- but dead -- as ``build_v6_intern_raw_pair._is_decisive``), so the deadband-vs-decisive
+written -- but dead -- as ``build_raw_pair._is_decisive``), so the deadband-vs-decisive
 split is visible and filterable in the dataset itself instead of invisible as before.
 
 Template: prompts render from ``templates/assay_transfer_v7_intern/`` (new, TxAgent-schema-aware
@@ -56,6 +94,7 @@ row-producing paths (`_ordinary_variable_concepts`, `_ranking_variable_size`,
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -63,12 +102,12 @@ from typing import Any
 
 import pyarrow.parquet as pq
 
-import pipeline.v6_intern as v6_intern
-import scripts.build_v6_intern_raw_pair as v6_driver
-from pipeline.v6_intern import (propose_records, record_key, row_for,
+import pipeline.pair_core as pair_core
+import scripts.build_raw_pair as pair_driver
+from pipeline.pair_core import (propose_records, record_key, row_for,
                                 stable_hash, target_for, unordered_pair_id)
-from pipeline.v6_intern import render_prompt as _original_render_prompt
-from scripts.build_v6_intern_raw_pair import build, selected_concepts
+from pipeline.pair_core import render_prompt as _original_render_prompt
+from scripts.build_raw_pair import build, selected_concepts
 
 # Frozen for the TxAgent Bioavailability_Ma eligible-records artifact
 # (datasets/eligible/assay_transfer_starling_txagent_v7/records.parquet), re-derived against the
@@ -79,7 +118,8 @@ SPLIT_RECORDS = {"train": 173853, "validation": 13662, "test": 13662}
 
 EVAL_PER_CONCEPT_LABEL = 125       # 125 * 4 concepts * 2 labels = 1,000 per split
 RANKING_ANCHORS = 500              # 500 anchors * 20 candidates = 10,000 per split
-TRAIN_RETRIEVAL_DEGREE_CAP = 8     # same cap _ordinary already uses for eval
+TRAIN_RETRIEVAL_DEGREE_CAP = 6     # each record can appear as retrieval at most 6x
+TRAIN_QUERY_DEGREE_CAP = 6         # separate counter from retrieval_degree; +6 as query = 12x total
 
 V7_TEMPLATE_DIR = str(Path(__file__).resolve().parents[1] / "templates" / "assay_transfer_v7_intern")
 
@@ -89,14 +129,14 @@ def _render_prompt_v7(query: dict, retrieval: dict) -> str:
 
 
 def _eligible_with_pair_bucket(query: dict, retrieval: dict) -> bool:
-    """v6_intern.eligible() plus a matching pair_bucket_key (condition-key) requirement."""
+    """pair_core.eligible() plus a matching pair_bucket_key (condition-key) requirement."""
     return (query["canonical_endpoint_key"] == retrieval["canonical_endpoint_key"] and
             query["canonical_smiles"] != retrieval["canonical_smiles"] and
             query["pair_bucket_key"] == retrieval["pair_bucket_key"])
 
 
 def _condition_index_by_bucket(records: list[dict]) -> dict[tuple[str, str], list[dict]]:
-    """Like pipeline.v6_intern.condition_index, but keyed on (canonical_endpoint_key,
+    """Like pipeline.pair_core.condition_index, but keyed on (canonical_endpoint_key,
     pair_bucket_key) instead of canonical_endpoint_key alone.
 
     Since eligible() now requires an exact pair_bucket_key match on top of the endpoint key,
@@ -135,7 +175,7 @@ def _candidate_label(query: dict, retrieval: dict) -> str | None:
 
 
 def _ordinary_variable_concepts(records: list[dict], split: str, forbidden: set[str]) -> list[dict]:
-    """Copy of build_v6_intern_raw_pair._ordinary: variable concept count, downsized target,
+    """Copy of build_raw_pair._ordinary: variable concept count, downsized target,
     plus an is_decisive flag on every row (trivially True here, kept for schema uniformity)."""
     concepts = selected_concepts(records)
     per_label = EVAL_PER_CONCEPT_LABEL
@@ -179,7 +219,7 @@ def _ordinary_variable_concepts(records: list[dict], split: str, forbidden: set[
 
 
 def _ranking_variable_size(records: list[dict], split: str, forbidden: set[str]) -> list[dict]:
-    """Copy of build_v6_intern_raw_pair._ranking with a downsized anchor count + is_decisive."""
+    """Copy of build_raw_pair._ranking with a downsized anchor count + is_decisive."""
     anchors_wanted = RANKING_ANCHORS
     indexed, anchors = _condition_index_by_bucket(records), []
     for query in records:
@@ -211,7 +251,7 @@ def _ranking_variable_size(records: list[dict], split: str, forbidden: set[str])
 
 
 def _span_four_capped(query: dict, proposed: list[dict], retrieval_degree: dict) -> list[dict]:
-    """Copy of pipeline.v6_intern._span_four with a global retrieval-degree cap added."""
+    """Copy of pipeline.pair_core._span_four with a global retrieval-degree cap added."""
     ranked = sorted(proposed, key=lambda row: target_for(query, row)["target_z"])
     desired = [0, len(ranked) // 3, 2 * len(ranked) // 3, len(ranked) - 1]
     chosen, molecule_counts = [], defaultdict(int)
@@ -230,29 +270,72 @@ def _span_four_capped(query: dict, proposed: list[dict], retrieval_degree: dict)
     return chosen
 
 
-def _iter_list_groups_capped(records: list[dict], split: str, wanted: int):
-    """Copy of pipeline.v6_intern.iter_list_groups with a global retrieval-degree cap + is_decisive."""
-    indexed, anchors = _condition_index_by_bucket(records), defaultdict(list)
-    retrieval_degree: dict[str, int] = defaultdict(int)
+def _iter_list_groups_capped(records: list[dict], split: str, wanted: int, min_group_size: int = 1):
+    """Copy of pipeline.pair_core.iter_list_groups with a global retrieval-degree cap, a matching
+    query-degree cap, is_decisive, (when min_group_size < 4) partial groups for small buckets, and
+    a bucket-level round-robin so a query attempt is spent per-pair_bucket_key, not per-record --
+    otherwise a mega-bucket with thousands of records still gets thousands of times more query
+    volume than a small bucket even with both records individually capped. source_id already maps
+    1:1 onto assay_concept in this dataset (SOURCE_TO_CONCEPT in starling_txagent_eligible.py), so
+    the existing concept-level round-robin below already balances source representation for free."""
+    indexed = _condition_index_by_bucket(records)
+    concept_buckets: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for row in sorted(records, key=lambda item: stable_hash(record_key(item))):
-        anchors[str(row["assay_concept"])].append(row)
-    offsets, failures, active, used = defaultdict(int), defaultdict(int), set(anchors), set()
+        concept_buckets[str(row["assay_concept"])][row["pair_bucket_key"]].append(row)
+    # Buckets with a single record can never pair (eligible() requires a different molecule) --
+    # drop them upfront rather than spending a doomed attempt + deactivation cycle on each one.
+    for concept in list(concept_buckets):
+        for bucket in list(concept_buckets[concept]):
+            if len(concept_buckets[concept][bucket]) < 2:
+                del concept_buckets[concept][bucket]
+        if not concept_buckets[concept]:
+            del concept_buckets[concept]
+
+    bucket_lists: dict[str, list[str]] = {
+        concept: sorted(buckets, key=stable_hash) for concept, buckets in concept_buckets.items()
+    }
+    retrieval_degree: dict[str, int] = defaultdict(int)
+    query_degree: dict[str, int] = defaultdict(int)
+    concept_bucket_offset: dict[str, int] = defaultdict(int)
+    record_offset: dict[tuple[str, str], int] = defaultdict(int)
+    bucket_failures: dict[tuple[str, str], int] = defaultdict(int)
+    active_buckets: dict[str, set[str]] = {concept: set(buckets) for concept, buckets in bucket_lists.items()}
+    active_concepts, used = set(active_buckets), set()
     group = 0
-    while group < wanted and active:
-        for concept in sorted(tuple(active)):
-            values = anchors[concept]
-            query = values[offsets[concept] % len(values)]
-            offsets[concept] += 1
-            proposed = propose_records(
-                query, indexed[(query["canonical_endpoint_key"], query["pair_bucket_key"])], 16,
-                used, f"{group}:{offsets[concept]}")
-            chosen = _span_four_capped(query, proposed, retrieval_degree)
-            if len(chosen) != 4:
-                failures[concept] += 1
-                if failures[concept] >= len(values):
-                    active.remove(concept)
+    while group < wanted and active_concepts:
+        for concept in sorted(tuple(active_concepts)):
+            buckets, live = bucket_lists[concept], active_buckets[concept]
+            offset, bucket = concept_bucket_offset[concept], None
+            for step in range(len(buckets)):
+                candidate = buckets[(offset + step) % len(buckets)]
+                if candidate in live:
+                    bucket = candidate
+                    concept_bucket_offset[concept] = (offset + step + 1) % len(buckets)
+                    break
+            if bucket is None:
+                active_concepts.discard(concept)
                 continue
-            failures[concept] = 0
+
+            bucket_records = concept_buckets[concept][bucket]
+            bucket_key = (concept, bucket)
+            query = bucket_records[record_offset[bucket_key] % len(bucket_records)]
+            record_offset[bucket_key] += 1
+
+            chosen: list[dict] = []
+            if query_degree[record_key(query)] < TRAIN_QUERY_DEGREE_CAP:
+                proposed = propose_records(
+                    query, indexed[(query["canonical_endpoint_key"], query["pair_bucket_key"])], 16,
+                    used, f"{group}:{record_offset[bucket_key]}")
+                chosen = _span_four_capped(query, proposed, retrieval_degree)
+            if len(chosen) < min_group_size:
+                bucket_failures[bucket_key] += 1
+                if bucket_failures[bucket_key] >= len(bucket_records):
+                    live.discard(bucket)
+                    if not live:
+                        active_concepts.discard(concept)
+                continue
+            bucket_failures[bucket_key] = 0
+            query_degree[record_key(query)] += 1
             group_id = f"{split}-list-{group:09d}"
             rows = []
             for index, retrieval in enumerate(chosen):
@@ -268,6 +351,36 @@ def _iter_list_groups_capped(records: list[dict], split: str, wanted: int):
             group += 1
             if group >= wanted:
                 break
+
+
+def _write_train_flat_variable(output: Path, records: list[dict], wanted_pairs: int,
+                               schema=None) -> tuple[str, int]:
+    """Copy of build_raw_pair._write_train_flat that requests a generous group budget
+    (``wanted_groups = wanted_pairs``, i.e. the worst case of every group yielding a single row)
+    instead of assuming every group yields exactly 4 rows -- v7's default groups can be 1-4 wide."""
+    path = output / "train" / "data.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wanted_groups = wanted_pairs
+    writer, batch, count = None, [], 0
+    for group in _iter_list_groups_capped(records, "train", wanted_groups):
+        for row in group:
+            if count >= wanted_pairs:
+                break
+            for column in pair_driver._LISTNET_COLUMNS:
+                row.pop(column, None)
+            batch.append(row)
+            count += 1
+        if len(batch) >= 4096:
+            writer = pair_driver._flush(path, writer, batch, schema)
+            batch = []
+        if count >= wanted_pairs:
+            break
+    if batch:
+        writer = pair_driver._flush(path, writer, batch, schema)
+    if writer is None:
+        raise RuntimeError("no usable v7 training pairs")
+    writer.close()
+    return str(path), count
 
 
 def _pair_bucket_concentration(source_path: Path) -> dict[str, Any]:
@@ -313,17 +426,24 @@ def main() -> None:
     parser.add_argument("--listnet", action="store_true",
                         help="build indivisible 4-member ListNet groups; default is flat per-pair (v6_5-style)")
     parser.add_argument("--train-groups", type=int, default=250000)
-    parser.add_argument("--train-pairs", type=int, default=1000000)
+    parser.add_argument("--train-pairs", type=int, default=1250000)
     args = parser.parse_args()
 
-    v6_intern.SPLIT_SIZES = SPLIT_SIZES
-    v6_intern.SPLIT_RECORDS = SPLIT_RECORDS
-    v6_intern.eligible = _eligible_with_pair_bucket
-    v6_intern.render_prompt = _render_prompt_v7
-    v6_intern.iter_list_groups = _iter_list_groups_capped
-    v6_driver._ordinary = _ordinary_variable_concepts
-    v6_driver._ranking = _ranking_variable_size
-    v6_driver.iter_list_groups = _iter_list_groups_capped
+    # --listnet keeps the strict exactly-4 requirement (a ListNet group's ranking loss assumes a
+    # fixed width); the default flat/pairwise build allows partial (1-3 member) groups so buckets
+    # too small to ever fill 4 slots can still contribute pairs. See module docstring.
+    train_group_iterator = (functools.partial(_iter_list_groups_capped, min_group_size=4)
+                            if args.listnet else _iter_list_groups_capped)
+
+    pair_core.SPLIT_SIZES = SPLIT_SIZES
+    pair_core.SPLIT_RECORDS = SPLIT_RECORDS
+    pair_core.eligible = _eligible_with_pair_bucket
+    pair_core.render_prompt = _render_prompt_v7
+    pair_core.iter_list_groups = train_group_iterator
+    pair_driver._ordinary = _ordinary_variable_concepts
+    pair_driver._ranking = _ranking_variable_size
+    pair_driver.iter_list_groups = train_group_iterator
+    pair_driver._write_train_flat = _write_train_flat_variable
 
     volume = args.train_groups if args.listnet else args.train_pairs
     manifest = build(

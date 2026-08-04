@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate V6 raw-pair provenance, target math, and benchmark cardinalities."""
+"""Validate raw-pair provenance, target math, and benchmark cardinalities."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from pipeline.v6_intern import oriented_pair, render_prompt, target_for, unordered_pair_id
+from pipeline.pair_core import oriented_pair, render_prompt, target_for, unordered_pair_id
 
 
 def _rows(root: Path, split: str) -> list[dict]:
@@ -29,11 +29,26 @@ def _verify_row(row: dict, source: dict[str, dict]) -> None:
     if "value hidden" not in row["prompt"]:
         raise AssertionError("query block is not marked value-hidden")
     a, b = row["target_a"], row["target_b"]
-    if not (.1 <= a <= .9 and math.isclose(a + b, 1.0, abs_tol=1e-6)):
+    if not (math.isfinite(a) and math.isfinite(b) and 0.0 <= a <= 1.0 and 0.0 <= b <= 1.0
+            and math.isclose(a + b, 1.0, abs_tol=1e-6)):
         raise AssertionError("invalid stored A/B target")
     expected = target_for(query, retrieval)
     if any(not math.isclose(row[key], expected[key], abs_tol=1e-6) for key in expected):
         raise AssertionError("target reconstruction mismatch")
+    expected_completion = "(A)" if a >= 0.5 else "(B)"
+    if row["completion"] != expected_completion:
+        raise AssertionError("completion disagrees with target_a")
+    metadata = row.get("metadata") or {}
+    soft_targets = metadata.get("soft_targets")
+    if soft_targets is not None:
+        if set(soft_targets) != {"(A)", "(B)"}:
+            raise AssertionError("metadata.soft_targets has unexpected choices")
+        if not math.isclose(soft_targets["(A)"], a, abs_tol=1e-6):
+            raise AssertionError("metadata.soft_targets A probability mismatch")
+        if not math.isclose(soft_targets["(B)"], b, abs_tol=1e-6):
+            raise AssertionError("metadata.soft_targets B probability mismatch")
+        if (metadata.get("groups") or {}).get("assay_concept") != row["assay_concept"]:
+            raise AssertionError("metadata assay-concept group mismatch")
 
 
 def _source_rows(path: Path) -> dict[str, dict]:
@@ -145,7 +160,7 @@ def main() -> None:
                         help="enforce v6 ListNet 4-member group + offline packing invariants")
     args = parser.parse_args()
     verify(args.root, args.source, listnet=args.listnet)
-    print("V6 raw-pair verification passed")
+    print("raw-pair verification passed")
 
 
 if __name__ == "__main__":

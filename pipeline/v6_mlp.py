@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
-from pipeline.v6_intern import (CONTEXT_FIELDS, eligible, oriented_pair, pair_id,
+from pipeline.pair_core import (CONTEXT_FIELDS, eligible, oriented_pair, pair_id,
                                 record_key, stable_hash, target_for)
 
 

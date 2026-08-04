@@ -1,0 +1,21 @@
+version: assay_transfer_raw_pair_v10_intern
+artifact_schema_version: assay_transfer_raw_pair_v6_intern
+base_schema_version: starling_normalized_v6
+eligible_stage: starling_txagent_eligible_v6
+eligible_source: datasets/eligible/assay_transfer_starling_txagent_v9/records.parquet
+eligible_source_sha256: 5e520b2564e92d4c7707d2a7bdc9f0acccfe7a803a2b2703e3c3008656310be9
+target_calibration: configs/assay_transfer/v10/pairwise_distance_quantiles.json
+target_calibration_sha256: 860082eb4af851ea013542c8b6219eb5d412ffb15b26aac312cd637e7a14cdf7
+target_calibration_percentiles: [5, 95]
+target_calibration_probabilities: [0.95, 0.05]
+target_sigmoid_tails_clipped: false
+ordinary_target_a_thresholds: {transfer_min_exclusive: 0.6, nontransfer_max_exclusive: 0.4}
+prompt_template_dir: templates/assay_transfer_v8_intern
+intern_model: jiosephlee/Intern-S1-mini-lm
+intern_revision: fcb667c380ae01f57693a45b4b5c2d331052a107
+max_tokens: 4096
+listnet: false
+reserved_pool_molecules: 852
+validation_test_overlap_allowed: true
+hub_dataset_id: jiosephlee/assay-transfer-raw-pair-v10-intern
+hub_private: false

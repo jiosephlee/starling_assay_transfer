@@ -12,7 +12,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from pipeline.v6_intern import (TARGET_SMOOTHING, TARGET_TEMPERATURE, molecule_splits,
+from pipeline.pair_core import (TARGET_SMOOTHING, TARGET_TEMPERATURE, molecule_splits,
                                 oriented_pair, pair_id, record_key)
 from pipeline.v6_mlp import assay_paragraph, membership_hash
 

@@ -4,15 +4,15 @@ TxAgent (``/data1/joseph/TxAgent``) has already normalized, condition-key-bucket
 endpoint-calibrated Bioavailability_Ma (five merged sources: ``oral_exposure``, ``fa``, ``fg``,
 ``fh``, ``direct_hf``). This module consumes those finished artifacts directly and produces the
 same "eligible records" shape ``pipeline/stages/compose_v3.py::_eligible_row()`` would produce
-from our own sources -- the shape ``scripts/build_v6_intern_raw_pair.py`` /
-``pipeline/v6_intern.py`` read unmodified. It deliberately skips ``compose_v3.py`` (and our own
+from our own sources -- the shape ``scripts/build_raw_pair.py`` /
+``pipeline/pair_core.py`` read unmodified. It deliberately skips ``compose_v3.py`` (and our own
 ``metrics.yaml``/``concepts.yaml``): TxAgent's endpoint-policy-v2 registry already is that
 derivation, for a namespace (``endpoint_policy_key``) our own policy tables don't know about.
 
 ``comparison_value`` is written pre-scaled into TxAgent's normalized (0-100) distance space
 (``comparison_value = 100/raw_distance_anchor * transform(finite_scalar_value)``), and
 ``transfer_max``/``not_transfer_min`` are taken directly from the registry's
-``normalized_thresholds``. ``pipeline/v6_intern.py::target_for()``'s z-score is scale-invariant
+``normalized_thresholds``. ``pipeline/pair_core.py::target_for()``'s z-score is scale-invariant
 to a common linear rescale of (a, b, distance), so this reproduces the same sigmoid target as
 using TxAgent's raw values, while trusting their calibration end to end -- see
 ``docs/assay_transfer_design_v4.md`` sibling plan notes for the derivation. The one accepted
@@ -66,7 +66,7 @@ SOURCE_TO_CONCEPT = {
     "fh": "Fh",
 }
 
-# pipeline/v6_intern.py:19-23 CONTEXT_FIELDS <- TxAgent records.parquet columns (same names
+# pipeline/pair_core.py CONTEXT_FIELDS <- TxAgent records.parquet columns (same names
 # compose_v3.py::_context() already maps our own sources onto).
 CONTEXT_FIELD_SOURCES: dict[str, tuple[str, ...]] = {
     "species_or_population": ("species_or_population", "canonical_species", "species"),
@@ -217,7 +217,11 @@ def build_eligible_records(
     heldout_paths: list[Path] | None = None,
     threshold_variant: str = "primary",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    heldout_paths = heldout_paths or [DEFAULT_RANDOM_HELDOUT, DEFAULT_SCAFFOLD_HELDOUT]
+    # `None` means "use the default heldout files"; `[]` explicitly means "no heldout exclusion"
+    # -- these must stay distinguishable (an `or` fallback would treat both the same, since `[]`
+    # is falsy).
+    if heldout_paths is None:
+        heldout_paths = [DEFAULT_RANDOM_HELDOUT, DEFAULT_SCAFFOLD_HELDOUT]
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     policies = registry["endpoint_policies"]
 
@@ -319,8 +323,9 @@ def write_eligible_records(
     output_dir: Path,
     *,
     threshold_variant: str = "primary",
+    heldout_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
-    rows, stats = build_eligible_records(threshold_variant=threshold_variant)
+    rows, stats = build_eligible_records(threshold_variant=threshold_variant, heldout_paths=heldout_paths)
     if not rows:
         raise RuntimeError("no eligible TxAgent-sourced records produced")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -340,12 +345,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=Path("datasets/eligible/assay_transfer_starling_txagent_v7"))
     parser.add_argument("--threshold-variant", choices=("strict", "primary", "permissive"), default="primary")
+    parser.add_argument("--disable-heldout-exclusion", action="store_true",
+                        help="include records whose molecule overlaps Starling's own held-out "
+                             "test set, instead of excluding them (e.g. to route them into a "
+                             "downstream build's own validation/test split)")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    manifest = write_eligible_records(args.output_dir, threshold_variant=args.threshold_variant)
+    heldout_paths = [] if args.disable_heldout_exclusion else None
+    manifest = write_eligible_records(args.output_dir, threshold_variant=args.threshold_variant,
+                                      heldout_paths=heldout_paths)
     print(json.dumps(manifest, indent=2))
 
 

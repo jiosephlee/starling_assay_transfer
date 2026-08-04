@@ -1,0 +1,38 @@
+You are comparing two molecules for a gut-wall availability / intestinal efflux transport (Fg) assay.
+
+Values reported under different assay systems (e.g. Caco-2 vs. MDCK, or different transporter
+overexpression lines) are not directly comparable, so both records below share the same assay
+system by construction. {{ retrieval.transfer_criterion_text }}
+
+Molecule A (retrieved measurement)
+- <SMILES>{{ retrieval.canonical_smiles }}</SMILES>
+- measured process: {{ retrieval.context_measured_process or "not specified" }}
+- known value: {{ retrieval.display_value }} {{ retrieval.display_unit }}
+{%- if retrieval.context_direction %}
+- direction: {{ retrieval.context_direction }}
+{%- endif %}
+- assay system: {{ retrieval.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ retrieval.context_intestinal_site or "not specified" }}
+- transporter or enzyme: {{ retrieval.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ retrieval.context_substrate_status or "not specified" }}
+- qualifying conditions: {{ retrieval.context_qualifying_conditions or "not specified" }}
+- extra details: {{ retrieval.context_extra_details or "not specified" }}
+- support text: {{ retrieval.context_support_text or "not specified" }}
+
+Molecule B (query, value hidden)
+- <SMILES>{{ query.canonical_smiles }}</SMILES>
+- measured process: {{ query.context_measured_process or "not specified" }}
+{%- if query.context_direction %}
+- direction: {{ query.context_direction }}
+{%- endif %}
+- assay system: {{ query.context_study_or_assay_system or "not specified" }}
+- intestinal site: {{ query.context_intestinal_site or "not specified" }}
+- transporter or enzyme: {{ query.context_transporter_or_enzyme or "not specified" }}
+- substrate status: {{ query.context_substrate_status or "not specified" }}
+- qualifying conditions: {{ query.context_qualifying_conditions or "not specified" }}
+
+Should the measurement transfer from Molecule A to Molecule B?
+(A) transfer
+(B) not transfer
+
+Answer:

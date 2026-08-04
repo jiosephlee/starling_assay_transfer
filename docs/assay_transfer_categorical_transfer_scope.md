@@ -36,7 +36,7 @@ But categorical data is absent from the v6.5 build for **two independent reasons
      two‑threshold **absolute-distance** deadband only — no `equality`/categorical distance.
    - `pipeline/stages/compose_v3.py::_eligible_row` calls `metric.transform_value(scalar_value, unit)`;
      a categorical record has no numeric scalar, so `metric_for` → `None` → rejected `unsupported_metric`.
-   - `pipeline/v6_intern.py::target_for` computes `abs(comparison_value_r − comparison_value_q)`
+   - `pipeline/pair_core.py::target_for` computes `abs(comparison_value_r − comparison_value_q)`
      through a sigmoid — there is no categorical branch.
 
 ## Reusable machinery (port, don't reinvent)
@@ -64,7 +64,7 @@ The categorical concept already exists in the **v1** pipeline and can be ported 
    - `pipeline/stages/compose_v3.py::_eligible_row`: when the metric is categorical, read the
      `categorical_value` instead of `scalar_value`, and write a categorical `comparison_value`
      (+ set `transfer_max`/`not_transfer_min` sentinels or a categorical marker).
-4. **Add a categorical branch to `target_for`** (`pipeline/v6_intern.py`): for categorical pairs,
+4. **Add a categorical branch to `target_for`** (`pipeline/pair_core.py`): for categorical pairs,
    `d = 0` if categories match else `1`; map to the smoothed A/B target (`q_A ≈ 0.9` on match,
    `≈ 0.1` on mismatch). Guard so numeric pairs keep the sigmoid path unchanged.
 5. **Concept assignment + rebuild.** Add the categorical endpoint to `concepts.yaml` (its own concept
@@ -85,6 +85,6 @@ The categorical concept already exists in the **v1** pipeline and can be ported 
 
 ## Files touched (when implemented)
 `canonical_endpoints_v3` producer (upstream), `configs/assay_transfer/v6_5/metrics.yaml`,
-`pipeline/v3_policy.py`, `pipeline/stages/compose_v3.py`, `pipeline/v6_intern.py`,
+`pipeline/v3_policy.py`, `pipeline/stages/compose_v3.py`, `pipeline/pair_core.py`,
 `configs/assay_transfer/v3/concepts.yaml`, then the standard build/verify path
-(`scripts/build_v6_intern_raw_pair.py`, `scripts/verify_v6_intern_raw_pair.py`).
+(`scripts/build_raw_pair.py`, `scripts/verify_raw_pair.py`).
