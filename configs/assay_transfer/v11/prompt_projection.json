@@ -1,0 +1,174 @@
+{
+  "schema_version": "assay_transfer_prompt_projection.v11",
+  "record_contract_version": "starling_record_contract.v7",
+  "source_contract_version": "source_column_contract.v1",
+  "categorical_ablation_release": {
+    "evaluation_measurement_kinds": ["continuous"],
+    "categorical_measurement_kinds": ["binary", "ordinal"],
+    "train_components": {
+      "continuous": {
+        "measurement_kinds": ["continuous"],
+        "max_pairs": 1250000,
+        "query_degree_cap": 6,
+        "retrieval_degree_cap": 6
+      },
+      "categorical": {
+        "measurement_kinds": ["binary", "ordinal"],
+        "max_pairs": 1250000,
+        "query_degree_cap": 6,
+        "retrieval_degree_cap": 6
+      }
+    },
+    "variants": {
+      "continuous_only": ["continuous"],
+      "with_categorical": ["continuous", "categorical"]
+    }
+  },
+  "tasks": {
+    "bioavailability_ma": {
+      "artifact_relpath": "outputs/chembl_tool/tasks/bioavailability_ma/evidence_library/starling_normalized_v7",
+      "heldout_reservation": {
+        "methodology": "scaffold",
+        "included_splits": ["valid", "test"],
+        "labels_relpath": "data/processed_starling/Bioavailability_Ma/scaffold/heldout_molecule_labels.jsonl"
+      },
+      "priority_phases": [["fg", "fh"], ["hf_bioavailability", "oral_exposure", "fa"]],
+      "construction": {
+        "ranking_anchor_width": 16,
+        "record_degree_cap": 24,
+        "ordinary_degree_cap": 24,
+        "ranking_anchors": {
+          "test": {"hf_bioavailability": 30, "oral_exposure": 30, "fa": 30, "fg": 20, "fh": 30},
+          "validation": {"hf_bioavailability": 20, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20}
+        },
+        "ordinary_pairs_per_label": {"hf_bioavailability": 100, "oral_exposure": 100, "fa": 100, "fg": 50, "fh": 100}
+      },
+      "sources": {
+        "hf_bioavailability": {
+          "template": "bioavailability_ma/hf_bioavailability.jinja",
+          "both": ["smiles", "bioavailability_report_type", "comparator", "dose", "oral_exposure_mode", "qualifying_conditions", "species_or_population"],
+          "retrieval_only": ["unit_text", "measurement_text", "support_text", "extra_details"],
+          "constants": {"endpoint_name": "oral_bioavailability"},
+          "expected_all_null_fields": ["unit_text"]
+        },
+        "oral_exposure": {
+          "template": "bioavailability_ma/oral_exposure.jinja",
+          "both": ["smiles", "endpoint_name", "statistic_type", "oral_dose", "study_context", "qualifying_conditions"],
+          "retrieval_only": ["unit_text", "measurement_text", "comparator_exposure", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "fa": {
+          "template": "bioavailability_ma/fa.jinja",
+          "both": ["smiles", "endpoint_name", "assay_system", "condition_medium", "biological_context", "formulation_or_solid_form", "qualifying_conditions"],
+          "retrieval_only": ["unit_text", "measurement_text", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "fg": {
+          "template": "bioavailability_ma/fg.jinja",
+          "both": ["smiles", "endpoint_name", "transporter_or_enzyme", "assay_system", "intestinal_site", "qualifying_conditions"],
+          "retrieval_only": ["measurement_text", "substrate_status", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "fh": {
+          "template": "bioavailability_ma/fh.jinja",
+          "both": ["smiles", "endpoint_name", "assay_system", "species", "molecular_form", "enzyme_or_pathway", "qualifying_conditions"],
+          "retrieval_only": ["unit_text", "measurement_text", "support_text", "extra_details"],
+          "constants": {}
+        }
+      }
+    },
+    "bbb_martins": {
+      "artifact_relpath": "outputs/chembl_tool/tasks/bbb_martins/evidence_library/starling_normalized_v7",
+      "heldout_reservation": {
+        "methodology": "scaffold",
+        "included_splits": ["valid", "test"],
+        "labels_relpath": "data/processed_starling/BBB_Martins/scaffold/heldout_molecule_labels.jsonl"
+      },
+      "priority_phases": [["direct_bbb", "passive_permeability", "efflux_transport", "influx_transport"]],
+      "construction": {
+        "ranking_anchor_width": 16,
+        "record_degree_cap": 24,
+        "ordinary_degree_cap": 24,
+        "ranking_anchors": {
+          "test": {"direct_bbb": 30, "passive_permeability": 30, "efflux_transport": 30, "influx_transport": 30},
+          "validation": {"direct_bbb": 20, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20}
+        },
+        "ordinary_pairs_per_label": {"direct_bbb": 100, "passive_permeability": 100, "efflux_transport": 100, "influx_transport": 100}
+      },
+      "sources": {
+        "direct_bbb": {
+          "template": "bbb_martins/direct_bbb.jinja",
+          "both": ["smiles", "endpoint_name", "assay_model", "species", "qualifying_conditions"],
+          "retrieval_only": ["unit_text", "measurement_text", "bbb_permeability_label", "bbb_transport_label", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "passive_permeability": {
+          "template": "bbb_martins/passive_permeability.jinja",
+          "both": ["smiles", "endpoint_name", "assay_type", "biological_system", "metric_uncertainty", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "passive_bbb_interpretation", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "efflux_transport": {
+          "template": "bbb_martins/efflux_transport.jinja",
+          "both": ["smiles", "endpoint_name", "transporter_identifier", "assay_system", "perturbation", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "evidence_type", "interaction_conclusion", "support_text", "extra_details"],
+          "constants": {},
+          "expected_all_null_fields": ["unit_text"]
+        },
+        "influx_transport": {
+          "template": "bbb_martins/influx_transport.jinja",
+          "both": ["smiles", "endpoint_name", "mediator_name", "mediator_identifier", "transport_mechanism", "evidence_basis", "assay_model", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "reported_result", "support_text", "extra_details"],
+          "constants": {}
+        }
+      }
+    },
+    "skin_reaction": {
+      "artifact_relpath": "outputs/chembl_tool/tasks/skin_reaction/evidence_library/starling_normalized_v7",
+      "heldout_reservation": {
+        "methodology": "scaffold",
+        "included_splits": ["valid", "test"],
+        "labels_relpath": "data/processed_starling/Skin_Reaction/scaffold/heldout_molecule_labels.jsonl"
+      },
+      "priority_phases": [["direct_skin_reaction", "sensitization_aop", "phototoxicity_irritation_local_damage", "skin_exposure"]],
+      "construction": {
+        "ranking_anchor_width": 16,
+        "record_degree_cap": 24,
+        "ordinary_degree_cap": 24,
+        "ranking_anchors": {
+          "test": {"direct_skin_reaction": 30, "sensitization_aop": 30, "phototoxicity_irritation_local_damage": 30, "skin_exposure": 30},
+          "validation": {"direct_skin_reaction": 20, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20}
+        },
+        "ordinary_pairs_per_label": {"direct_skin_reaction": 100, "sensitization_aop": 100, "phototoxicity_irritation_local_damage": 100, "skin_exposure": 100}
+      },
+      "sources": {
+        "direct_skin_reaction": {
+          "template": "skin_reaction/direct_skin_reaction.jinja",
+          "both": ["smiles", "endpoint_name", "assay_or_test", "species_or_population", "dose_or_concentration"],
+          "retrieval_only": ["unit_text", "measurement_text", "outcome_label", "positive_count", "total_tested", "support_text", "extra_details"],
+          "constants": {},
+          "expected_all_null_fields": ["unit_text"]
+        },
+        "sensitization_aop": {
+          "template": "skin_reaction/sensitization_aop.jinja",
+          "both": ["smiles", "endpoint_name", "assay_type", "aop_event", "experimental_conditions", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "result_label", "support_text", "extra_details"],
+          "constants": {}
+        },
+        "phototoxicity_irritation_local_damage": {
+          "template": "skin_reaction/phototoxicity_irritation_local_damage.jinja",
+          "both": ["smiles", "endpoint_name", "evidence_system", "assay_method", "experimental_conditions", "light_conditions", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "result_label", "support_text", "extra_details"],
+          "constants": {},
+          "expected_all_null_fields": ["unit_text"]
+        },
+        "skin_exposure": {
+          "template": "skin_reaction/skin_exposure.jinja",
+          "both": ["smiles", "endpoint_name", "study_design", "skin_source", "formulation_vehicle", "exposure_time", "qualifying_conditions", "needs_more_context"],
+          "retrieval_only": ["unit_text", "measurement_text", "support_text", "extra_details"],
+          "constants": {}
+        }
+      }
+    }
+  }
+}

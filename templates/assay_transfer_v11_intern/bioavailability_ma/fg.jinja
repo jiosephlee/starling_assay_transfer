@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as p %}{{ p.prelude() }}
+
+Molecule A (known)
+{{ p.line("SMILES", retrieval.get("smiles")) }}{{ p.line("endpoint", retrieval.get("endpoint_name")) }}{{ p.line("known measurement", retrieval.get("measurement_text")) }}{{ p.line("transporter or enzyme", retrieval.get("transporter_or_enzyme")) }}{{ p.line("substrate status", retrieval.get("substrate_status")) }}{{ p.line("assay system", retrieval.get("assay_system")) }}{{ p.line("intestinal site", retrieval.get("intestinal_site")) }}{{ p.line("qualifying conditions", retrieval.get("qualifying_conditions")) }}{{ p.line("supporting evidence", retrieval.get("support_text")) }}{{ p.line("additional details", retrieval.get("extra_details")) }}
+Molecule B (query)
+{{ p.line("SMILES", query.get("smiles")) }}{{ p.line("endpoint", query.get("endpoint_name")) }}{{ p.line("transporter or enzyme", query.get("transporter_or_enzyme")) }}{{ p.line("assay system", query.get("assay_system")) }}{{ p.line("intestinal site", query.get("intestinal_site")) }}{{ p.line("qualifying conditions", query.get("qualifying_conditions")) }}
+{{ p.answer() }}

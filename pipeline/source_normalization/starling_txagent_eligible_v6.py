@@ -247,6 +247,76 @@ def _load_policy(policy_path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def _eligible_bucket(
+    row: pd.Series, buckets: dict[str, Any], stats: dict[str, int],
+) -> tuple[str, dict[str, Any]] | None:
+    if str(row.get("normalization_validity_status") or "") != "valid":
+        stats["rejected_normalization_invalid"] += 1
+        return None
+    if not bool(row.get("bucket_eligible")):
+        stats["rejected_bucket_ineligible"] += 1
+        return None
+    bucket_key = str(row.get("pair_bucket_key") or "")
+    bucket = buckets.get(bucket_key)
+    if bucket is None or not bool(bucket.get("assay_transfer_eligible")):
+        stats["rejected_bucket_transfer_ineligible"] += 1
+        return None
+    return bucket_key, bucket
+
+
+def _bucket_calibration(bucket: dict[str, Any]) -> tuple[float, float, int]:
+    distance_policy = bucket["distance_policy"]
+    sample_std = float(distance_policy["sample_standard_deviation"])
+    anchor_percentile = round(float(distance_policy["one_sd_percentile_0_100"]))
+    percentile = min(100, anchor_percentile + NOT_TRANSFER_MIN_MARGIN)
+    return sample_std, float(distance_policy["standardized_distance_percentile_knots"][percentile]), percentile
+
+
+def _output_record(
+    row: pd.Series, bucket_key: str, sample_std: float, not_transfer_min: float,
+    not_transfer_min_percentile: int,
+) -> dict[str, Any]:
+    scalar_value = float(row["finite_scalar_value"])
+    concept = SOURCE_TO_CONCEPT[str(row["source_id"])]
+    record_id = str(row.get("source_record_id") or row["normalized_record_id"])
+    out = {
+        "child_id": str(row["normalized_record_id"]),
+        "parent_provenance_id": str(row.get("duplicate_group_id") or row["normalized_record_id"]),
+        "record_id": record_id,
+        "source_id": str(row["source_id"]),
+        "input_sha256": _stable_hash(str(row["normalized_record_id"])),
+        "source_smiles": str(row["source_smiles"]),
+        "canonical_smiles": str(row["canonical_smiles"]),
+        "canonical_endpoint_key": bucket_key,
+        "endpoint_family": concept,
+        "endpoint_subtype": str(row.get("canonical_measurement") or ""),
+        "unit_basis": str(row.get("canonical_unit") or ""),
+        "scalar_value": scalar_value,
+        "scalar_is_approximate": bool(pd.notna(row.get("variation_value"))),
+        "assay_concept": concept,
+        "metric_type": concept,
+        "comparison_value": scalar_value / sample_std,
+        "transfer_max": 1.0,
+        "not_transfer_min": not_transfer_min,
+        "threshold_display": (
+            f"standardized distance <= 1 SD transfers; >= {not_transfer_min:g} SD does not "
+            f"(bucket's own {not_transfer_min_percentile}th percentile of random within-bucket "
+            "pairwise distances)"
+        ),
+        "measurement_label": str(row.get("endpoint_name") or ""),
+        "measurement_subtype": str(row.get("canonical_measurement") or ""),
+        "policy_family": concept,
+        "sample_standard_deviation": sample_std,
+        "pair_bucket_key": bucket_key,
+        "display_value": str(row.get("measurement_text") or ""),
+        "display_unit": str(row.get("unit_text") or ""),
+        "context_direction": _direction_note(str(row.get("canonical_measurement") or "")),
+        "transfer_criterion_text": _transfer_criterion_text(1.0, not_transfer_min),
+    }
+    out.update(_context(row))
+    return out
+
+
 def build_eligible_records(
     *,
     records_path: Path = DEFAULT_RECORDS,
@@ -278,81 +348,21 @@ def build_eligible_records(
     seen_parent_keys_excluded: set[str] = set()
 
     for _, row in merged.iterrows():
-        if str(row.get("normalization_validity_status") or "") != "valid":
-            stats["rejected_normalization_invalid"] += 1
+        eligible_bucket = _eligible_bucket(row, buckets, stats)
+        if eligible_bucket is None:
             continue
-        if not bool(row.get("bucket_eligible")):
-            stats["rejected_bucket_ineligible"] += 1
-            continue
-        bucket_key = row.get("pair_bucket_key")
-        bucket = buckets.get(bucket_key)
-        if bucket is None or not bool(bucket.get("assay_transfer_eligible")):
-            stats["rejected_bucket_transfer_ineligible"] += 1
-            continue
+        bucket_key, bucket = eligible_bucket
         parent_key = _record_parent_key(row)
         if parent_key and parent_key in heldout_keys:
             stats["rejected_heldout_excluded"] += 1
             seen_parent_keys_excluded.add(parent_key)
             continue
 
-        distance_policy = bucket["distance_policy"]
-        sample_std = float(distance_policy["sample_standard_deviation"])
-        knots = distance_policy["standardized_distance_percentile_knots"]
-        transfer_max = 1.0
-        anchor_percentile = round(float(distance_policy["one_sd_percentile_0_100"]))
-        not_transfer_min_percentile = min(100, anchor_percentile + NOT_TRANSFER_MIN_MARGIN)
-        not_transfer_min = float(knots[not_transfer_min_percentile])
-        if not_transfer_min <= transfer_max:
+        sample_std, not_transfer_min, percentile = _bucket_calibration(bucket)
+        if not_transfer_min <= 1.0:
             stats["rejected_degenerate_deadband"] += 1
             continue
-
-        scalar_value = float(row["finite_scalar_value"])
-        comparison_value = scalar_value / sample_std
-        concept = SOURCE_TO_CONCEPT[str(row["source_id"])]
-
-        record_id = str(row.get("source_record_id") or row["normalized_record_id"])
-        out = {
-            "child_id": str(row["normalized_record_id"]),
-            "parent_provenance_id": str(row.get("duplicate_group_id") or row["normalized_record_id"]),
-            "record_id": record_id,
-            "source_id": str(row["source_id"]),
-            "input_sha256": _stable_hash(str(row["normalized_record_id"])),
-            "source_smiles": str(row["source_smiles"]),
-            "canonical_smiles": str(row["canonical_smiles"]),
-            "canonical_endpoint_key": str(bucket_key),
-            "endpoint_family": concept,
-            "endpoint_subtype": str(row.get("canonical_measurement") or ""),
-            "unit_basis": str(row.get("canonical_unit") or ""),
-            "scalar_value": scalar_value,
-            "scalar_is_approximate": bool(pd.notna(row.get("variation_value"))),
-            "assay_concept": concept,
-            "metric_type": concept,
-            "comparison_value": comparison_value,
-            "transfer_max": transfer_max,
-            "not_transfer_min": not_transfer_min,
-            "threshold_display": (
-                f"standardized distance <= {transfer_max:g} SD transfers; "
-                f">= {not_transfer_min:g} SD does not (bucket's own {not_transfer_min_percentile}th "
-                "percentile of random within-bucket pairwise distances)"
-            ),
-            "measurement_label": str(row.get("endpoint_name") or ""),
-            "measurement_subtype": str(row.get("canonical_measurement") or ""),
-            "policy_family": concept,
-            "sample_standard_deviation": sample_std,
-            "pair_bucket_key": bucket_key,
-            # Source-native display fields (not TxAgent's canonical/cleaned columns): the raw
-            # (measurement_text, unit_text) pair is self-consistent as originally reported, unlike
-            # pairing unit_text with finite_scalar_value (which is folded to canonical_unit's
-            # convention).
-            "display_value": str(row.get("measurement_text") or ""),
-            "display_unit": str(row.get("unit_text") or ""),
-            # Value-free (categorical, not leaked from free text) direction/orientation phrase.
-            "context_direction": _direction_note(str(row.get("canonical_measurement") or "")),
-            # Plain chemistry statement of the transfer criterion; never names TxAgent internals.
-            "transfer_criterion_text": _transfer_criterion_text(transfer_max, not_transfer_min),
-        }
-        out.update(_context(row))
-        output.append(out)
+        output.append(_output_record(row, bucket_key, sample_std, not_transfer_min, percentile))
         stats["eligible_records"] += 1
 
     stats["heldout_parent_keys_total"] = len(heldout_keys)

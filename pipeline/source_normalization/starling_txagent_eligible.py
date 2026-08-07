@@ -208,6 +208,67 @@ def _transfer_criterion_text(distance_kind: str, transfer_max_raw: float, not_tr
     raise ValueError(f"unsupported distance kind: {distance_kind!r}")
 
 
+def _assigned_policy_key(row: pd.Series, stats: dict[str, int]) -> str | None:
+    if str(row.get("normalization_validity_status") or "") != "valid":
+        stats["rejected_normalization_invalid"] += 1
+        return None
+    policy_key = row.get("endpoint_policy_key")
+    if str(row.get("policy_assignment_status") or "") != "assigned" or not policy_key:
+        stats["rejected_policy_unassigned"] += 1
+        return None
+    if not bool(row.get("bucket_eligible")):
+        stats["rejected_bucket_ineligible"] += 1
+        return None
+    return str(policy_key)
+
+
+def _v5_output_record(
+    row: pd.Series, policy_key: str, policy: dict[str, Any], transformed: float,
+    threshold_variant: str,
+) -> dict[str, Any]:
+    anchor = float(policy["normalization"]["raw_distance_anchor"])
+    thresholds = policy["normalization"]["normalized_thresholds"][threshold_variant]
+    raw_thresholds = policy["thresholds"][threshold_variant]
+    concept = SOURCE_TO_CONCEPT[str(row["source_id"])]
+    record_id = str(row.get("source_record_id") or row["normalized_record_id"])
+    out = {
+        "child_id": str(row["normalized_record_id"]),
+        "parent_provenance_id": str(row.get("duplicate_group_id") or row["normalized_record_id"]),
+        "record_id": record_id,
+        "source_id": str(row["source_id"]),
+        "input_sha256": _stable_hash(str(row["normalized_record_id"])),
+        "source_smiles": str(row["source_smiles"]),
+        "canonical_smiles": str(row["canonical_smiles"]),
+        "canonical_endpoint_key": policy_key,
+        "endpoint_family": concept,
+        "endpoint_subtype": str(policy["measurement_subtype"]),
+        "unit_basis": str(row.get("canonical_unit") or ""),
+        "scalar_value": float(row["finite_scalar_value"]),
+        "scalar_is_approximate": bool(pd.notna(row.get("variation_value"))),
+        "assay_concept": concept,
+        "metric_type": str(policy["policy_family"]),
+        "comparison_value": (100.0 / anchor) * transformed,
+        "transfer_max": float(thresholds["transfer_max"]),
+        "not_transfer_min": float(thresholds["not_transfer_min"]),
+        "threshold_display": str(policy["rationale"]),
+        "measurement_label": str(row.get("endpoint_name") or ""),
+        "measurement_subtype": str(policy["measurement_subtype"]),
+        "policy_family": str(policy["policy_family"]),
+        "raw_distance_anchor": anchor,
+        "threshold_variant": threshold_variant,
+        "pair_bucket_key": row.get("pair_bucket_key"),
+        "display_value": str(row.get("measurement_text") or ""),
+        "display_unit": str(row.get("unit_text") or ""),
+        "context_direction": _direction_note(str(policy["measurement_subtype"])),
+        "transfer_criterion_text": _transfer_criterion_text(
+            str(policy["distance"]), float(raw_thresholds["transfer_max"]),
+            float(raw_thresholds["not_transfer_min"]),
+        ),
+    }
+    out.update(_context(row))
+    return out
+
+
 def build_eligible_records(
     *,
     records_path: Path = DEFAULT_RECORDS,
@@ -241,15 +302,8 @@ def build_eligible_records(
     seen_parent_keys_excluded: set[str] = set()
 
     for _, row in merged.iterrows():
-        if str(row.get("normalization_validity_status") or "") != "valid":
-            stats["rejected_normalization_invalid"] += 1
-            continue
-        policy_key = row.get("endpoint_policy_key")
-        if str(row.get("policy_assignment_status") or "") != "assigned" or not policy_key:
-            stats["rejected_policy_unassigned"] += 1
-            continue
-        if not bool(row.get("bucket_eligible")):
-            stats["rejected_bucket_ineligible"] += 1
+        policy_key = _assigned_policy_key(row, stats)
+        if policy_key is None:
             continue
         parent_key = _record_parent_key(row)
         if parent_key and parent_key in heldout_keys:
@@ -262,56 +316,7 @@ def build_eligible_records(
         if transformed is None:
             stats["rejected_nonpositive_log_domain"] += 1
             continue
-        anchor = float(policy["normalization"]["raw_distance_anchor"])
-        comparison_value = (100.0 / anchor) * transformed
-        thresholds = policy["normalization"]["normalized_thresholds"][threshold_variant]
-        raw_thresholds = policy["thresholds"][threshold_variant]
-        concept = SOURCE_TO_CONCEPT[str(row["source_id"])]
-
-        record_id = str(row.get("source_record_id") or row["normalized_record_id"])
-        out = {
-            "child_id": str(row["normalized_record_id"]),
-            "parent_provenance_id": str(row.get("duplicate_group_id") or row["normalized_record_id"]),
-            "record_id": record_id,
-            "source_id": str(row["source_id"]),
-            "input_sha256": _stable_hash(str(row["normalized_record_id"])),
-            "source_smiles": str(row["source_smiles"]),
-            "canonical_smiles": str(row["canonical_smiles"]),
-            "canonical_endpoint_key": str(policy_key),
-            "endpoint_family": concept,
-            "endpoint_subtype": str(policy["measurement_subtype"]),
-            "unit_basis": str(row.get("canonical_unit") or ""),
-            "scalar_value": float(row["finite_scalar_value"]),
-            "scalar_is_approximate": bool(pd.notna(row.get("variation_value"))),
-            "assay_concept": concept,
-            "metric_type": str(policy["policy_family"]),
-            "comparison_value": comparison_value,
-            "transfer_max": float(thresholds["transfer_max"]),
-            "not_transfer_min": float(thresholds["not_transfer_min"]),
-            "threshold_display": str(policy["rationale"]),
-            "measurement_label": str(row.get("endpoint_name") or ""),
-            "measurement_subtype": str(policy["measurement_subtype"]),
-            "policy_family": str(policy["policy_family"]),
-            "raw_distance_anchor": anchor,
-            "threshold_variant": threshold_variant,
-            "pair_bucket_key": row.get("pair_bucket_key"),
-            # Source-native display fields (not TxAgent's canonical/cleaned columns): the raw
-            # (measurement_text, unit_text) pair is self-consistent as originally reported, unlike
-            # pairing unit_text with finite_scalar_value (which is folded to canonical_unit's
-            # convention -- see module docstring history / plan notes on the ~16K notation-folded
-            # rows this would otherwise silently mis-scale).
-            "display_value": str(row.get("measurement_text") or ""),
-            "display_unit": str(row.get("unit_text") or ""),
-            # Value-free (categorical, not leaked from free text) direction/orientation phrase.
-            "context_direction": _direction_note(str(policy["measurement_subtype"])),
-            # Plain chemistry statement of the transfer criterion; never names TxAgent/policy_family.
-            "transfer_criterion_text": _transfer_criterion_text(
-                str(policy["distance"]), float(raw_thresholds["transfer_max"]),
-                float(raw_thresholds["not_transfer_min"]),
-            ),
-        }
-        out.update(_context(row))
-        output.append(out)
+        output.append(_v5_output_record(row, policy_key, policy, transformed, threshold_variant))
         stats["eligible_records"] += 1
 
     stats["heldout_parent_keys_total"] = len(heldout_keys)

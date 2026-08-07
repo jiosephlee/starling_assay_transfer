@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as p %}{{ p.prelude() }}
+
+Molecule A (known)
+{{ p.line("SMILES", retrieval.get("smiles")) }}{{ p.line("endpoint", retrieval.get("endpoint_name")) }}{{ p.line("known measurement", retrieval.get("measurement_text")) }}{{ p.line("unit", retrieval.get("unit_text")) }}{{ p.line("assay or test", retrieval.get("assay_or_test")) }}{{ p.line("species or population", retrieval.get("species_or_population")) }}{{ p.line("dose or concentration", retrieval.get("dose_or_concentration")) }}{{ p.line("outcome label", retrieval.get("outcome_label")) }}{{ p.line("positive count", retrieval.get("positive_count")) }}{{ p.line("total tested", retrieval.get("total_tested")) }}{{ p.line("supporting evidence", retrieval.get("support_text")) }}{{ p.line("additional details", retrieval.get("extra_details")) }}
+Molecule B (query)
+{{ p.line("SMILES", query.get("smiles")) }}{{ p.line("endpoint", query.get("endpoint_name")) }}{{ p.line("assay or test", query.get("assay_or_test")) }}{{ p.line("species or population", query.get("species_or_population")) }}{{ p.line("dose or concentration", query.get("dose_or_concentration")) }}
+{{ p.answer() }}

@@ -38,7 +38,7 @@ counter through train generation with the same cap. It also had no cap on the qu
 with many raw eligible records (e.g. a heavily-studied reference compound) could be selected as the
 query tens of thousands of times, starving the group budget away from everything else. A second,
 independent ``query_degree`` counter (``TRAIN_QUERY_DEGREE_CAP = 6``, same value as the retrieval
-cap, tracked separately -- so a given record can appear at most 6 times as query + 6 times as
+cap, tracked separately -- so a given record can appear at most 6 emitted rows as query + 6 as
 retrieval = 12 times total) is threaded through ``_iter_list_groups_capped`` below to bound this
 too. Note both caps are keyed by raw ``record_key`` (child_id), not ``canonical_smiles`` -- a
 molecule with many distinct eligible records is not deduplicated across those records.
@@ -120,6 +120,8 @@ EVAL_PER_CONCEPT_LABEL = 125       # 125 * 4 concepts * 2 labels = 1,000 per spl
 RANKING_ANCHORS = 500              # 500 anchors * 20 candidates = 10,000 per split
 TRAIN_RETRIEVAL_DEGREE_CAP = 6     # each record can appear as retrieval at most 6x
 TRAIN_QUERY_DEGREE_CAP = 6         # separate counter from retrieval_degree; +6 as query = 12x total
+TRAIN_WRITE_BATCH_ROWS = 32_768
+TRAIN_ZSTD_LEVEL = 3
 
 V7_TEMPLATE_DIR = str(Path(__file__).resolve().parents[1] / "templates" / "assay_transfer_v7_intern")
 
@@ -270,30 +272,71 @@ def _span_four_capped(query: dict, proposed: list[dict], retrieval_degree: dict)
     return chosen
 
 
-def _iter_list_groups_capped(records: list[dict], split: str, wanted: int, min_group_size: int = 1):
-    """Copy of pipeline.pair_core.iter_list_groups with a global retrieval-degree cap, a matching
-    query-degree cap, is_decisive, (when min_group_size < 4) partial groups for small buckets, and
-    a bucket-level round-robin so a query attempt is spent per-pair_bucket_key, not per-record --
-    otherwise a mega-bucket with thousands of records still gets thousands of times more query
-    volume than a small bucket even with both records individually capped. source_id already maps
-    1:1 onto assay_concept in this dataset (SOURCE_TO_CONCEPT in starling_txagent_eligible.py), so
-    the existing concept-level round-robin below already balances source representation for free."""
-    indexed = _condition_index_by_bucket(records)
+def _scheduled_buckets(records: list[dict]) -> tuple[dict, dict[str, list[str]]]:
     concept_buckets: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for row in sorted(records, key=lambda item: stable_hash(record_key(item))):
         concept_buckets[str(row["assay_concept"])][row["pair_bucket_key"]].append(row)
-    # Buckets with a single record can never pair (eligible() requires a different molecule) --
-    # drop them upfront rather than spending a doomed attempt + deactivation cycle on each one.
     for concept in list(concept_buckets):
         for bucket in list(concept_buckets[concept]):
             if len(concept_buckets[concept][bucket]) < 2:
                 del concept_buckets[concept][bucket]
         if not concept_buckets[concept]:
             del concept_buckets[concept]
-
     bucket_lists: dict[str, list[str]] = {
         concept: sorted(buckets, key=stable_hash) for concept, buckets in concept_buckets.items()
     }
+    return concept_buckets, bucket_lists
+
+
+def _next_live_bucket(
+    concept: str, buckets: list[str], live: set[str], offsets: dict[str, int],
+) -> str | None:
+    offset = offsets[concept]
+    for step in range(len(buckets)):
+        candidate = buckets[(offset + step) % len(buckets)]
+        if candidate in live:
+            offsets[concept] = (offset + step + 1) % len(buckets)
+            return candidate
+    return None
+
+
+def _deactivate_failed_bucket(
+    bucket_key: tuple[str, str], bucket_records: list[dict], failures: dict,
+    active_buckets: dict[str, set[str]], active_concepts: set[str],
+) -> None:
+    failures[bucket_key] += 1
+    if failures[bucket_key] < len(bucket_records):
+        return
+    concept, bucket = bucket_key
+    active_buckets[concept].discard(bucket)
+    if not active_buckets[concept]:
+        active_concepts.discard(concept)
+
+
+def _materialize_group(
+    query: dict, chosen: list[dict], split: str, group: int, used: set,
+    retrieval_degree: dict[str, int],
+) -> list[dict]:
+    group_id = f"{split}-list-{group:09d}"
+    rows = []
+    for index, retrieval in enumerate(chosen):
+        used.add(unordered_pair_id(query, retrieval))
+        retrieval_degree[record_key(retrieval)] += 1
+        item = row_for(query, retrieval, split)
+        item["is_decisive"] = _is_decisive(item, query)
+        _fix_metadata(item)
+        item.update({"listnet_group_id": group_id, "listnet_group_index": group,
+                     "listnet_query_group_id": record_key(query), "listnet_member_index": index})
+        rows.append(item)
+    return rows
+
+
+def _iter_list_groups_capped(
+    records: list[dict], split: str, wanted: int, min_group_size: int = 1,
+):
+    """Generate bucket-balanced groups under independent query/retrieval degree caps."""
+    indexed = _condition_index_by_bucket(records)
+    concept_buckets, bucket_lists = _scheduled_buckets(records)
     retrieval_degree: dict[str, int] = defaultdict(int)
     query_degree: dict[str, int] = defaultdict(int)
     concept_bucket_offset: dict[str, int] = defaultdict(int)
@@ -305,49 +348,32 @@ def _iter_list_groups_capped(records: list[dict], split: str, wanted: int, min_g
     while group < wanted and active_concepts:
         for concept in sorted(tuple(active_concepts)):
             buckets, live = bucket_lists[concept], active_buckets[concept]
-            offset, bucket = concept_bucket_offset[concept], None
-            for step in range(len(buckets)):
-                candidate = buckets[(offset + step) % len(buckets)]
-                if candidate in live:
-                    bucket = candidate
-                    concept_bucket_offset[concept] = (offset + step + 1) % len(buckets)
-                    break
+            bucket = _next_live_bucket(concept, buckets, live, concept_bucket_offset)
             if bucket is None:
                 active_concepts.discard(concept)
                 continue
-
             bucket_records = concept_buckets[concept][bucket]
             bucket_key = (concept, bucket)
             query = bucket_records[record_offset[bucket_key] % len(bucket_records)]
             record_offset[bucket_key] += 1
 
+            query_id = record_key(query)
+            remaining = TRAIN_QUERY_DEGREE_CAP - query_degree[query_id]
             chosen: list[dict] = []
-            if query_degree[record_key(query)] < TRAIN_QUERY_DEGREE_CAP:
+            if remaining > 0:
                 proposed = propose_records(
                     query, indexed[(query["canonical_endpoint_key"], query["pair_bucket_key"])], 16,
                     used, f"{group}:{record_offset[bucket_key]}")
-                chosen = _span_four_capped(query, proposed, retrieval_degree)
+                chosen = _span_four_capped(query, proposed, retrieval_degree)[:remaining]
             if len(chosen) < min_group_size:
-                bucket_failures[bucket_key] += 1
-                if bucket_failures[bucket_key] >= len(bucket_records):
-                    live.discard(bucket)
-                    if not live:
-                        active_concepts.discard(concept)
+                _deactivate_failed_bucket(
+                    bucket_key, bucket_records, bucket_failures,
+                    active_buckets, active_concepts,
+                )
                 continue
             bucket_failures[bucket_key] = 0
-            query_degree[record_key(query)] += 1
-            group_id = f"{split}-list-{group:09d}"
-            rows = []
-            for index, retrieval in enumerate(chosen):
-                used.add(unordered_pair_id(query, retrieval))
-                retrieval_degree[record_key(retrieval)] += 1
-                item = row_for(query, retrieval, split)
-                item["is_decisive"] = _is_decisive(item, query)
-                _fix_metadata(item)
-                item.update({"listnet_group_id": group_id, "listnet_group_index": group,
-                             "listnet_query_group_id": record_key(query), "listnet_member_index": index})
-                rows.append(item)
-            yield rows
+            query_degree[query_id] += len(chosen)
+            yield _materialize_group(query, chosen, split, group, used, retrieval_degree)
             group += 1
             if group >= wanted:
                 break
@@ -370,13 +396,17 @@ def _write_train_flat_variable(output: Path, records: list[dict], wanted_pairs: 
                 row.pop(column, None)
             batch.append(row)
             count += 1
-        if len(batch) >= 4096:
-            writer = pair_driver._flush(path, writer, batch, schema)
+        if len(batch) >= TRAIN_WRITE_BATCH_ROWS:
+            writer = pair_driver._flush(
+                path, writer, batch, schema, compression_level=TRAIN_ZSTD_LEVEL
+            )
             batch = []
         if count >= wanted_pairs:
             break
     if batch:
-        writer = pair_driver._flush(path, writer, batch, schema)
+        writer = pair_driver._flush(
+            path, writer, batch, schema, compression_level=TRAIN_ZSTD_LEVEL
+        )
     if writer is None:
         raise RuntimeError("no usable v7 training pairs")
     writer.close()

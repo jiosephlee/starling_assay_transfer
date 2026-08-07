@@ -1,0 +1,17 @@
+{% macro line(label, value) -%}
+{% if value is not none and value|string|trim %}{% if label == "SMILES" %}<SMILES>{{ value }}</SMILES>
+{% else %}{{ label }}: {{ value }}
+{% endif %}
+{% endif %}
+{%- endmacro %}
+
+{% macro prelude() -%}
+Estimate whether the known measurement for Molecule A transfers to Molecule B under the shown assay conditions. Greater expected agreement means stronger transfer.
+{%- endmacro %}
+
+{% macro answer() -%}
+Does the measurement transfer from Molecule A to Molecule B?
+(A) Transfer
+(B) Does not transfer
+Answer:
+{%- endmacro %}

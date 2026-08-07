@@ -142,9 +142,14 @@ _LISTNET_COLUMNS = ("listnet_group_id", "listnet_group_index",
                     "listnet_query_group_id", "listnet_member_index")
 
 
-def _flush(path: Path, writer, batch: list[dict], schema=None):
+def _flush(
+    path: Path, writer, batch: list[dict], schema=None, compression_level: int | None = None,
+):
     table = _table(batch, schema)
-    writer = writer or pq.ParquetWriter(path, table.schema, compression="zstd")
+    options = {"compression": "zstd"}
+    if compression_level is not None:
+        options["compression_level"] = compression_level
+    writer = writer or pq.ParquetWriter(path, table.schema, **options)
     writer.write_table(table)
     return writer
 
@@ -196,8 +201,16 @@ def _write_train_flat(output: Path, records: list[dict], wanted_pairs: int, sche
 
 
 def build(source: Path, output: Path, train_volume: int, *, listnet: bool = True,
-          expected_records: int = 138806, expected_split: dict | None = None) -> dict:
-    rows = _records(source, expected_records)
+          expected_records: int = 138806, expected_split: dict | None = None,
+          records: list[dict] | None = None) -> dict:
+    # Callers that already materialized the eligible rows pass them in rather than making this
+    # re-read and re-convert the same parquet (~225k dicts) a second time.
+    if records is None:
+        rows = _records(source, expected_records)
+    else:
+        rows = records
+        if expected_records is not None and len(rows) != expected_records:
+            raise ValueError(f"expected {expected_records} eligible records, found {len(rows)}")
     split_rows = _split_records(rows)
     counts = {name: len(values) for name, values in split_rows.items()}
     expected = expected_split or {"train": 116060, "validation": 11276, "test": 11470}

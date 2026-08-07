@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as p %}{{ p.prelude() }}
+
+Molecule A (known)
+{{ p.line("SMILES", retrieval.get("smiles")) }}{{ p.line("endpoint", retrieval.get("endpoint_name")) }}{{ p.line("known measurement", retrieval.get("measurement_text")) }}{{ p.line("unit", retrieval.get("unit_text")) }}{{ p.line("mediator name", retrieval.get("mediator_name")) }}{{ p.line("mediator identifier", retrieval.get("mediator_identifier")) }}{{ p.line("transport mechanism", retrieval.get("transport_mechanism")) }}{{ p.line("evidence basis", retrieval.get("evidence_basis")) }}{{ p.line("assay model", retrieval.get("assay_model")) }}{{ p.line("qualifying conditions", retrieval.get("qualifying_conditions")) }}{{ p.line("needs more context", retrieval.get("needs_more_context")) }}{{ p.line("reported result", retrieval.get("reported_result")) }}{{ p.line("supporting evidence", retrieval.get("support_text")) }}{{ p.line("additional details", retrieval.get("extra_details")) }}
+Molecule B (query)
+{{ p.line("SMILES", query.get("smiles")) }}{{ p.line("endpoint", query.get("endpoint_name")) }}{{ p.line("mediator name", query.get("mediator_name")) }}{{ p.line("mediator identifier", query.get("mediator_identifier")) }}{{ p.line("transport mechanism", query.get("transport_mechanism")) }}{{ p.line("evidence basis", query.get("evidence_basis")) }}{{ p.line("assay model", query.get("assay_model")) }}{{ p.line("qualifying conditions", query.get("qualifying_conditions")) }}{{ p.line("needs more context", query.get("needs_more_context")) }}
+{{ p.answer() }}

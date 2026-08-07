@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as p %}{{ p.prelude() }}
+
+Molecule A (known)
+{{ p.line("SMILES", retrieval.get("smiles")) }}{{ p.line("endpoint", retrieval.get("endpoint_name")) }}{{ p.line("known measurement", retrieval.get("measurement_text")) }}{{ p.line("unit", retrieval.get("unit_text")) }}{{ p.line("assay system", retrieval.get("assay_system")) }}{{ p.line("species", retrieval.get("species")) }}{{ p.line("molecular form", retrieval.get("molecular_form")) }}{{ p.line("enzyme or pathway", retrieval.get("enzyme_or_pathway")) }}{{ p.line("qualifying conditions", retrieval.get("qualifying_conditions")) }}{{ p.line("supporting evidence", retrieval.get("support_text")) }}{{ p.line("additional details", retrieval.get("extra_details")) }}
+Molecule B (query)
+{{ p.line("SMILES", query.get("smiles")) }}{{ p.line("endpoint", query.get("endpoint_name")) }}{{ p.line("assay system", query.get("assay_system")) }}{{ p.line("species", query.get("species")) }}{{ p.line("molecular form", query.get("molecular_form")) }}{{ p.line("enzyme or pathway", query.get("enzyme_or_pathway")) }}{{ p.line("qualifying conditions", query.get("qualifying_conditions")) }}
+{{ p.answer() }}

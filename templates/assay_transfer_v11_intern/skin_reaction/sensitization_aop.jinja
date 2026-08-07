@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as p %}{{ p.prelude() }}
+
+Molecule A (known)
+{{ p.line("SMILES", retrieval.get("smiles")) }}{{ p.line("endpoint", retrieval.get("endpoint_name")) }}{{ p.line("known measurement", retrieval.get("measurement_text")) }}{{ p.line("unit", retrieval.get("unit_text")) }}{{ p.line("assay type", retrieval.get("assay_type")) }}{{ p.line("AOP event", retrieval.get("aop_event")) }}{{ p.line("experimental conditions", retrieval.get("experimental_conditions")) }}{{ p.line("qualifying conditions", retrieval.get("qualifying_conditions")) }}{{ p.line("needs more context", retrieval.get("needs_more_context")) }}{{ p.line("result label", retrieval.get("result_label")) }}{{ p.line("supporting evidence", retrieval.get("support_text")) }}{{ p.line("additional details", retrieval.get("extra_details")) }}
+Molecule B (query)
+{{ p.line("SMILES", query.get("smiles")) }}{{ p.line("endpoint", query.get("endpoint_name")) }}{{ p.line("assay type", query.get("assay_type")) }}{{ p.line("AOP event", query.get("aop_event")) }}{{ p.line("experimental conditions", query.get("experimental_conditions")) }}{{ p.line("qualifying conditions", query.get("qualifying_conditions")) }}{{ p.line("needs more context", query.get("needs_more_context")) }}
+{{ p.answer() }}
