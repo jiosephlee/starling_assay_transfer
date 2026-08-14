@@ -254,7 +254,11 @@ def _ranking_variable_size(records: list[dict], split: str, forbidden: set[str])
 
 def _span_four_capped(query: dict, proposed: list[dict], retrieval_degree: dict) -> list[dict]:
     """Copy of pipeline.pair_core._span_four with a global retrieval-degree cap added."""
-    ranked = sorted(proposed, key=lambda row: target_for(query, row)["target_z"])
+    def score(row: dict) -> float:
+        target = target_for(query, row)
+        return float(target["target_z"] if "target_z" in target else target["target_a"])
+
+    ranked = sorted(proposed, key=score)
     desired = [0, len(ranked) // 3, 2 * len(ranked) // 3, len(ranked) - 1]
     chosen, molecule_counts = [], defaultdict(int)
     for position in desired:

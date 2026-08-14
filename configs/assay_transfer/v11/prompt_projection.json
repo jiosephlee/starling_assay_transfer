@@ -3,8 +3,11 @@
   "record_contract_version": "starling_record_contract.v7",
   "source_contract_version": "source_column_contract.v1",
   "categorical_ablation_release": {
-    "evaluation_measurement_kinds": ["continuous"],
-    "categorical_measurement_kinds": ["binary", "ordinal"],
+    "evaluation_measurement_kinds": ["continuous", "binary", "ordinal"],
+    "ranking_families": {
+      "continuous": ["continuous"],
+      "categorical": ["binary", "ordinal"]
+    },
     "train_components": {
       "continuous": {
         "measurement_kinds": ["continuous"],
@@ -20,7 +23,6 @@
       }
     },
     "variants": {
-      "continuous_only": ["continuous"],
       "with_categorical": ["continuous", "categorical"]
     }
   },
@@ -34,14 +36,15 @@
       },
       "priority_phases": [["fg", "fh"], ["hf_bioavailability", "oral_exposure", "fa"]],
       "construction": {
-        "ranking_anchor_width": 16,
-        "record_degree_cap": 24,
-        "ordinary_degree_cap": 24,
-        "ranking_anchors": {
-          "test": {"hf_bioavailability": 30, "oral_exposure": 30, "fa": 30, "fg": 20, "fh": 30},
-          "validation": {"hf_bioavailability": 20, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20}
+        "ranking_anchor_width": 20,
+        "ranking_record_degree_cap": 48,
+        "source_record_sampling": {
+          "oral_exposure": {"numerator": 1, "denominator": 2, "method": "stable_hash_exact"}
         },
-        "ordinary_pairs_per_label": {"hf_bioavailability": 100, "oral_exposure": 100, "fa": 100, "fg": 50, "fh": 100}
+        "ranking_anchors": {
+          "continuous": {"hf_bioavailability": 40, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20},
+          "categorical": {"hf_bioavailability": 40, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20}
+        }
       },
       "sources": {
         "hf_bioavailability": {
@@ -86,14 +89,12 @@
       },
       "priority_phases": [["direct_bbb", "passive_permeability", "efflux_transport", "influx_transport"]],
       "construction": {
-        "ranking_anchor_width": 16,
-        "record_degree_cap": 24,
-        "ordinary_degree_cap": 24,
+        "ranking_anchor_width": 20,
+        "ranking_record_degree_cap": 48,
         "ranking_anchors": {
-          "test": {"direct_bbb": 30, "passive_permeability": 30, "efflux_transport": 30, "influx_transport": 30},
-          "validation": {"direct_bbb": 20, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20}
-        },
-        "ordinary_pairs_per_label": {"direct_bbb": 100, "passive_permeability": 100, "efflux_transport": 100, "influx_transport": 100}
+          "continuous": {"direct_bbb": 40, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20},
+          "categorical": {"direct_bbb": 40, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20}
+        }
       },
       "sources": {
         "direct_bbb": {
@@ -132,14 +133,12 @@
       },
       "priority_phases": [["direct_skin_reaction", "sensitization_aop", "phototoxicity_irritation_local_damage", "skin_exposure"]],
       "construction": {
-        "ranking_anchor_width": 16,
-        "record_degree_cap": 24,
-        "ordinary_degree_cap": 24,
+        "ranking_anchor_width": 20,
+        "ranking_record_degree_cap": 48,
         "ranking_anchors": {
-          "test": {"direct_skin_reaction": 30, "sensitization_aop": 30, "phototoxicity_irritation_local_damage": 30, "skin_exposure": 30},
-          "validation": {"direct_skin_reaction": 20, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20}
-        },
-        "ordinary_pairs_per_label": {"direct_skin_reaction": 100, "sensitization_aop": 100, "phototoxicity_irritation_local_damage": 100, "skin_exposure": 100}
+          "continuous": {"direct_skin_reaction": 40, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20},
+          "categorical": {"direct_skin_reaction": 40, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20}
+        }
       },
       "sources": {
         "direct_skin_reaction": {

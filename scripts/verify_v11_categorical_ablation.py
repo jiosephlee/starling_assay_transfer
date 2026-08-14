@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify one paired V11 continuous/categorical ablation release."""
+"""Verify the sole V11 with-categorical release and its component contracts."""
 
 from __future__ import annotations
 
@@ -8,98 +8,44 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Mapping
 
 import pyarrow.parquet as pq
 
-from pipeline.v11_contract import DEFAULT_REGISTRY
-from pipeline.v3_policy import file_sha256
-from scripts.build_v11_categorical_ablation import EVAL_SPLITS
-from scripts.verify_v11_intern_raw_pair import _verify_manifest, verify
+from pipeline.v11_contract import DEFAULT_REGISTRY, heldout_reservation_manifest, load_registry
+from scripts.verify_v11_intern_raw_pair import verify
+
+
+REQUIRED_RANKING_COLUMNS = {
+    "measurement_kind", "query_geometry_value", "retrieval_geometry_value",
+    "query_value_percentile", "retrieval_value_percentile",
+    "query_canonical_category_id", "retrieval_canonical_category_id",
+    "canonical_measurement_scale_id", "absolute_geometry_difference",
+    "calibration_sample_standard_deviation", "ranking_family",
+}
 
 
 def _manifest(root: Path) -> dict:
     return json.loads((root / "manifest.json").read_text(encoding="utf-8"))
 
 
-def _pair_ids(path: Path, start: int = 0) -> Iterator[str]:
-    position = 0
-    for batch in pq.ParquetFile(path).iter_batches(8192, columns=["pair_id"]):
-        for value in batch.column(0).to_pylist():
-            if position >= start:
-                yield str(value)
-            position += 1
+def _component_ranges(manifest: Mapping) -> list[tuple[str, int, int]]:
+    order = manifest["measurement_kind_policy"]["train_components"]
+    if order != ["continuous", "categorical"]:
+        raise AssertionError("train component order is not continuous then categorical")
+    ranges, start = [], 0
+    for name in order:
+        count = int(manifest["train_components"][name]["achieved_pairs"])
+        ranges.append((name, start, count))
+        start += count
+    if start != manifest["rows"]["train"]:
+        raise AssertionError("component ranges do not cover train")
+    return ranges
 
 
-def _digest(values: Iterator[str]) -> str:
-    digest = hashlib.sha256()
-    for value in values:
-        digest.update(value.encode("utf-8") + b"\n")
-    return digest.hexdigest()
-
-
-def _verify_variants(continuous: dict, categorical: dict) -> None:
-    if continuous.get("dataset_variant") != "continuous_only":
-        raise AssertionError("continuous root has incorrect variant")
-    if categorical.get("dataset_variant") != "with_categorical":
-        raise AssertionError("categorical root has incorrect variant")
-    if continuous["task_id"] != categorical["task_id"]:
-        raise AssertionError("paired roots belong to different tasks")
-    if set(continuous["train_components"]) != {"continuous"}:
-        raise AssertionError("continuous-only component inventory is invalid")
-    if set(categorical["train_components"]) != {"continuous", "categorical"}:
-        raise AssertionError("with-categorical component inventory is invalid")
-    provenance = ("eligible_source_sha256", "prompt_projection", "heldout_reservation")
-    if any(continuous[field] != categorical[field] for field in provenance):
-        raise AssertionError("paired variants do not share frozen provenance")
-
-
-def _verify_shared_eval(continuous_root: Path, categorical_root: Path) -> None:
-    for split in EVAL_SPLITS:
-        first = continuous_root / split / "data.parquet"
-        second = categorical_root / split / "data.parquet"
-        if file_sha256(first) != file_sha256(second):
-            raise AssertionError(f"{split}: variants are not byte-identical")
-
-
-def _verify_additive_train(
-    continuous_root: Path, categorical_root: Path,
-    continuous: dict, categorical: dict,
-) -> None:
-    first_path = continuous_root / "train" / "data.parquet"
-    combined_path = categorical_root / "train" / "data.parquet"
-    continuous_rows = continuous["rows"]["train"]
-    category = categorical["train_components"]["categorical"]
-    expected_total = continuous_rows + category["achieved_pairs"]
-    if categorical["rows"]["train"] != expected_total:
-        raise AssertionError("with-categorical train is not additive")
-    first_table = pq.read_table(first_path)
-    combined_prefix = pq.read_table(combined_path).slice(0, continuous_rows)
-    if not first_table.equals(combined_prefix):
-        raise AssertionError("continuous train rows changed between variants")
-    first_digest = _digest(_pair_ids(first_path))
-    prefix_digest = _digest(iter(_take(_pair_ids(combined_path), continuous_rows)))
-    suffix_digest = _digest(_pair_ids(combined_path, continuous_rows))
-    if first_digest != prefix_digest:
-        raise AssertionError("continuous train component changed between variants")
-    if first_digest != categorical["train_components"]["continuous"]["pair_id_sha256"]:
-        raise AssertionError("continuous component digest mismatch")
-    if suffix_digest != category["pair_id_sha256"]:
-        raise AssertionError("categorical component digest mismatch")
-
-
-def _take(values: Iterator[str], count: int) -> Iterator[str]:
-    for index, value in enumerate(values):
-        if index >= count:
-            break
-        yield value
-
-
-def _degree_maxima(path: Path, start: int, count: int) -> tuple[int, int]:
-    query: Counter = Counter()
-    retrieval: Counter = Counter()
+def _range_rows(path: Path, start: int, count: int) -> Iterator[dict]:
     position, end = 0, start + count
-    columns = ["query_record_id", "retrieval_record_id"]
+    columns = ["pair_id", "query_record_id", "retrieval_record_id", "measurement_kind"]
     for batch in pq.ParquetFile(path).iter_batches(8192, columns=columns):
         batch_start, position = position, position + batch.num_rows
         if position <= start:
@@ -108,73 +54,94 @@ def _degree_maxima(path: Path, start: int, count: int) -> tuple[int, int]:
             break
         offset = max(0, start - batch_start)
         length = min(position, end) - (batch_start + offset)
-        selected = batch.slice(offset, length)
-        query.update(str(value) for value in selected.column(0).to_pylist())
-        retrieval.update(str(value) for value in selected.column(1).to_pylist())
-    return max(query.values(), default=0), max(retrieval.values(), default=0)
+        yield from batch.slice(offset, length).to_pylist()
 
 
-def _component_ranges(manifest: dict) -> list[tuple[str, int, int]]:
-    order = manifest["measurement_kind_policy"]["train_components"]
-    if set(order) != set(manifest["train_components"]):
-        raise AssertionError("train component order does not match component inventory")
-    ranges, start = [], 0
-    for name in order:
-        count = int(manifest["train_components"][name]["achieved_pairs"])
-        ranges.append((name, start, count))
-        start += count
-    if start != manifest["rows"]["train"]:
-        raise AssertionError("train component ranges do not cover the train split")
-    return ranges
+def _range_diagnostics(path: Path, start: int, count: int) -> tuple[str, int, int, Counter]:
+    digest, query, retrieval, kinds = hashlib.sha256(), Counter(), Counter(), Counter()
+    for row in _range_rows(path, start, count):
+        digest.update(str(row["pair_id"]).encode("utf-8") + b"\n")
+        query[str(row["query_record_id"])] += 1
+        retrieval[str(row["retrieval_record_id"])] += 1
+        kinds[str(row["measurement_kind"])] += 1
+    return digest.hexdigest(), max(query.values(), default=0), max(retrieval.values(), default=0), kinds
 
 
-def _verify_caps(root: Path, manifest: dict) -> None:
-    path = root / "train" / "data.parquet"
+def _verify_components(root: Path, manifest: Mapping) -> None:
+    path = root / "train/data.parquet"
     for name, start, count in _component_ranges(manifest):
         component = manifest["train_components"][name]
-        if component["achieved_pairs"] > component["max_pairs"]:
-            raise AssertionError(f"{name}: component exceeded its global cap")
-        if component["query_degree_cap"] != 6 or component["retrieval_degree_cap"] != 6:
-            raise AssertionError(f"{name}: component degree caps drifted")
-        query_max, retrieval_max = _degree_maxima(path, start, count)
-        if query_max != component.get("observed_max_query_degree"):
-            raise AssertionError(f"{name}: observed query degree does not match manifest")
-        if retrieval_max != component.get("observed_max_retrieval_degree"):
-            raise AssertionError(f"{name}: observed retrieval degree does not match manifest")
-        if query_max > component["query_degree_cap"]:
-            raise AssertionError(f"{name}: rows exceed query degree cap")
-        if retrieval_max > component["retrieval_degree_cap"]:
-            raise AssertionError(f"{name}: rows exceed retrieval degree cap")
+        digest, query_max, retrieval_max, kinds = _range_diagnostics(path, start, count)
+        if count > int(component["max_pairs"]) or digest != component["pair_id_sha256"]:
+            raise AssertionError(f"{name}: cap or pair sequence mismatch")
+        expected_kinds = dict(sorted(component["achieved_by_measurement_kind"].items()))
+        if dict(sorted(kinds.items())) != expected_kinds:
+            raise AssertionError(f"{name}: measurement-kind counts mismatch")
+        if query_max != component["observed_max_query_degree"]:
+            raise AssertionError(f"{name}: query degree does not match manifest")
+        if retrieval_max != component["observed_max_retrieval_degree"]:
+            raise AssertionError(f"{name}: retrieval degree does not match manifest")
+        if query_max > component["query_degree_cap"] or retrieval_max > component["retrieval_degree_cap"]:
+            raise AssertionError(f"{name}: component degree cap exceeded")
+
+
+def _verify_ranking_diagnostics(manifest: Mapping) -> None:
+    families = manifest["ranking_validation"]["families"]
+    if set(families) != {"continuous", "categorical"}:
+        raise AssertionError("ranking diagnostics omit a family")
+    for family, report in families.items():
+        for source, target in report["target_by_source"].items():
+            achieved = int(report["achieved_by_source"].get(source, 0))
+            if achieved > int(target):
+                raise AssertionError(f"{family}/{source}: anchor quota exceeded")
+            if achieved < int(target) and source not in report["shortfalls"]:
+                raise AssertionError(f"{family}/{source}: unexplained anchor shortfall")
+            shortfall = report["shortfalls"].get(source)
+            if shortfall and shortfall["reason"] not in {"no_eligible_rows", "constraints_exhausted"}:
+                raise AssertionError(f"{family}/{source}: invalid shortfall reason")
+
+
+def _verify_gold(manifest: Mapping, registry_path: Path) -> None:
+    registry = load_registry(registry_path)
+    live = heldout_reservation_manifest(manifest["task_id"], registry)
+    if live != manifest["heldout_reservation"]:
+        raise AssertionError("release does not pin the current V7 gold scaffold reservation")
+
+
+def _verify_downstream_columns(root: Path) -> None:
+    columns = set(pq.read_schema(root / "validation_ranking/data.parquet").names)
+    missing = REQUIRED_RANKING_COLUMNS - columns
+    if missing:
+        raise AssertionError(f"ranking data lacks downstream columns: {sorted(missing)}")
+
+
+def verify_release(
+    root: Path, source: Path, registry: Path = DEFAULT_REGISTRY,
+) -> None:
+    manifest = _manifest(root)
+    verify(root, source, registry)
+    _verify_components(root, manifest)
+    _verify_ranking_diagnostics(manifest)
+    _verify_gold(manifest, registry)
+    _verify_downstream_columns(root)
 
 
 def verify_pair(
-    continuous_root: Path, categorical_root: Path,
-    source: Path, registry: Path = DEFAULT_REGISTRY,
+    _continuous_root: Path, categorical_root: Path, source: Path,
+    registry: Path = DEFAULT_REGISTRY,
 ) -> None:
-    continuous = _manifest(continuous_root)
-    categorical = _manifest(categorical_root)
-    _verify_variants(continuous, categorical)
-    verify(categorical_root, source, registry)
-    _verify_manifest(continuous_root, continuous)
-    _verify_shared_eval(continuous_root, categorical_root)
-    _verify_additive_train(continuous_root, categorical_root, continuous, categorical)
-    _verify_caps(continuous_root, continuous)
-    _verify_caps(categorical_root, categorical)
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--continuous-root", type=Path, required=True)
-    parser.add_argument("--categorical-root", type=Path, required=True)
-    parser.add_argument("--source", type=Path, required=True)
-    parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
-    return parser.parse_args()
+    """Compatibility entry point; the continuous-only argument is intentionally ignored."""
+    verify_release(categorical_root, source, registry)
 
 
 def main() -> None:
-    args = _parse_args()
-    verify_pair(args.continuous_root, args.categorical_root, args.source, args.registry)
-    print("V11 categorical-ablation pair verification passed")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
+    args = parser.parse_args()
+    verify_release(args.root, args.source, args.registry)
+    print("V11 with-categorical release verification passed")
 
 
 if __name__ == "__main__":

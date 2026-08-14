@@ -30,7 +30,7 @@ from pipeline.v11_contract import (
     task_config,
     validate_registry,
 )
-from pipeline.v11_targets import geometry_value, raw_calibration
+from pipeline.v11_targets import geometry_value, record_percentile, value_calibration
 from pipeline.v3_policy import file_sha256
 
 
@@ -53,8 +53,17 @@ FIXED_ELIGIBLE_FIELDS = (
     pa.field("metric_type", pa.string()),
     pa.field("measurement_kind", pa.string()),
     pa.field("geometry_value", pa.float64()),
-    pa.field("calibration_distance_p05", pa.float64()),
-    pa.field("calibration_distance_p95", pa.float64()),
+    pa.field("finite_scalar_value", pa.float64()),
+    pa.field("canonical_category_id", pa.string()),
+    pa.field("canonical_category_rank", pa.float64()),
+    pa.field("canonical_measurement_scale_id", pa.string()),
+    pa.field("canonical_unit_text", pa.string()),
+    pa.field("raw_measurement_text", pa.string()),
+    pa.field("raw_unit_text", pa.string()),
+    pa.field("value_percentile", pa.float64()),
+    pa.field("calibration_sample_standard_deviation", pa.float64()),
+    pa.field("calibration_standard_deviation_ddof", pa.int64()),
+    pa.field("calibration_standard_deviation_value_field", pa.string()),
     pa.field("unit_basis", pa.string()),
 )
 
@@ -73,9 +82,9 @@ def _load_calibrations(path: Path) -> tuple[dict[str, Any], dict[str, Any], Coun
             rejected[str(entry.get("calibration_reason") or "invalid")] += 1
             continue
         try:
-            accepted[str(key)] = raw_calibration(str(key), entry)
+            accepted[str(key)] = value_calibration(str(key), entry)
         except ValueError as exc:
-            reason = "degenerate_p05_p95" if "degenerate" in str(exc) else "invalid_geometry"
+            reason = "invalid_value_cdf_or_geometry"
             rejected[reason] += 1
     return document, accepted, rejected
 
@@ -100,6 +109,10 @@ def _present(value: Any) -> bool:
     if value is None or value == "":
         return False
     return not isinstance(value, float) or not math.isnan(value)
+
+
+def _nullable(value: Any) -> Any:
+    return value if _present(value) else None
 
 
 def _prompt_source_values(
@@ -147,6 +160,10 @@ def _eligible_row(
     _validate_constants(row, task_id, registry)
     record_id = str(row["canonical_record_id"])
     value = geometry_value(row)
+    percentile = record_percentile(row, calibration)
+    endpoint = str(row.get("canonical_endpoint_name") or "")
+    if not endpoint:
+        raise ValueError(f"{task_id}/{record_id} lacks canonical_endpoint_name")
     output = {
         "child_id": f"{task_id}:{record_id}",
         "parent_provenance_id": str(row.get("duplicate_group_id") or record_id),
@@ -156,15 +173,24 @@ def _eligible_row(
         "input_sha256": _stable_hash(f"{task_id}:{record_id}"),
         "source_smiles": str(row["smiles"]),
         "canonical_smiles": str(row["canonical_smiles"]),
-        "canonical_endpoint_key": str(row["pair_bucket_key"]),
+        "canonical_endpoint_key": endpoint,
         "pair_bucket_key": str(row["pair_bucket_key"]),
         "assay_concept": str(row["source_id"]),
         "metric_type": str(row["source_id"]),
         "measurement_kind": str(row["measurement_kind"]),
         "geometry_value": value,
-        "calibration_distance_p05": calibration.distance_p05,
-        "calibration_distance_p95": calibration.distance_p95,
-        "unit_basis": str(row.get("canonical_unit_text") or ""),
+        "finite_scalar_value": _nullable(row.get("finite_scalar_value")),
+        "canonical_category_id": _nullable(row.get("canonical_category_id")),
+        "canonical_category_rank": _nullable(row.get("canonical_category_rank")),
+        "canonical_measurement_scale_id": _nullable(row.get("canonical_measurement_scale_id")),
+        "canonical_unit_text": _nullable(row.get("canonical_unit_text")),
+        "raw_measurement_text": _nullable(row.get("measurement_text")),
+        "raw_unit_text": _nullable(row.get("unit_text")),
+        "value_percentile": percentile,
+        "calibration_sample_standard_deviation": calibration.sample_standard_deviation,
+        "calibration_standard_deviation_ddof": calibration.standard_deviation_ddof,
+        "calibration_standard_deviation_value_field": calibration.standard_deviation_value_field,
+        "unit_basis": str(_nullable(row.get("canonical_unit_text")) or ""),
     }
     # Fields this source does not declare stay null: the projection is per-source, so borrowing a
     # value another source happens to carry would leak context the contract never bound.
@@ -307,7 +333,7 @@ def _manifest(
         "record_contract_version": calibration["record_contract_version"],
         "calibration_version": calibration["calibration_version"],
         "eligible_projection": eligible_projection_manifest(task_id, registry),
-        "target_geometry": "raw_p05_p95_reconstructed_from_stage05",
+        "target_geometry": "empirical_value_cdf_separation_from_stage05",
         "inputs": hashed,
         "stats": dict(stats),
     }

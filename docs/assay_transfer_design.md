@@ -828,6 +828,12 @@ directly comparable when the relevant versions match.
 
 ## 18. Open decisions
 
+The semantics of the proposed percentile-CDF soft target, including why its “probability” is a
+graded equivalence score rather than a transfer-frequency estimate, are recorded in
+`docs/cdf_soft_target_semantics.md`.
+Canonical V11.1 artifacts are built with `scripts/build_v11_1_from_defined_split.py`, using the
+matching V11 release as the frozen train and ranking membership reference.
+
 The architecture is fixed enough to implement, but the following choices require
 explicit review and versioning:
 

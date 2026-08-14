@@ -145,7 +145,8 @@ _LISTNET_COLUMNS = ("listnet_group_id", "listnet_group_index",
 def _flush(
     path: Path, writer, batch: list[dict], schema=None, compression_level: int | None = None,
 ):
-    table = _table(batch, schema)
+    effective_schema = schema or (writer.schema if writer is not None else None)
+    table = _table(batch, effective_schema)
     options = {"compression": "zstd"}
     if compression_level is not None:
         options["compression_level"] = compression_level

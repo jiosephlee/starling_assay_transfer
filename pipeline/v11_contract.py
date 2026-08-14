@@ -19,7 +19,7 @@ TXAGENT_ROOT = Path("/data1/joseph/TxAgent")
 DEFAULT_REGISTRY = REPO_ROOT / "configs/assay_transfer/v11/prompt_projection.json"
 TEMPLATE_ROOT = REPO_ROOT / "templates/assay_transfer_v11_intern"
 FORBIDDEN_PROMPT_FIELDS = frozenset({"global_context", "global_species_context"})
-ELIGIBLE_PROJECTION_SCHEMA_VERSION = "assay_transfer_eligible_projection.v1"
+ELIGIBLE_PROJECTION_SCHEMA_VERSION = "assay_transfer_eligible_projection.v2"
 TASK_SCHEMA_MODULES = {
     task: f"tools.chembl_tool.tasks.{task}.starling_schema"
     for task in ("bioavailability_ma", "bbb_martins", "skin_reaction")
@@ -145,6 +145,37 @@ def _heldout_identity_keys(path: Path, txagent_root: Path) -> set[str]:
     return load_heldout_identity_keys(path)
 
 
+def _recorded_scaffold_hashes(
+    task_id: str, relpath: str, registry: Mapping[str, Any], txagent_root: Path,
+) -> dict[str, str]:
+    root = task_artifact_root(task_id, registry, txagent_root)
+    top = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    stage = json.loads(
+        (root / "06_remove_heldout_overlap/manifest.json").read_text(encoding="utf-8")
+    )
+    top_hash = (top.get("downstream_build_cache", {}).get("inputs", {}).get(relpath))
+    stage_hash = (
+        stage.get("splits", {}).get("scaffold", {})
+        .get("heldout_molecule_labels", {}).get("sha256")
+    )
+    if not top_hash or not stage_hash:
+        raise ValueError(f"{task_id!r} V7 manifests do not pin the scaffold gold split")
+    return {"v7_top_manifest": str(top_hash), "v7_stage06_manifest": str(stage_hash)}
+
+
+def _validate_gold_rows(task_id: str, rows: list[dict[str, Any]]) -> Counter:
+    split_counts = Counter(str(row.get("split") or "") for row in rows)
+    if set(split_counts) != {"valid", "test"}:
+        raise ValueError(f"{task_id!r} scaffold file has unexpected split rows")
+    methods = {str(row.get("split_method") or "") for row in rows}
+    if methods != {"bemis_murcko_scaffold_group_subset_sum"}:
+        raise ValueError(f"{task_id!r} scaffold file has unexpected split method")
+    identities = [str(row.get("molecule_identity_key") or "") for row in rows]
+    if not all(identities) or len(identities) != len(set(identities)):
+        raise ValueError(f"{task_id!r} scaffold valid/test identities overlap or are missing")
+    return split_counts
+
+
 def heldout_reservation_manifest(
     task_id: str, registry: Mapping[str, Any], txagent_root: Path = TXAGENT_ROOT,
 ) -> dict[str, Any]:
@@ -161,17 +192,17 @@ def heldout_reservation_manifest(
     if not path.is_file():
         raise FileNotFoundError(path)
     rows = _heldout_rows(path)
-    split_counts = Counter(str(row.get("split") or "") for row in rows)
-    if set(split_counts) != set(included):
-        raise ValueError(f"{task_id!r} scaffold file has unexpected split rows")
-    methods = {str(row.get("split_method") or "") for row in rows}
-    if methods != {"bemis_murcko_scaffold_group_subset_sum"}:
-        raise ValueError(f"{task_id!r} scaffold file has unexpected split method")
+    split_counts = _validate_gold_rows(task_id, rows)
+    actual_hash = file_sha256(path)
+    recorded = _recorded_scaffold_hashes(task_id, relpath, registry, txagent_root)
+    if any(value != actual_hash for value in recorded.values()):
+        raise ValueError(f"{task_id!r} live gold scaffold split disagrees with V7 provenance")
     return {
         "methodology": "scaffold",
         "included_splits": included,
         "labels_path": str(path),
-        "labels_sha256": file_sha256(path),
+        "labels_sha256": actual_hash,
+        "v7_recorded_sha256": recorded,
         "split_counts": dict(sorted(split_counts.items())),
         "heldout_parent_identities": len(_heldout_identity_keys(path, txagent_root)),
     }
@@ -234,29 +265,44 @@ def _validate_construction(task_id: str, configured: Mapping[str, Any]) -> None:
     if len(flattened) != len(set(flattened)) or set(flattened) != sources:
         raise ValueError(f"{task_id!r} priority phases must partition its sources")
     construction = configured.get("construction", {})
-    for name in ("ranking_anchor_width", "record_degree_cap", "ordinary_degree_cap"):
+    for name in ("ranking_anchor_width", "ranking_record_degree_cap"):
         if int(construction.get(name, 0)) <= 0:
             raise ValueError(f"{task_id!r} has invalid {name}")
     ranking = construction.get("ranking_anchors", {})
-    quota_maps = [ranking.get(split, {}) for split in ("validation", "test")]
-    quota_maps.append(construction.get("ordinary_pairs_per_label", {}))
+    if set(ranking) != {"continuous", "categorical"}:
+        raise ValueError(f"{task_id!r} must configure both ranking families")
+    quota_maps = [ranking[family] for family in ("continuous", "categorical")]
     if any(set(quotas) != sources for quotas in quota_maps):
         raise ValueError(f"{task_id!r} construction quotas do not cover every source")
     if any(int(value) < 0 for quotas in quota_maps for value in quotas.values()):
         raise ValueError(f"{task_id!r} construction quotas must be nonnegative")
+    _validate_source_sampling(task_id, construction.get("source_record_sampling", {}), sources)
+
+
+def _validate_source_sampling(
+    task_id: str, sampling: Mapping[str, Any], sources: set[str],
+) -> None:
+    if set(sampling) - sources:
+        raise ValueError(f"{task_id!r} samples an unknown source")
+    for source, rule in sampling.items():
+        numerator, denominator = int(rule.get("numerator", 0)), int(rule.get("denominator", 0))
+        if rule.get("method") != "stable_hash_exact":
+            raise ValueError(f"{task_id}/{source} has an invalid sampling method")
+        if denominator <= 0 or numerator <= 0 or numerator >= denominator:
+            raise ValueError(f"{task_id}/{source} has an invalid sampling fraction")
 
 
 def _validate_categorical_ablation(registry: Mapping[str, Any]) -> None:
     release = categorical_ablation_config(registry)
-    if release.get("evaluation_measurement_kinds") != ["continuous"]:
-        raise ValueError("categorical-ablation evaluation must be continuous-only")
-    if release.get("categorical_measurement_kinds") != ["binary", "ordinal"]:
-        raise ValueError("categorical-ablation kinds must be binary plus ordinal")
+    if release.get("evaluation_measurement_kinds") != ["continuous", "binary", "ordinal"]:
+        raise ValueError("v11 ranking evaluation must cover every measurement kind")
+    expected_families = {"continuous": ["continuous"], "categorical": ["binary", "ordinal"]}
+    if release.get("ranking_families") != expected_families:
+        raise ValueError("v11 ranking-family measurement kinds are invalid")
     components = release.get("train_components", {})
-    expected = {"continuous": ["continuous"], "categorical": ["binary", "ordinal"]}
-    if set(components) != set(expected):
+    if set(components) != set(expected_families):
         raise ValueError("categorical-ablation train components are incomplete")
-    for name, kinds in expected.items():
+    for name, kinds in expected_families.items():
         component = components[name]
         if component.get("measurement_kinds") != kinds:
             raise ValueError(f"{name!r} component has unexpected measurement kinds")
@@ -264,11 +310,8 @@ def _validate_categorical_ablation(registry: Mapping[str, Any]) -> None:
         if any(int(component.get(field, 0)) <= 0 for field in numeric):
             raise ValueError(f"{name!r} component has invalid limits")
     variants = release.get("variants", {})
-    if variants != {
-        "continuous_only": ["continuous"],
-        "with_categorical": ["continuous", "categorical"],
-    }:
-        raise ValueError("categorical-ablation variants do not preserve additive training")
+    if variants != {"with_categorical": ["continuous", "categorical"]}:
+        raise ValueError("v11 publishes only the with-categorical release")
 
 
 def validate_registry(

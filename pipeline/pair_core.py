@@ -137,6 +137,9 @@ def eligible(query: dict[str, Any], retrieval: dict[str, Any]) -> bool:
 def row_for(query: dict[str, Any], retrieval: dict[str, Any], split: str) -> dict[str, Any]:
     target = target_for(query, retrieval)
     distribution = {"transfer": target["target_a"], "nontransfer": target["target_b"]}
+    metadata = {"target_distribution": distribution}
+    if "target_z" in target:
+        metadata["target_z"] = target["target_z"]
     return {"prompt": render_prompt(query, retrieval), "completion": "(A)" if target["target_a"] >= .5 else "(B)",
             "split": split, "query_record_id": record_key(query), "retrieval_record_id": record_key(retrieval),
             "query_smiles": query["canonical_smiles"], "retrieval_smiles": retrieval["canonical_smiles"],
@@ -146,7 +149,7 @@ def row_for(query: dict[str, Any], retrieval: dict[str, Any], split: str) -> dic
             "query_input_sha256": query["input_sha256"],
             "retrieval_input_sha256": retrieval["input_sha256"],
             "target_distribution": distribution,
-            "metadata": {"target_distribution": distribution, "target_z": target["target_z"]},
+            "metadata": metadata,
             **target}
 
 
