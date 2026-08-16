@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from functools import lru_cache
 from pathlib import Path
@@ -120,7 +121,13 @@ def reset_prompt_cache() -> None:
 
 @lru_cache(maxsize=None)
 def _registry(path: str) -> dict[str, Any]:
-    return load_registry(Path(path))
+    registry_path = Path(path)
+    schema = json.loads(registry_path.read_text(encoding="utf-8")).get("schema_version")
+    if schema == "assay_transfer_prompt_projection.v12":
+        from pipeline.v12_contract import load_registry as load_v12_registry
+
+        return load_v12_registry(registry_path)
+    return load_registry(registry_path)
 
 
 @lru_cache(maxsize=None)

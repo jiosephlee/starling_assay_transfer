@@ -1,7 +1,7 @@
 # CDF soft-target semantics
 
-Status: active V11/V11.1 target contract
-Last updated: 2026-08-13
+Status: V11/V11.1 historical; V12/V12.1 active for new builds
+Last updated: 2026-08-15
 
 ## Meaning of the target
 
@@ -72,3 +72,20 @@ the nonlinear second CDF from changing the examples selected for either split.
 or emit a separate `target_z`; ranking selection and evaluation use `target_a` directly. Public
 V11 artifacts created before this cleanup retain a historical `target_z` column but are not
 rebuilt or republished.
+
+## V12/V12.1 leakage-safe fitting scope
+
+V12 retains the V11 target equations, but source sampling and normalized-parent split assignment
+happen before calibration. A pair bucket is eligible only with at least 25 train records, and its
+continuous or ordinal CDF is fitted from those train records only. Validation and test values do
+not affect the eligible bucket inventory, CDF support, counts, percentiles, or targets.
+
+V12.1 retains the second-CDF equation but replaces V11.1's global cross-molecule reference sample
+with the exact distribution over all unordered distinct-record train pairs. Same-parent pairs are
+included. Its calibration artifact records exact support/counts and the train-only fit scope.
+V12.1 preserves the exact ordered V12 pair IDs, prompts, splits, ranking query IDs, and member
+indices; only target-derived fields change.
+
+TxAgent's Stage 05 sample SD remains global measurement metadata and is copied unchanged, including
+null values. It is used for downstream error normalization when available and does not affect
+prompts, target construction, eligibility, or loss.

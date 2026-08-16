@@ -828,6 +828,11 @@ directly comparable when the relevant versions match.
 
 ## 18. Open decisions
 
+The implemented successor contract for corrected TxAgent lineage, train-only calibration,
+molecule-disjoint validation/test ranking, same-parent training pairs, and 24-candidate ranking
+lists is `docs/assay_transfer_design_v12.md`. V12/V12.1 supersede V11/V11.1 for new builds while
+leaving all historical releases frozen.
+
 The semantics of the proposed percentile-CDF soft target, including why its “probability” is a
 graded equivalence score rather than a transfer-frequency estimate, are recorded in
 `docs/cdf_soft_target_semantics.md`.

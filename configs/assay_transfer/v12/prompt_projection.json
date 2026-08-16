@@ -1,0 +1,109 @@
+{
+  "schema_version": "assay_transfer_prompt_projection.v12",
+  "base_registry_relpath": "configs/assay_transfer/v11/prompt_projection.json",
+  "record_contract_version": "starling_record_contract.v7",
+  "split_contract": {
+    "identity_normalizer": "rdkit_fragment_parent.v1",
+    "method": "gold_lineage_test_union_plus_hash_validation.v1",
+    "validation_seed_namespace": "assay-transfer-v12-validation-parent",
+    "validation_parent_target": "floor(test_parent_count/2)",
+    "test_parent_source": "eligible intersection with gold valid+test union"
+  },
+  "calibration_contract": {
+    "fit_split": "train",
+    "minimum_train_records_per_bucket": 25,
+    "source_sampling_precedes_calibration": true,
+    "weighting": "record_weighted",
+    "target_affecting_value_gates": ["minimum_25_train_records"],
+    "global_stage05_fields_used": [
+      "observed_sample_standard_deviation",
+      "standard_deviation_ddof",
+      "standard_deviation_value_field"
+    ],
+    "global_stage05_use": "measurement_metadata_only_including_null_values"
+  },
+  "categorical_ablation_release": {
+    "evaluation_measurement_kinds": ["continuous", "binary", "ordinal"],
+    "ranking_families": {
+      "continuous": ["continuous"],
+      "categorical": ["binary", "ordinal"]
+    },
+    "train_components": {
+      "continuous": {
+        "measurement_kinds": ["continuous"],
+        "max_pairs": 1250000,
+        "query_degree_cap": 6,
+        "retrieval_degree_cap": 6
+      },
+      "categorical": {
+        "measurement_kinds": ["binary", "ordinal"],
+        "max_pairs": 1250000,
+        "query_degree_cap": 6,
+        "retrieval_degree_cap": 6
+      }
+    },
+    "variants": {"with_categorical": ["continuous", "categorical"]}
+  },
+  "task_overrides": {
+    "bioavailability_ma": {
+      "gold_lineage": {
+        "name": "record_supported_v2",
+        "root_relpath": "data/processed_starling_record_supported_v2/Bioavailability_Ma/scaffold"
+      },
+      "construction": {
+        "ranking_anchor_width": 24,
+        "ranking_record_degree_cap": 48,
+        "ranking_anchors": {
+          "validation": {
+            "continuous": {"hf_bioavailability": 20, "oral_exposure": 10, "fa": 10, "fg": 5, "fh": 10},
+            "categorical": {"hf_bioavailability": 20, "oral_exposure": 10, "fa": 10, "fg": 5, "fh": 10}
+          },
+          "test": {
+            "continuous": {"hf_bioavailability": 40, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20},
+            "categorical": {"hf_bioavailability": 40, "oral_exposure": 20, "fa": 20, "fg": 10, "fh": 20}
+          }
+        }
+      }
+    },
+    "bbb_martins": {
+      "gold_lineage": {
+        "name": "experimental_meaningful_cns_access_v2",
+        "root_relpath": "data/processed_starling_experimental_meaningful_cns_access_v2/BBB_Martins/scaffold"
+      },
+      "construction": {
+        "ranking_anchor_width": 24,
+        "ranking_record_degree_cap": 48,
+        "ranking_anchors": {
+          "validation": {
+            "continuous": {"direct_bbb": 20, "passive_permeability": 10, "efflux_transport": 10, "influx_transport": 10},
+            "categorical": {"direct_bbb": 20, "passive_permeability": 10, "efflux_transport": 10, "influx_transport": 10}
+          },
+          "test": {
+            "continuous": {"direct_bbb": 40, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20},
+            "categorical": {"direct_bbb": 40, "passive_permeability": 20, "efflux_transport": 20, "influx_transport": 20}
+          }
+        }
+      }
+    },
+    "skin_reaction": {
+      "gold_lineage": {
+        "name": "record_supported_v2",
+        "root_relpath": "data/processed_starling_record_supported_v2/Skin_Reaction/scaffold"
+      },
+      "construction": {
+        "ranking_anchor_width": 24,
+        "ranking_record_degree_cap": 48,
+        "ranking_anchors": {
+          "validation": {
+            "continuous": {"direct_skin_reaction": 20, "sensitization_aop": 10, "phototoxicity_irritation_local_damage": 10, "skin_exposure": 10},
+            "categorical": {"direct_skin_reaction": 20, "sensitization_aop": 10, "phototoxicity_irritation_local_damage": 10, "skin_exposure": 10}
+          },
+          "test": {
+            "continuous": {"direct_skin_reaction": 40, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20},
+            "categorical": {"direct_skin_reaction": 40, "sensitization_aop": 20, "phototoxicity_irritation_local_damage": 20, "skin_exposure": 20}
+          }
+        }
+      }
+    }
+  }
+}

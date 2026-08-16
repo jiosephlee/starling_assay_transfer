@@ -9,6 +9,25 @@ is retained as the exploratory analysis record.
 This workspace contains a generic molecular-transfer data pipeline plus one
 Starling-specific preprocessing adapter.
 
+## Assay Transfer V12/V12.1
+
+The active contract for new TxAgent-backed builds is
+[`docs/assay_transfer_design_v12.md`](docs/assay_transfer_design_v12.md). V12 uses the corrected
+task gold lineages, molecule-disjoint validation/test splits grouped by TxAgent normalized-parent
+identity, train-only bucket eligibility and CDF calibration, same-parent training pairs, and
+24-candidate validation/test ranking lists. V12.1 freezes all V12 membership and changes only its
+target-derived fields using an exact train-pair distance CDF. V11/V11.1 remain frozen historical
+releases.
+
+Build and verify one task with:
+
+```bash
+python -m scripts.build_v12_release --task bioavailability_ma --rebuild-source
+python -m scripts.verify_v12_release \
+  --root datasets/hf_parquet/assay_transfer_raw_pair_v12/bioavailability_ma/with_categorical \
+  --source datasets/eligible/assay_transfer_starling_txagent_v12/bioavailability_ma/records.parquet
+```
+
 ## Assay Transfer V4
 
 The active V4 contract is documented in
